@@ -24,6 +24,28 @@ const API_URL = "http://localhost:8080/api"; // Backend API URL
 const ADMIN_EMAIL = "ahmedhanyseifeldin@gmail.com"; // Hardcoded admin email
 const ADMIN_PASSWORD = "Ahmed hany11*"; // Hardcoded admin password for validation
 
+// Mock user storage for demo purposes
+const MOCK_USERS_STORAGE_KEY = "mock_users";
+
+// Helper function to get mock users from localStorage
+const getMockUsers = (): {email: string, password: string, id: string}[] => {
+  const usersJson = localStorage.getItem(MOCK_USERS_STORAGE_KEY);
+  return usersJson ? JSON.parse(usersJson) : [];
+};
+
+// Helper function to save mock users to localStorage
+const saveMockUser = (email: string, password: string) => {
+  const users = getMockUsers();
+  if (!users.find(u => u.email === email)) {
+    users.push({
+      id: `user-${Date.now()}`,
+      email,
+      password
+    });
+    localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(users));
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,16 +59,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/auth/me`, {
-        method: "GET",
-        credentials: "include", // Important for cookies
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
+      // Check for user session in localStorage
+      const storedUser = localStorage.getItem('currentUser');
+      
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
         
         // Set admin role if the user is the hardcoded admin email
         if (userData.email === ADMIN_EMAIL) {
@@ -84,6 +101,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             role: "ROLE_ADMIN"
           };
           setUser(adminUser);
+          // Store user in localStorage (simulate session)
+          localStorage.setItem('currentUser', JSON.stringify(adminUser));
           setLoginAttempts(0); // Reset attempts on success
           return true;
         } else {
@@ -93,32 +112,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // Regular user login
-      const response = await fetch(`${API_URL}/auth/login`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        const userData = await response.json();
+      // Regular user login - check against mock users
+      const users = getMockUsers();
+      const foundUser = users.find(u => u.email === email && u.password === password);
+      
+      if (foundUser) {
+        const userData = {
+          id: foundUser.id,
+          email: foundUser.email,
+          role: "ROLE_USER"
+        };
+        
         setUser(userData);
+        // Store user in localStorage (simulate session)
+        localStorage.setItem('currentUser', JSON.stringify(userData));
         setLoginAttempts(0); // Reset attempts on success
         return true;
       } else {
         // Increment failed attempts
         setLoginAttempts(prev => prev + 1);
-        
-        if (response.status === 401) {
-          toast.error("Invalid email or password");
-        } else if (response.status === 429) {
-          toast.error("Too many login attempts. Please try again later.");
-        } else {
-          toast.error("Login failed. Please try again.");
-        }
+        toast.error("Invalid email or password");
         return false;
       }
     } catch (error) {
@@ -136,10 +149,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      // Since the backend API is not available in this demo, we'll mock a successful registration
-      // In a real application, this would be an actual API call to register the user
+      // Save user credentials to mock storage
+      saveMockUser(email, password);
       
-      // Mock user for demonstration purposes
+      // Create a mock user object
       const mockUser = {
         id: `user-${Date.now()}`,
         email: email,
@@ -147,7 +160,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       
       // In a real app, we would send this to an API endpoint
-      // For now, we'll just simulate a successful registration
       toast.success("Registration successful! You can now log in.");
       return true;
     } catch (error) {
@@ -159,16 +171,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await fetch(`${API_URL}/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      // Clear user data from localStorage
+      localStorage.removeItem('currentUser');
+      setUser(null);
     } catch (error) {
       console.error("Logout request failed", error);
-    } finally {
       // Always clear the user data locally even if the request fails
       setUser(null);
     }

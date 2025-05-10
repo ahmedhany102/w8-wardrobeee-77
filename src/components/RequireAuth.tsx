@@ -10,13 +10,38 @@ interface RequireAuthProps {
 }
 
 export const RequireAuth = ({ children, adminOnly = false }: RequireAuthProps) => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, checkAuthStatus } = useAuth();
   const location = useLocation();
   const [lastActivity, setLastActivity] = useState(Date.now());
   const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [securityTokenValid, setSecurityTokenValid] = useState(true);
   
   // Auto logout after inactivity (30 minutes)
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+  // Check security token every 5 minutes
+  const SECURITY_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+  // Function to validate security token
+  const validateSecurityToken = () => {
+    // In a real application, this would verify the JWT or session token with the backend
+    // For this demo, we'll check if the user exists in localStorage
+    const storedUser = localStorage.getItem('currentUser');
+    if (!storedUser) {
+      setSecurityTokenValid(false);
+      return false;
+    }
+    
+    try {
+      // Check if token format is valid
+      JSON.parse(storedUser);
+      setSecurityTokenValid(true);
+      return true;
+    } catch (e) {
+      // Invalid JSON format in token
+      setSecurityTokenValid(false);
+      return false;
+    }
+  };
 
   useEffect(() => {
     // Set up activity listeners
@@ -37,21 +62,44 @@ export const RequireAuth = ({ children, adminOnly = false }: RequireAuthProps) =
         // Log out due to inactivity
         setIsAuthenticated(false);
         toast.error("You've been logged out due to inactivity");
+        
+        // Clear local session data
+        localStorage.removeItem('currentUser');
       }
     }, 60000); // Check every minute
     
+    // Validate security token periodically
+    const securityCheck = setInterval(() => {
+      if (!validateSecurityToken()) {
+        toast.error("Session expired. Please log in again.");
+        setIsAuthenticated(false);
+        localStorage.removeItem('currentUser');
+      }
+    }, SECURITY_CHECK_INTERVAL);
+    
+    // Initial security token validation
+    validateSecurityToken();
+    
     return () => {
-      // Clean up event listeners and timer
+      // Clean up event listeners and timers
       activityEvents.forEach(event => {
         document.removeEventListener(event, updateActivity);
       });
       clearInterval(inactivityCheck);
+      clearInterval(securityCheck);
     };
   }, [lastActivity]);
 
   // Additional security checks for admin pages
   useEffect(() => {
     if (adminOnly && user) {
+      // Simple token rotation/refresh for admin sessions
+      const adminTokenRefresh = setInterval(() => {
+        // In a real app, this would refresh the admin JWT token
+        // For this demo, we'll just check admin status again
+        checkAuthStatus();
+      }, 10 * 60 * 1000); // Refresh every 10 minutes
+      
       // Verify admin status periodically (every minute)
       const adminCheck = setInterval(() => {
         if (!isAdmin) {
@@ -60,19 +108,51 @@ export const RequireAuth = ({ children, adminOnly = false }: RequireAuthProps) =
         }
       }, 60000);
       
-      return () => clearInterval(adminCheck);
+      return () => {
+        clearInterval(adminCheck);
+        clearInterval(adminTokenRefresh);
+      };
     }
-  }, [adminOnly, user, isAdmin]);
+  }, [adminOnly, user, isAdmin, checkAuthStatus]);
 
-  if (!isAuthenticated) {
+  // Additional layer of protection for admin pages
+  useEffect(() => {
+    if (adminOnly) {
+      // Implementation of advanced security measures for admin
+      // In a real app, this would implement additional verification
+      
+      // For demo: Implement a basic CSRF protection mock
+      const csrfToken = `csrf-${Math.random().toString(36).substring(2)}`;
+      sessionStorage.setItem('csrfToken', csrfToken);
+      
+      // Check for any suspicious patterns (mock implementation)
+      const userAgent = navigator.userAgent;
+      const knownBots = ['bot', 'spider', 'crawl'];
+      const isSuspiciousAgent = knownBots.some(bot => userAgent.toLowerCase().includes(bot));
+      
+      if (isSuspiciousAgent) {
+        toast.error("Suspicious access pattern detected");
+        setIsAuthenticated(false);
+      }
+    }
+  }, [adminOnly, location.pathname]);
+
+  if (!isAuthenticated || !securityTokenValid) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   if (loading) {
-    // Loading state
+    // Loading state with improved animation
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-white to-purple-50">
+        <div className="text-center">
+          <div className="relative h-20 w-20 mx-auto">
+            <div className="absolute inset-0 border-t-4 border-b-4 border-purple-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-2 border-t-4 border-b-4 border-purple-400 rounded-full animate-spin animation-delay-150" style={{ animationDirection: 'reverse' }}></div>
+            <div className="absolute inset-4 border-t-4 border-b-4 border-purple-300 rounded-full animate-spin animation-delay-300"></div>
+          </div>
+          <p className="mt-4 text-purple-800 font-medium animate-pulse">Verifying your credentials...</p>
+        </div>
       </div>
     );
   }

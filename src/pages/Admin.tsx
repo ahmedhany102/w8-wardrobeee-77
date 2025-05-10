@@ -15,6 +15,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Navigate } from "react-router-dom";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import OrdersPanel from "@/components/admin/OrdersPanel";
 
 interface User {
   id: string;
@@ -43,6 +45,7 @@ const AdminPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("users");
 
   const form = useForm<EditUserFormValues>({
     resolver: zodResolver(editUserSchema),
@@ -178,93 +181,137 @@ const AdminPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-5xl mx-auto">
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-2xl">Admin Panel</CardTitle>
-            <CardDescription>
-              Manage users and system settings
+      <div className="max-w-6xl mx-auto">
+        <Card className="mb-6 shadow-lg transition-all duration-300 hover:shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-t-md">
+            <CardTitle className="text-2xl flex items-center justify-between">
+              <span>Admin Panel</span>
+              <span className="text-sm bg-white text-purple-800 px-3 py-1 rounded-full animate-pulse">
+                👑 Secure Admin Session
+              </span>
+            </CardTitle>
+            <CardDescription className="text-gray-100">
+              Manage users, orders, and system settings
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">User Management</h2>
-              <Button onClick={fetchUsers} variant="outline">
-                Refresh
-              </Button>
+          
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
+            <div className="px-6 pt-6">
+              <TabsList className="w-full grid grid-cols-2 mb-4">
+                <TabsTrigger 
+                  value="users" 
+                  className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800"
+                >
+                  User Management
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="orders"
+                  className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800"
+                >
+                  Order Management
+                </TabsTrigger>
+              </TabsList>
             </div>
+            
+            <TabsContent value="users" className="pt-2">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-purple-700">Users List</h2>
+                  <Button 
+                    onClick={fetchUsers} 
+                    variant="outline"
+                    className="border-purple-300 hover:bg-purple-50 transition-all"
+                  >
+                    Refresh
+                  </Button>
+                </div>
 
-            {isLoading ? (
-              <div className="text-center py-8">Loading users...</div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Created At</TableHead>
-                      <TableHead>IP Address</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {users.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={7}
-                          className="text-center h-24 text-muted-foreground"
-                        >
-                          No users found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      users.map((userData) => (
-                        <TableRow key={userData.id}>
-                          <TableCell className="font-medium">
-                            {userData.id.length > 8 ? `${userData.id.substring(0, 8)}...` : userData.id}
-                          </TableCell>
-                          <TableCell>{userData.name}</TableCell>
-                          <TableCell>{userData.email}</TableCell>
-                          <TableCell>{userData.role.replace('ROLE_', '')}</TableCell>
-                          <TableCell>
-                            {new Date(userData.createdAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>{userData.ipAddress}</TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEditClick(userData)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDeleteUser(userData.id)}
-                              disabled={userData.email === ADMIN_EMAIL}
-                            >
-                              Delete
-                            </Button>
-                          </TableCell>
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading users...</p>
+                  </div>
+                ) : (
+                  <div className="rounded-md border overflow-hidden transition-all duration-300 hover:shadow-md">
+                    <Table>
+                      <TableHeader className="bg-purple-100">
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Created At</TableHead>
+                          <TableHead>IP Address</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
+                      </TableHeader>
+                      <TableBody>
+                        {users.length === 0 ? (
+                          <TableRow>
+                            <TableCell
+                              colSpan={7}
+                              className="text-center h-24 text-muted-foreground"
+                            >
+                              No users found
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          users.map((userData) => (
+                            <TableRow key={userData.id} className="hover:bg-purple-50 transition-colors">
+                              <TableCell className="font-medium">
+                                {userData.id.length > 8 ? `${userData.id.substring(0, 8)}...` : userData.id}
+                              </TableCell>
+                              <TableCell>{userData.name}</TableCell>
+                              <TableCell>{userData.email}</TableCell>
+                              <TableCell>{userData.role.replace('ROLE_', '')}</TableCell>
+                              <TableCell>
+                                {new Date(userData.createdAt).toLocaleDateString()}
+                              </TableCell>
+                              <TableCell>{userData.ipAddress}</TableCell>
+                              <TableCell className="text-right space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditClick(userData)}
+                                  className="border-purple-300 hover:bg-purple-50 transition-all"
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteUser(userData.id)}
+                                  disabled={userData.email === ADMIN_EMAIL}
+                                  className="hover:bg-red-600 transition-all"
+                                >
+                                  Delete
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </TabsContent>
+            
+            <TabsContent value="orders">
+              <OrdersPanel />
+            </TabsContent>
+          </Tabs>
         </Card>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle className="text-xl text-purple-700">Edit User</DialogTitle>
             <DialogDescription>
               Make changes to the user account. Click save when you're done.
             </DialogDescription>
@@ -278,7 +325,7 @@ const AdminPage = () => {
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} className="transition-all hover:border-purple-300 focus:ring-purple-500" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -291,7 +338,7 @@ const AdminPage = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} className="transition-all hover:border-purple-300 focus:ring-purple-500" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -341,10 +388,16 @@ const AdminPage = () => {
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsDialogOpen(false)}
+                  className="transition-all hover:bg-gray-100"
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Save changes</Button>
+                <Button 
+                  type="submit"
+                  className="bg-purple-600 hover:bg-purple-700 transition-all hover:scale-105 active:scale-95"
+                >
+                  Save changes
+                </Button>
               </DialogFooter>
             </form>
           </Form>

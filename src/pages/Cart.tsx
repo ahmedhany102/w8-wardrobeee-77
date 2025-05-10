@@ -5,10 +5,18 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ShoppingCart, Trash, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Trash, Plus, Minus, CreditCard, MapPin, Phone } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import OrderDatabase from "@/models/OrderDatabase";
+import { Order, CustomerInfo, OrderItem } from "@/models/Order";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface Product {
   id: number;
@@ -24,12 +32,49 @@ interface CartItem {
   quantity: number;
 }
 
+const orderSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+  email: z.string().email({ message: "Please enter a valid email" }),
+  phone: z.string().min(5, { message: "Please enter a valid phone number" }),
+  street: z.string().min(5, { message: "Please enter your street address" }),
+  city: z.string().min(2, { message: "Please enter your city" }),
+  state: z.string().min(2, { message: "Please enter your state/province" }),
+  zip: z.string().min(3, { message: "Please enter your zip/postal code" }),
+  country: z.string().min(2, { message: "Please enter your country" }),
+  paymentMethod: z.enum(["creditCard", "paypal", "bankTransfer"], { 
+    message: "Please select a payment method" 
+  }),
+  cardNumber: z.string().optional(),
+  cardExpiry: z.string().optional(),
+  cardCVV: z.string().optional(),
+  notes: z.string().optional()
+});
+
+type OrderFormValues = z.infer<typeof orderSchema>;
+
 const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const orderDb = OrderDatabase.getInstance();
+
+  const form = useForm<OrderFormValues>({
+    resolver: zodResolver(orderSchema),
+    defaultValues: {
+      name: "",
+      email: user?.email || "",
+      phone: "",
+      street: "",
+      city: "",
+      state: "",
+      zip: "",
+      country: "",
+      paymentMethod: "creditCard",
+      notes: ""
+    }
+  });
 
   useEffect(() => {
     // Load cart from localStorage
@@ -80,20 +125,89 @@ const Cart = () => {
   };
 
   const handleCheckout = () => {
+    if (!cartItems.length) {
+      toast.error("Your cart is empty");
+      return;
+    }
+    
+    if (user) {
+      // Pre-fill the form with user email if available
+      form.setValue("email", user.email);
+    }
+    
     setIsCheckoutModalOpen(true);
   };
 
-  const processOrder = () => {
+  const processOrder = async (data: OrderFormValues) => {
+    if (!user) {
+      toast.error("Please login to place an order");
+      navigate("/login");
+      return;
+    }
+
     setIsProcessing(true);
     
-    // Simulate processing time
-    setTimeout(() => {
+    try {
+      // Create OrderItems from cartItems
+      const orderItems: OrderItem[] = cartItems.map(item => ({
+        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        productId: item.product.id.toString(),
+        productName: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity,
+        total: item.product.price * item.quantity
+      }));
+      
+      // Create customer info
+      const customerInfo: CustomerInfo = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        address: {
+          street: data.street,
+          city: data.city,
+          state: data.state,
+          zip: data.zip,
+          country: data.country
+        }
+      };
+      
+      // Calculate total amount
+      const totalAmount = orderItems.reduce((sum, item) => sum + item.total, 0);
+      const shippingCost = totalAmount > 100 ? 0 : 15; // Free shipping over $100
+      
+      // Create order object
+      const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
+        orderNumber: `ORD-${Date.now().toString().substr(-6)}`,
+        customerId: user.id,
+        customerInfo,
+        items: orderItems,
+        totalAmount: totalAmount + shippingCost,
+        status: 'pending',
+        paymentMethod: data.paymentMethod,
+        paymentStatus: 'unpaid', // Start as unpaid
+        shippingMethod: 'standard',
+        shippingCost,
+        notes: data.notes
+      };
+      
+      // Save the order
+      const savedOrder = await orderDb.saveOrder(orderData);
+      
+      // Simulate successful order
+      setTimeout(() => {
+        setIsProcessing(false);
+        setIsCheckoutModalOpen(false);
+        clearCart();
+        toast.success("Order placed successfully!");
+        navigate("/");
+      }, 1500);
+      
+    } catch (error) {
+      console.error("Error processing order:", error);
+      toast.error("There was an error processing your order. Please try again.");
       setIsProcessing(false);
-      setIsCheckoutModalOpen(false);
-      clearCart();
-      toast.success("Order placed successfully!");
-      navigate("/");
-    }, 1500);
+    }
   };
 
   // Calculate total price
@@ -111,7 +225,7 @@ const Cart = () => {
         <div className="flex flex-col items-center justify-center py-12">
           <h1 className="text-2xl font-bold mb-4">Please Login to View Cart</h1>
           <p className="text-gray-600 mb-6">You need to be logged in to access your shopping cart.</p>
-          <Button onClick={() => navigate("/login")}>Login</Button>
+          <Button onClick={() => navigate("/login")} className="bg-purple-600 hover:bg-purple-700 transition-all">Login</Button>
         </div>
       </Layout>
     );
@@ -120,8 +234,8 @@ const Cart = () => {
   return (
     <Layout>
       <div className="max-w-4xl mx-auto">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="transition-all duration-300 hover:shadow-lg">
+          <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-purple-500 to-purple-700 text-white rounded-t-md">
             <CardTitle className="text-2xl">
               <span className="flex items-center gap-2">
                 <ShoppingCart className="h-6 w-6" />
@@ -129,28 +243,35 @@ const Cart = () => {
               </span>
             </CardTitle>
             {!isCartEmpty && (
-              <Button variant="outline" onClick={() => {
+              <Button variant="secondary" onClick={() => {
                 if (confirm("Are you sure you want to clear your cart?")) {
                   clearCart();
                   toast.success("Cart has been cleared");
                 }
-              }}>
+              }}
+              className="bg-white text-purple-700 hover:bg-gray-100"
+              >
                 Clear Cart
               </Button>
             )}
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             {isCartEmpty ? (
               <div className="flex flex-col items-center py-12">
                 <ShoppingCart className="h-16 w-16 text-gray-300 mb-4" />
                 <p className="text-xl text-gray-500 mb-6">Your cart is empty</p>
-                <Button onClick={() => navigate("/")}>Browse Products</Button>
+                <Button 
+                  onClick={() => navigate("/")} 
+                  className="bg-purple-600 hover:bg-purple-700 transition-all animate-pulse"
+                >
+                  Browse Products
+                </Button>
               </div>
             ) : (
               <>
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-hidden transition-all duration-300 hover:shadow-md">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-purple-100">
                       <TableRow>
                         <TableHead className="w-[100px]">Image</TableHead>
                         <TableHead>Product</TableHead>
@@ -162,12 +283,12 @@ const Cart = () => {
                     </TableHeader>
                     <TableBody>
                       {cartItems.map((item) => (
-                        <TableRow key={item.product.id}>
+                        <TableRow key={item.product.id} className="hover:bg-purple-50 transition-colors">
                           <TableCell>
                             <img
                               src={item.product.imageUrl}
                               alt={item.product.name}
-                              className="h-12 w-12 object-cover rounded"
+                              className="h-16 w-16 object-cover rounded-md transition-all duration-300 hover:scale-110"
                             />
                           </TableCell>
                           <TableCell className="font-medium">
@@ -179,30 +300,30 @@ const Cart = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 border-purple-300 hover:bg-purple-100"
                                 onClick={() => handleDecreaseQuantity(item.product.id)}
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
-                              <span className="w-8 text-center">{item.quantity}</span>
+                              <span className="w-8 text-center font-medium">{item.quantity}</span>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 w-8 p-0"
+                                className="h-8 w-8 p-0 border-purple-300 hover:bg-purple-100"
                                 onClick={() => handleIncreaseQuantity(item.product.id)}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="font-semibold">
                             ${(item.product.price * item.quantity).toFixed(2)}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-8 w-8 p-0 text-red-500"
+                              className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
                               onClick={() => handleRemoveItem(item.product.id)}
                             >
                               <Trash className="h-4 w-4" />
@@ -215,10 +336,13 @@ const Cart = () => {
                 </div>
                 
                 <div className="mt-8 flex flex-col md:flex-row justify-between items-center">
-                  <div className="text-xl font-semibold mb-4 md:mb-0">
+                  <div className="text-2xl font-semibold mb-4 md:mb-0 text-purple-700">
                     Total: ${totalPrice.toFixed(2)}
                   </div>
-                  <Button onClick={handleCheckout} className="w-full md:w-auto">
+                  <Button 
+                    onClick={handleCheckout} 
+                    className="w-full md:w-auto bg-purple-600 hover:bg-purple-700 transition-all transform hover:scale-105 active:scale-95"
+                  >
                     Proceed to Checkout
                   </Button>
                 </div>
@@ -228,45 +352,299 @@ const Cart = () => {
         </Card>
       </div>
 
-      {/* Checkout Modal */}
+      {/* Checkout Order Form Modal */}
       <Dialog open={isCheckoutModalOpen} onOpenChange={setIsCheckoutModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Complete Your Order</DialogTitle>
-            <DialogDescription>
-              Review your order before proceeding with payment.
+            <DialogTitle className="text-xl text-center text-purple-700">Complete Your Order</DialogTitle>
+            <DialogDescription className="text-center">
+              Please provide your delivery and payment details
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <div className="border-t border-b py-4">
-              <p className="font-medium mb-2">Order Summary</p>
-              {cartItems.map(item => (
-                <div key={item.product.id} className="flex justify-between text-sm py-1">
-                  <span>{item.product.name} x {item.quantity}</span>
-                  <span>${(item.product.price * item.quantity).toFixed(2)}</span>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(processOrder)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Personal Information */}
+                <div className="space-y-3 col-span-2">
+                  <h3 className="text-lg font-medium border-b pb-2">Personal Information</h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="John Doe" className="transition-all hover:border-purple-300" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="email" placeholder="you@example.com" className="transition-all hover:border-purple-300" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="+1 (234) 567-8900" className="transition-all hover:border-purple-300" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
-              ))}
-            </div>
-            
-            <div className="flex justify-between font-bold">
-              <span>Total Amount</span>
-              <span>${totalPrice.toFixed(2)}</span>
-            </div>
-            
-            <p className="text-sm text-gray-500">
-              This is a demo checkout. No real payment will be processed.
-            </p>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCheckoutModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={processOrder} disabled={isProcessing}>
-              {isProcessing ? "Processing..." : "Complete Purchase"}
-            </Button>
-          </DialogFooter>
+                
+                {/* Shipping Address */}
+                <div className="space-y-3 col-span-2">
+                  <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-purple-600" />
+                    Shipping Address
+                  </h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="street"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Street Address</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="123 Main St, Apt 4B" className="transition-all hover:border-purple-300" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="New York" className="transition-all hover:border-purple-300" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="state"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>State/Province</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="NY" className="transition-all hover:border-purple-300" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="zip"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Zip/Postal Code</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="10001" className="transition-all hover:border-purple-300" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="country"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Country</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="United States" className="transition-all hover:border-purple-300" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+                
+                {/* Payment Details */}
+                <div className="space-y-3 col-span-2">
+                  <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                    <CreditCard className="h-5 w-5 text-purple-600" />
+                    Payment Details
+                  </h3>
+                  
+                  <FormField
+                    control={form.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Method</FormLabel>
+                        <FormControl>
+                          <select 
+                            {...field} 
+                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all hover:border-purple-300"
+                          >
+                            <option value="creditCard">Credit Card</option>
+                            <option value="paypal">PayPal</option>
+                            <option value="bankTransfer">Bank Transfer</option>
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  {/* Credit Card Details (conditionally shown) */}
+                  {form.watch("paymentMethod") === "creditCard" && (
+                    <div className="space-y-3 animate-fade-in">
+                      <FormField
+                        control={form.control}
+                        name="cardNumber"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Card Number</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                placeholder="1234 5678 9012 3456" 
+                                className="transition-all hover:border-purple-300"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField
+                          control={form.control}
+                          name="cardExpiry"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Expiry Date</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  placeholder="MM/YY" 
+                                  className="transition-all hover:border-purple-300"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={form.control}
+                          name="cardCVV"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>CVV</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  placeholder="123" 
+                                  className="transition-all hover:border-purple-300"
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Additional Notes */}
+                <div className="col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Order Notes (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            {...field} 
+                            placeholder="Any special instructions for delivery or order preparation" 
+                            className="min-h-20 transition-all hover:border-purple-300"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+              
+              {/* Order Summary */}
+              <div className="border rounded-lg p-4 bg-purple-50">
+                <h3 className="text-lg font-medium mb-2">Order Summary</h3>
+                <div className="space-y-1">
+                  {cartItems.map(item => (
+                    <div key={item.product.id} className="flex justify-between text-sm py-1">
+                      <span>{item.product.name} x {item.quantity}</span>
+                      <span>${(item.product.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  
+                  <div className="border-t pt-2 mt-2 flex justify-between font-bold">
+                    <span>Total Amount</span>
+                    <span>${totalPrice.toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsCheckoutModalOpen(false)}
+                  className="transition-all hover:bg-gray-100"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isProcessing}
+                  className="bg-purple-600 hover:bg-purple-700 transition-transform hover:scale-105 active:scale-95"
+                >
+                  {isProcessing ? "Processing..." : "Complete Purchase"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </Layout>
