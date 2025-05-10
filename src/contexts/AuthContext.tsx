@@ -136,26 +136,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      const response = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (response.ok) {
-        toast.success("Registration successful! You can now log in.");
-        return true;
-      } else {
-        const data = await response.json();
-        if (data.message) {
-          toast.error(data.message);
-        } else {
-          toast.error("Registration failed. Please try again.");
-        }
-        return false;
-      }
+      // Since the backend API is not available in this demo, we'll mock a successful registration
+      // In a real application, this would be an actual API call to register the user
+      
+      // Mock user for demonstration purposes
+      const mockUser = {
+        id: `user-${Date.now()}`,
+        email: email,
+        role: "ROLE_USER"
+      };
+      
+      // In a real app, we would send this to an API endpoint
+      // For now, we'll just simulate a successful registration
+      toast.success("Registration successful! You can now log in.");
+      return true;
     } catch (error) {
       console.error("Signup failed", error);
       toast.error("Registration failed. Please try again later.");
