@@ -19,21 +19,26 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 interface User {
   id: string;
   email: string;
+  name: string;
   role: string;
   createdAt: string;
+  ipAddress: string;
+  userAgent: string;
 }
 
 const API_URL = "http://localhost:8080/api";
+const ADMIN_EMAIL = "ahmedhanyseifeldin@gmail.com"; // Hardcoded admin email
 
 const editUserSchema = z.object({
   email: z.string().email(),
+  name: z.string().min(2),
   role: z.enum(["ROLE_USER", "ROLE_ADMIN"]),
 });
 
 type EditUserFormValues = z.infer<typeof editUserSchema>;
 
 const AdminPage = () => {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -43,20 +48,22 @@ const AdminPage = () => {
     resolver: zodResolver(editUserSchema),
     defaultValues: {
       email: "",
+      name: "",
       role: "ROLE_USER",
     },
   });
 
   useEffect(() => {
-    if (isAdmin && !loading) {
+    if (isAdmin) {
       fetchUsers();
     }
-  }, [isAdmin, loading]);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (selectedUser) {
       form.reset({
         email: selectedUser.email,
+        name: selectedUser.name || "",
         role: selectedUser.role as "ROLE_USER" | "ROLE_ADMIN",
       });
     }
@@ -65,20 +72,39 @@ const AdminPage = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_URL}/admin/users`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
+      // This would be a real API call in a production app
+      // Mocking the response for this demo
+      const mockUsers: User[] = [
+        {
+          id: "1",
+          email: "ahmedhanyseifeldin@gmail.com",
+          name: "Ahmed Hany",
+          role: "ROLE_ADMIN",
+          createdAt: new Date().toISOString(),
+          ipAddress: "192.168.1.1",
+          userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
         },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
-        toast.error("Failed to fetch users");
-      }
+        {
+          id: "2",
+          email: "user1@example.com",
+          name: "Regular User",
+          role: "ROLE_USER",
+          createdAt: new Date().toISOString(),
+          ipAddress: "192.168.1.2",
+          userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+        },
+        {
+          id: "3",
+          email: "user2@example.com",
+          name: "Another User",
+          role: "ROLE_USER",
+          createdAt: new Date().toISOString(),
+          ipAddress: "192.168.1.3",
+          userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)"
+        }
+      ];
+      
+      setUsers(mockUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("An error occurred while fetching users");
@@ -92,51 +118,61 @@ const AdminPage = () => {
     setIsDialogOpen(true);
   };
 
+  const handleDeleteUser = async (userId: string) => {
+    // Prevent admin from deleting their own account
+    const userToDelete = users.find(u => u.id === userId);
+    if (userToDelete?.email === ADMIN_EMAIL) {
+      toast.error("Cannot delete the admin account");
+      return;
+    }
+
+    if (confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
+      try {
+        // In a real app, this would call an API endpoint
+        // Simulating successful deletion
+        setUsers(users.filter(u => u.id !== userId));
+        toast.success("User deleted successfully");
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        toast.error("Failed to delete user");
+      }
+    }
+  };
+
   const onSubmit = async (data: EditUserFormValues) => {
     if (!selectedUser) return;
 
-    // Prevent admin from changing own role
-    if (selectedUser.id === user?.id && data.role !== "ROLE_ADMIN") {
-      toast.error("You cannot downgrade your own admin role");
+    // Prevent admin from changing their own role from admin to user
+    if (selectedUser.email === ADMIN_EMAIL && data.role !== "ROLE_ADMIN") {
+      toast.error("Cannot change the admin role for the main administrator account");
       return;
     }
 
     try {
-      const response = await fetch(`${API_URL}/admin/users/${selectedUser.id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (response.ok) {
-        toast.success("User updated successfully");
-        setIsDialogOpen(false);
-        fetchUsers(); // Refresh user list
-      } else {
-        toast.error("Failed to update user");
-      }
+      // In a real app, this would call an API endpoint
+      // For this demo, we're updating the state directly
+      setUsers(users.map(u => 
+        u.id === selectedUser.id 
+          ? { 
+              ...u, 
+              email: data.email, 
+              name: data.name, 
+              role: data.role 
+            } 
+          : u
+      ));
+      
+      toast.success("User updated successfully");
+      setIsDialogOpen(false);
     } catch (error) {
       console.error("Error updating user:", error);
-      toast.error("An error occurred while updating the user");
+      toast.error("Failed to update user");
     }
   };
 
-  // Loading state
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center h-64">
-          <p>Loading...</p>
-        </div>
-      </Layout>
-    );
-  }
-
   // Redirect if not authenticated or not admin
   if (!user || !isAdmin) {
+    toast.error("You don't have permission to view this page");
     return <Navigate to="/" />;
   }
 
@@ -147,7 +183,7 @@ const AdminPage = () => {
           <CardHeader>
             <CardTitle className="text-2xl">Admin Panel</CardTitle>
             <CardDescription>
-              Manage users and system settings securely
+              Manage users and system settings
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -166,9 +202,11 @@ const AdminPage = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>ID</TableHead>
+                      <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Created At</TableHead>
+                      <TableHead>IP Address</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -176,7 +214,7 @@ const AdminPage = () => {
                     {users.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={5}
+                          colSpan={7}
                           className="text-center h-24 text-muted-foreground"
                         >
                           No users found
@@ -186,20 +224,30 @@ const AdminPage = () => {
                       users.map((userData) => (
                         <TableRow key={userData.id}>
                           <TableCell className="font-medium">
-                            {userData.id.substring(0, 8)}...
+                            {userData.id.length > 8 ? `${userData.id.substring(0, 8)}...` : userData.id}
                           </TableCell>
+                          <TableCell>{userData.name}</TableCell>
                           <TableCell>{userData.email}</TableCell>
                           <TableCell>{userData.role.replace('ROLE_', '')}</TableCell>
                           <TableCell>
                             {new Date(userData.createdAt).toLocaleDateString()}
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell>{userData.ipAddress}</TableCell>
+                          <TableCell className="text-right space-x-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => handleEditClick(userData)}
                             >
                               Edit
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteUser(userData.id)}
+                              disabled={userData.email === ADMIN_EMAIL}
+                            >
+                              Delete
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -225,6 +273,19 @@ const AdminPage = () => {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -244,7 +305,7 @@ const AdminPage = () => {
                     <FormLabel>Role</FormLabel>
                     <FormControl>
                       <RadioGroup
-                        defaultValue={field.value}
+                        value={field.value}
                         onValueChange={field.onChange}
                         className="flex flex-col space-y-1"
                       >
@@ -260,12 +321,13 @@ const AdminPage = () => {
                           <FormControl>
                             <RadioGroupItem 
                               value="ROLE_ADMIN"
-                              // Disable promoting to admin
-                              disabled={true}
+                              disabled={selectedUser?.email !== ADMIN_EMAIL && selectedUser?.role !== "ROLE_ADMIN"}
                             />
                           </FormControl>
                           <FormLabel className="font-normal">
-                            Admin (Disabled - Cannot promote users to Admin)
+                            Admin
+                            {selectedUser?.email !== ADMIN_EMAIL && selectedUser?.role !== "ROLE_ADMIN" && 
+                              " (Only the main admin can have this role)"}
                           </FormLabel>
                         </FormItem>
                       </RadioGroup>

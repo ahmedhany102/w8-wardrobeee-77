@@ -9,6 +9,8 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
+import Cart from "./pages/Cart";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RequireAuth } from "./components/RequireAuth";
@@ -26,11 +28,20 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/contact" element={<Contact />} />
             <Route 
               path="/profile" 
               element={
                 <RequireAuth>
                   <Profile />
+                </RequireAuth>
+              } 
+            />
+            <Route 
+              path="/cart" 
+              element={
+                <RequireAuth>
+                  <Cart />
                 </RequireAuth>
               } 
             />

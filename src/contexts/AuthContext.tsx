@@ -21,6 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = "http://localhost:8080/api"; // Backend API URL
+const ADMIN_EMAIL = "ahmedhanyseifeldin@gmail.com"; // Hardcoded admin email
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -45,6 +46,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.ok) {
         const userData = await response.json();
+        
+        // Set admin role if the user is the hardcoded admin email
+        if (userData.email === ADMIN_EMAIL) {
+          userData.role = "ROLE_ADMIN";
+        }
+        
         setUser(userData);
       } else {
         // Clear any potentially invalid session data
@@ -77,6 +84,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.ok) {
         const userData = await response.json();
+        
+        // Force admin role if email matches the hardcoded admin email
+        if (email === ADMIN_EMAIL) {
+          userData.role = "ROLE_ADMIN";
+        }
+        
         setUser(userData);
         setLoginAttempts(0); // Reset attempts on success
         return true;
@@ -84,8 +97,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Increment failed attempts
         setLoginAttempts(prev => prev + 1);
         
-        // Use generic error message to avoid username enumeration
-        toast.error("Invalid credentials provided");
+        if (response.status === 401) {
+          toast.error("Invalid email or password");
+        } else if (response.status === 429) {
+          toast.error("Too many login attempts. Please try again later.");
+        } else {
+          toast.error("Login failed. Please try again.");
+        }
         return false;
       }
     } catch (error) {
@@ -109,8 +127,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.success("Registration successful! You can now log in.");
         return true;
       } else {
-        // Generic error to avoid username enumeration
-        toast.error("Registration failed. Please try again with different information.");
+        const data = await response.json();
+        if (data.message) {
+          toast.error(data.message);
+        } else {
+          toast.error("Registration failed. Please try again.");
+        }
         return false;
       }
     } catch (error) {
@@ -137,7 +159,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const isAdmin = user?.role === "ROLE_ADMIN";
+  // Check if user is admin
+  const isAdmin = user?.email === ADMIN_EMAIL || user?.role === "ROLE_ADMIN";
 
   return (
     <AuthContext.Provider
