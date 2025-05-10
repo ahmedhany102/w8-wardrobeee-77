@@ -1,73 +1,183 @@
-# Welcome to your Lovable project
 
-## Project info
+# MyTestSite - Secure Web Application
 
-**URL**: https://lovable.dev/projects/b27371ae-0a25-4655-848c-2efc7ea5b99c
+A secure full-stack web application with authentication, authorization, and robust security features.
 
-## How can I edit this code?
+## Project Overview
 
-There are several ways of editing your application.
+MyTestSite is a security-focused web application built with:
 
-**Use Lovable**
+- **Frontend**: React, TypeScript, TailwindCSS
+- **Backend**: Spring Boot (Java)
+- **Database**: MySQL or H2 (in-memory for testing)
+- **Authentication**: JWT with secure cookies
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b27371ae-0a25-4655-848c-2efc7ea5b99c) and start prompting.
+## Security Features
 
-Changes made via Lovable will be committed automatically to this repo.
+- Secure authentication with password hashing (bcrypt)
+- Role-based access control (User/Admin roles)
+- Rate limiting for login attempts
+- CSRF protection
+- Input validation and sanitization
+- Protected routes (both client and server side)
+- Session management and tracking
+- Secure HTTP-only cookies for JWT
+- User tracking with IP logging
 
-**Use your preferred IDE**
+## Project Structure
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Frontend (React)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+src/
+├── components/      # Reusable UI components
+├── contexts/        # Context providers (Auth)
+├── pages/           # Application pages
+└── App.tsx          # Main application component
 ```
 
-**Edit a file directly in GitHub**
+### Backend (Spring Boot)
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+The backend code should be created as a separate project with:
 
-**Use GitHub Codespaces**
+```
+src/
+├── main/
+│   ├── java/com/mytestsite/
+│   │   ├── config/         # Security configuration
+│   │   ├── controller/     # REST endpoints
+│   │   ├── dto/            # Data transfer objects
+│   │   ├── entity/         # Database entities
+│   │   ├── repository/     # Data access
+│   │   ├── security/       # Security utilities
+│   │   └── service/        # Business logic
+│   └── resources/
+│       └── application.properties  # App configuration
+└── test/                   # Unit and integration tests
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Backend Implementation Requirements
 
-## What technologies are used for this project?
+Create a Spring Boot application with:
 
-This project is built with:
+```xml
+<!-- Key dependencies -->
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>io.jsonwebtoken</groupId>
+        <artifactId>jjwt-api</artifactId>
+        <version>0.11.5</version>
+    </dependency>
+    <!-- Additional security dependencies -->
+</dependencies>
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Key Security Configurations
 
-## How can I deploy this project?
+1. **WebSecurityConfig.java**
+   - Configure Spring Security
+   - Set up CORS with allowedOrigins from frontend only
+   - Implement CSRF protection
+   - Configure session management
+   - Set up authentication filters
 
-Simply open [Lovable](https://lovable.dev/projects/b27371ae-0a25-4655-848c-2efc7ea5b99c) and click on Share -> Publish.
+2. **JwtTokenProvider.java**
+   - Generate JWT tokens
+   - Validate tokens
+   - Extract user details
 
-## Can I connect a custom domain to my Lovable project?
+3. **CustomUserDetailsService.java**
+   - Load user details for authentication
+   - Handle user lookup
 
-Yes, you can!
+4. **Database Migration**
+   - Create initial admin user with fixed credentials
+   - Set up roles and permissions
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### API Endpoints
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Create these REST endpoints:
+
+```
+POST /api/auth/register - User registration
+POST /api/auth/login - User login
+POST /api/auth/logout - User logout
+GET /api/auth/me - Get current user details
+
+GET /api/admin/users - Get all users (admin only)
+GET /api/admin/users/{id} - Get user by ID (admin only)
+PUT /api/admin/users/{id} - Update user (admin only)
+```
+
+## Setup Instructions
+
+### Frontend Setup
+
+1. Clone this repository
+2. Install dependencies:
+   ```
+   npm install
+   ```
+3. Start the development server:
+   ```
+   npm run dev
+   ```
+
+### Backend Setup (Spring Boot)
+
+1. Create a new Spring Boot project
+2. Configure application.properties:
+   ```
+   # Database
+   spring.datasource.url=jdbc:h2:mem:mytestsite
+   spring.datasource.driverClassName=org.h2.Driver
+   spring.datasource.username=sa
+   spring.datasource.password=password
+   
+   # JPA
+   spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+   spring.jpa.hibernate.ddl-auto=update
+   
+   # Security
+   security.jwt.token.secret-key=yourSecretKey
+   security.jwt.token.expire-length=3600000
+   
+   # CORS
+   security.cors.allowed-origins=http://localhost:8080
+   
+   # Admin account
+   admin.email=admin@mytestsite.com
+   admin.password=secureAdminPassword123!
+   ```
+
+3. Run the Spring Boot application
+
+## Security Testing Guidelines
+
+To test the security of this application:
+
+1. Attempt to access the admin panel as a regular user
+2. Try to modify request payloads to change user roles
+3. Test for CSRF vulnerabilities
+4. Attempt to bypass authentication
+5. Check for information leakage in error messages
+
+## Notes for Testers
+
+The admin account is hardcoded in the backend with:
+- Email: admin@mytestsite.com
+- Password: (configured in application.properties)
+
+This account is the only one with admin privileges, and the application is designed to prevent any privilege escalation or unauthorized access to admin features.
