@@ -21,15 +21,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <header className="bg-navy-700 text-white shadow-md">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <div className="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center">
           <Link to="/" className="text-xl font-bold flex items-center gap-2">
             <span className="font-bold text-2xl">w8</span>
             <span className="text-xl">Market</span>
           </Link>
-          <nav className="flex items-center space-x-4">
+          <nav className="flex items-center flex-wrap gap-2 mt-2 sm:mt-0">
             {user ? (
               <>
-                <span className="text-sm hidden sm:inline-block">
+                <span className="text-sm hidden sm:inline-block mr-2">
                   Welcome, {user.email}
                 </span>
                 <Button
@@ -39,7 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   onClick={() => navigate("/")}
                 >
                   <Home className="h-4 w-4 mr-1" />
-                  Products
+                  <span>Products</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -48,7 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   onClick={() => navigate("/cart")}
                 >
                   <ShoppingCart className="h-4 w-4 mr-1" />
-                  Cart
+                  <span>Cart</span>
                 </Button>
                 <Button
                   variant="ghost"
@@ -57,7 +57,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   onClick={() => navigate("/contact")}
                 >
                   <Phone className="h-4 w-4 mr-1" />
-                  Contact
+                  <span>Contact</span>
                 </Button>
                 {isAdmin && (
                   <Button
@@ -67,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     onClick={() => navigate("/admin")}
                   >
                     <Shield className="h-4 w-4 mr-1" />
-                    Admin
+                    <span>Admin</span>
                   </Button>
                 )}
                 <Button
@@ -77,11 +77,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   onClick={() => navigate("/profile")}
                 >
                   <User className="h-4 w-4 mr-1" />
-                  Profile
+                  <span>Profile</span>
                 </Button>
                 <Button variant="ghost" size="sm" onClick={handleLogout}>
                   <LogOut className="h-4 w-4 mr-1" />
-                  Logout
+                  <span>Logout</span>
                 </Button>
               </>
             ) : (
@@ -93,7 +93,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   onClick={() => navigate("/contact")}
                 >
                   <Phone className="h-4 w-4 mr-1" />
-                  Contact
+                  <span>Contact</span>
                 </Button>
                 <Button
                   variant="link"
@@ -101,7 +101,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   className="text-white"
                   onClick={() => navigate("/login")}
                 >
-                  Login
+                  <span>Login</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -109,14 +109,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   className="bg-navy-600 text-white hover:bg-navy-500 border-navy-500"
                   onClick={() => navigate("/signup")}
                 >
-                  Sign Up
+                  <span>Sign Up</span>
                 </Button>
               </>
             )}
           </nav>
         </div>
       </header>
-      <main className="flex-grow container mx-auto px-4 py-8">
+      <main className="flex-grow container mx-auto px-4 py-8 w-full">
         {children}
       </main>
       <footer className="bg-navy-800 text-white py-4">

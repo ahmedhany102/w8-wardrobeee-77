@@ -1,10 +1,11 @@
 
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield } from "lucide-react";
 import Layout from "@/components/Layout";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -12,7 +13,9 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-const loginSchema = z.object({
+const ADMIN_EMAIL = "ahmedhanyseifeldin@gmail.com";
+
+const adminLoginSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address",
   }),
@@ -21,35 +24,69 @@ const loginSchema = z.object({
   }),
 });
 
-type LoginFormValues = z.infer<typeof loginSchema>;
+type AdminLoginFormValues = z.infer<typeof adminLoginSchema>;
 
-const Login = () => {
-  const { login, user } = useAuth();
+const AdminLogin = () => {
+  const { login, user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [attempts, setAttempts] = useState(0);
 
-  // Redirect if already logged in
+  // Redirect if already logged in as admin
   React.useEffect(() => {
-    if (user) {
+    if (user && isAdmin) {
+      navigate("/admin");
+    } else if (user && !isAdmin) {
+      toast.error("You don't have admin privileges");
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, isAdmin, navigate]);
 
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
+  const form = useForm<AdminLoginFormValues>({
+    resolver: zodResolver(adminLoginSchema),
     defaultValues: {
       email: "",
       password: "",
     },
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
+  const onSubmit = async (data: AdminLoginFormValues) => {
     setIsSubmitting(true);
+    
+    // Check if attempting to login with the admin email
+    if (data.email !== ADMIN_EMAIL) {
+      setAttempts(prev => prev + 1);
+      toast.error("Invalid admin credentials");
+      setIsSubmitting(false);
+      
+      // Rate limiting
+      if (attempts >= 3) {
+        toast.error("Too many failed attempts. Please try again later.");
+        setTimeout(() => setAttempts(0), 30000); // Reset after 30 seconds
+        return;
+      }
+      
+      return;
+    }
+    
     try {
       const success = await login(data.email, data.password);
       if (success) {
-        toast.success("Login successful!");
-        navigate("/");
+        if (isAdmin) {
+          toast.success("Admin login successful!");
+          navigate("/admin");
+        } else {
+          toast.error("You don't have admin privileges");
+          navigate("/");
+        }
+      } else {
+        setAttempts(prev => prev + 1);
+        
+        // Rate limiting
+        if (attempts >= 3) {
+          toast.error("Too many failed attempts. Please try again later.");
+          setTimeout(() => setAttempts(0), 30000); // Reset after 30 seconds
+        }
       }
     } finally {
       setIsSubmitting(false);
@@ -59,14 +96,17 @@ const Login = () => {
   return (
     <Layout>
       <div className="flex justify-center items-center min-h-[80vh] w-full">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl">User Login</CardTitle>
-            <CardDescription className="text-center">
-              Enter your credentials to access your account
+        <Card className="w-full max-w-md shadow-lg border-navy-500">
+          <CardHeader className="bg-navy-700 text-white rounded-t-md">
+            <div className="flex justify-center mb-2">
+              <Shield className="h-10 w-10" />
+            </div>
+            <CardTitle className="text-center text-2xl">Admin Login</CardTitle>
+            <CardDescription className="text-center text-gray-200">
+              Secure area - Authorized personnel only
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -74,13 +114,13 @@ const Login = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Admin Email</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="you@example.com"
+                          placeholder="admin@example.com"
                           {...field}
                           autoComplete="username"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || attempts >= 3}
                         />
                       </FormControl>
                       <FormMessage />
@@ -99,7 +139,7 @@ const Login = () => {
                           placeholder="••••••••" 
                           {...field} 
                           autoComplete="current-password"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting || attempts >= 3}
                         />
                       </FormControl>
                       <FormMessage />
@@ -109,29 +149,21 @@ const Login = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-navy-600 hover:bg-navy-700"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || attempts >= 3}
                 >
-                  {isSubmitting ? "Logging in..." : "Log in"}
+                  {isSubmitting ? "Logging in..." : "Admin Login"}
                 </Button>
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2">
-            <div className="text-center text-sm">
-              Don't have an account?{" "}
-              <Button 
-                variant="link" 
-                className="p-0 h-auto text-navy-600" 
-                onClick={() => navigate("/signup")}
-              >
-                Sign up
-              </Button>
-            </div>
-            <div className="text-center text-sm mt-2">
-              <Link to="/admin-login" className="text-navy-600 hover:underline">
-                Admin Login
-              </Link>
-            </div>
+          <CardFooter className="flex justify-center">
+            <Button 
+              variant="link" 
+              className="text-navy-600" 
+              onClick={() => navigate("/login")}
+            >
+              Return to User Login
+            </Button>
           </CardFooter>
         </Card>
       </div>
@@ -139,4 +171,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default AdminLogin;

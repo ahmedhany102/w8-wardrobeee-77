@@ -22,6 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = "http://localhost:8080/api"; // Backend API URL
 const ADMIN_EMAIL = "ahmedhanyseifeldin@gmail.com"; // Hardcoded admin email
+const ADMIN_PASSWORD = "Ahmed hany11*"; // Hardcoded admin password for validation
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -73,6 +74,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
+      // Special handling for admin login
+      if (email === ADMIN_EMAIL) {
+        // For demo purposes only - in production this should be handled by backend
+        if (password === ADMIN_PASSWORD) {
+          const adminUser = {
+            id: "admin-1",
+            email: ADMIN_EMAIL,
+            role: "ROLE_ADMIN"
+          };
+          setUser(adminUser);
+          setLoginAttempts(0); // Reset attempts on success
+          return true;
+        } else {
+          setLoginAttempts(prev => prev + 1);
+          toast.error("Invalid password for admin account");
+          return false;
+        }
+      }
+
+      // Regular user login
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         credentials: "include",
@@ -84,12 +105,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.ok) {
         const userData = await response.json();
-        
-        // Force admin role if email matches the hardcoded admin email
-        if (email === ADMIN_EMAIL) {
-          userData.role = "ROLE_ADMIN";
-        }
-        
         setUser(userData);
         setLoginAttempts(0); // Reset attempts on success
         return true;
@@ -115,6 +130,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signup = async (email: string, password: string): Promise<boolean> => {
     try {
+      // Prevent users from registering with the admin email
+      if (email === ADMIN_EMAIL) {
+        toast.error("This email is reserved. Please use a different email address.");
+        return false;
+      }
+
       const response = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: {
