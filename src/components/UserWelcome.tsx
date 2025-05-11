@@ -35,7 +35,7 @@ const UserWelcome = () => {
             <Button 
               variant="link" 
               size="sm"
-              className="h-auto p-0 text-xs text-green-600 underline-offset-4"
+              className="h-auto p-0 text-xs text-green-500 underline-offset-4"
               onClick={() => navigate('/admin')}
             >
               Admin Panel

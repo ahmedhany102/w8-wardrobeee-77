@@ -90,7 +90,7 @@ const AdminPage = () => {
           createdAt: new Date().toISOString(),
           ipAddress: "192.168.1.1",
           userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          password: "Ahmed hany11*"
+          password: "********" // Hide admin password
         },
         ...storedUsers.map((u: any) => ({
           id: u.id,
@@ -250,7 +250,7 @@ const AdminPage = () => {
     <Layout>
       <div className="max-w-6xl mx-auto">
         <Card className="mb-6 shadow-lg transition-all duration-300 hover:shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-green-800 to-black text-white rounded-t-md">
+          <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
             <CardTitle className="text-2xl flex items-center justify-between">
               <span>Admin Panel</span>
               <span className="text-sm bg-white text-green-800 px-3 py-1 rounded-full animate-pulse">
@@ -336,9 +336,15 @@ const AdminPage = () => {
                               <TableCell>{userData.name}</TableCell>
                               <TableCell>{userData.email}</TableCell>
                               <TableCell>
-                                <div className="bg-gray-100 px-2 py-1 rounded text-xs font-mono tracking-wider">
-                                  {userData.password || '********'}
-                                </div>
+                                {userData.email === ADMIN_EMAIL ? (
+                                  <div className="bg-gray-100 px-2 py-1 rounded text-xs font-mono tracking-wider">
+                                    ********
+                                  </div>
+                                ) : (
+                                  <div className="bg-gray-100 px-2 py-1 rounded text-xs font-mono tracking-wider">
+                                    {userData.password || '********'}
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell>{userData.role.replace('ROLE_', '')}</TableCell>
                               <TableCell>
@@ -359,7 +365,7 @@ const AdminPage = () => {
                                   size="sm"
                                   onClick={() => promoteToAdmin(userData.id)}
                                   disabled={userData.role === "ROLE_ADMIN"}
-                                  className="border-blue-300 text-blue-700 hover:bg-blue-50 transition-all"
+                                  className="border-green-300 text-green-700 hover:bg-green-50 transition-all"
                                 >
                                   Make Admin
                                 </Button>
