@@ -12,7 +12,7 @@ import { ShoppingCart, Trash, Plus, Minus, CreditCard, MapPin, Phone } from "luc
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import OrderDatabase from "@/models/OrderDatabase";
-import { Order, CustomerInfo, OrderItem } from "@/models/Order";
+import { Order, CustomerInfo, OrderItem, PaymentInfo } from "@/models/Order";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -148,14 +148,13 @@ const Cart = () => {
     setIsProcessing(true);
     
     try {
-      // Create OrderItems from cartItems
+      // Create OrderItems from cartItems with correct properties to match the OrderItem interface
       const orderItems: OrderItem[] = cartItems.map(item => ({
-        id: `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         productId: item.product.id.toString(),
         productName: item.product.name,
-        price: item.product.price,
         quantity: item.quantity,
-        total: item.product.price * item.quantity
+        unitPrice: item.product.price,
+        totalPrice: item.product.price * item.quantity
       }));
       
       // Create customer info
@@ -167,14 +166,26 @@ const Cart = () => {
           street: data.street,
           city: data.city,
           state: data.state,
-          zip: data.zip,
+          zipCode: data.zip, // Using zipCode as per Address interface
           country: data.country
         }
       };
       
       // Calculate total amount
-      const totalAmount = orderItems.reduce((sum, item) => sum + item.total, 0);
+      const totalAmount = orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
       const shippingCost = totalAmount > 100 ? 0 : 15; // Free shipping over $100
+      
+      // Create payment info
+      const paymentInfo: PaymentInfo = {
+        method: data.paymentMethod === "creditCard" ? "CREDIT_CARD" : 
+               data.paymentMethod === "paypal" ? "WALLET" : "CASH"
+      };
+      
+      // Add card details if paying with credit card
+      if (data.paymentMethod === "creditCard" && data.cardNumber) {
+        paymentInfo.cardLast4 = data.cardNumber.slice(-4);
+        paymentInfo.cardBrand = "Visa"; // Mock card brand
+      }
       
       // Create order object
       const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -183,11 +194,9 @@ const Cart = () => {
         customerInfo,
         items: orderItems,
         totalAmount: totalAmount + shippingCost,
-        status: 'pending',
-        paymentMethod: data.paymentMethod,
-        paymentStatus: 'unpaid', // Start as unpaid
-        shippingMethod: 'standard',
-        shippingCost,
+        status: "PENDING", // Use enum value as defined in Order interface
+        paymentStatus: "PENDING", // Use enum value as defined in Order interface
+        paymentInfo,
         notes: data.notes
       };
       
