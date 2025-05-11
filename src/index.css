@@ -93,6 +93,11 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Add default theme as dark */
+  :root {
+    color-scheme: dark;
+  }
 }
 
 @layer components {
@@ -152,4 +157,9 @@
 
 .tabs-list button {
   @apply whitespace-nowrap px-4 py-2 mx-1;
+}
+
+/* Fix spacing in tabs */
+[role="tablist"] {
+  @apply space-x-2;
 }

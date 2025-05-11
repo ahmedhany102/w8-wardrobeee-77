@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -164,34 +163,34 @@ const ProductCatalog: React.FC = () => {
       
       <Tabs defaultValue="ALL" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto pb-4">
-          <TabsList className="mb-8 w-full flex justify-between">
+          <TabsList className="mb-8 w-full bg-white dark:bg-gray-800 flex justify-start space-x-4 px-4">
             <TabsTrigger 
               value="ALL" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 flex-1 px-5"
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
             >
               All
             </TabsTrigger>
             <TabsTrigger 
               value={ProductCategory.FOOD} 
-              className="data-[state=active]:bg-amber-200 data-[state=active]:text-amber-800 flex-1 px-5"
+              className="data-[state=active]:bg-amber-200 data-[state=active]:text-amber-800 px-5"
             >
               Food
             </TabsTrigger>
             <TabsTrigger 
               value={ProductCategory.TECHNOLOGY} 
-              className="data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800 flex-1 px-5"
+              className="data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800 px-5"
             >
               Technology
             </TabsTrigger>
             <TabsTrigger 
               value={ProductCategory.CLOTHING} 
-              className="data-[state=active]:bg-purple-200 data-[state=active]:text-purple-800 flex-1 px-5"
+              className="data-[state=active]:bg-purple-200 data-[state=active]:text-purple-800 px-5"
             >
               Clothing
             </TabsTrigger>
             <TabsTrigger 
               value={ProductCategory.SHOES} 
-              className="data-[state=active]:bg-pink-200 data-[state=active]:text-pink-800 flex-1 px-5"
+              className="data-[state=active]:bg-pink-200 data-[state=active]:text-pink-800 px-5"
             >
               Shoes
             </TabsTrigger>

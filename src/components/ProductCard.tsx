@@ -28,15 +28,15 @@ const getCategoryLabel = (category: ProductCategory) => {
 const getCategoryColor = (category: ProductCategory) => {
   switch (category) {
     case ProductCategory.FOOD:
-      return 'bg-green-500 text-black';
+      return 'bg-amber-500 text-black';
     case ProductCategory.TECHNOLOGY:
-      return 'bg-green-700 text-white';
+      return 'bg-blue-500 text-white';
     case ProductCategory.CLOTHING:
-      return 'bg-green-600 text-white';
+      return 'bg-purple-500 text-white';
     case ProductCategory.SHOES:
-      return 'bg-green-800 text-white';
+      return 'bg-pink-500 text-white';
     default:
-      return 'bg-green-500 text-white';
+      return 'bg-gray-500 text-white';
   }
 };
 

@@ -1,4 +1,3 @@
-
 export interface Product {
   id: string;
   name: string;
@@ -150,6 +149,28 @@ class ProductDatabase {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
+      {
+        id: 'product-21',
+        name: 'Baklava',
+        description: 'Sweet pastry made of layers of filo filled with chopped nuts and sweetened with honey',
+        price: 55,
+        category: ProductCategory.FOOD,
+        imageUrl: 'https://images.unsplash.com/photo-1519676867240-f03562e64548?w=800',
+        stock: 45,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'product-22',
+        name: 'Shawarma Plate',
+        description: 'Grilled meat with vegetables and tahini sauce served with bread and pickles',
+        price: 70,
+        category: ProductCategory.FOOD,
+        imageUrl: 'https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800',
+        stock: 55,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
       
       // Technology Category
       {
@@ -193,6 +214,28 @@ class ProductDatabase {
         category: ProductCategory.TECHNOLOGY,
         imageUrl: 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=800',
         stock: 25,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'product-23',
+        name: 'Tablet Pro',
+        description: '10-inch tablet with high resolution display and powerful processor',
+        price: 6999,
+        category: ProductCategory.TECHNOLOGY,
+        imageUrl: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800',
+        stock: 40,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'product-24',
+        name: 'Smart Watch Elite',
+        description: 'Advanced fitness tracker with heart rate monitor and GPS',
+        price: 3499,
+        category: ProductCategory.TECHNOLOGY,
+        imageUrl: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=800',
+        stock: 60,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
@@ -242,6 +285,28 @@ class ProductDatabase {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
+      {
+        id: 'product-25',
+        name: 'Cotton Hoodie',
+        description: 'Comfortable cotton hoodie perfect for casual wear',
+        price: 599,
+        category: ProductCategory.CLOTHING,
+        imageUrl: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800',
+        stock: 75,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'product-26',
+        name: 'Formal Shirt',
+        description: 'Classic formal shirt for business and special occasions',
+        price: 699,
+        category: ProductCategory.CLOTHING,
+        imageUrl: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800',
+        stock: 65,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
       
       // Shoes Category
       {
@@ -285,6 +350,28 @@ class ProductDatabase {
         category: ProductCategory.SHOES,
         imageUrl: 'https://images.unsplash.com/photo-1610398752800-146f269dfcc8?w=800',
         stock: 55,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'product-27',
+        name: 'Sneakers',
+        description: 'Modern trendy sneakers for everyday casual wear',
+        price: 999,
+        category: ProductCategory.SHOES,
+        imageUrl: 'https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=800',
+        stock: 70,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      {
+        id: 'product-28',
+        name: 'Hiking Boots',
+        description: 'Durable waterproof hiking boots for outdoor adventures',
+        price: 1799,
+        category: ProductCategory.SHOES,
+        imageUrl: 'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
+        stock: 35,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }
