@@ -9,6 +9,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import OrderForm from './OrderForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const ProductCatalog: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -18,10 +19,27 @@ const ProductCatalog: React.FC = () => {
   const [showCartDialog, setShowCartDialog] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts();
+    // Load cart from localStorage on component mount
+    const savedCart = localStorage.getItem('userCart');
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Error loading cart from localStorage', error);
+      }
+    }
   }, []);
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    if (cart.length > 0) {
+      localStorage.setItem('userCart', JSON.stringify(cart));
+    }
+  }, [cart]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -38,6 +56,14 @@ const ProductCatalog: React.FC = () => {
   };
 
   const handleAddToCart = (product: Product) => {
+    if (!user) {
+      // Save selected product in localStorage and redirect to login
+      localStorage.setItem('pendingProduct', JSON.stringify(product));
+      toast.info('Please login to add items to your cart');
+      navigate('/login');
+      return;
+    }
+
     const existingItem = cart.find(item => item.productId === product.id);
     
     if (existingItem) {
@@ -88,12 +114,14 @@ const ProductCatalog: React.FC = () => {
 
   const handleClearCart = () => {
     setCart([]);
+    localStorage.removeItem('userCart');
     setShowCartDialog(false);
   };
 
   const handleProceedToCheckout = () => {
     if (!user) {
       toast.error('Please log in to checkout');
+      navigate('/login');
       return;
     }
     
@@ -104,6 +132,7 @@ const ProductCatalog: React.FC = () => {
   const handleOrderComplete = () => {
     setShowOrderForm(false);
     setCart([]);
+    localStorage.removeItem('userCart');
     toast.success('Thank you for your order!');
   };
 
@@ -117,13 +146,13 @@ const ProductCatalog: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-green-900">Our Products</h2>
+        <h2 className="text-3xl font-bold text-green-500">Our Products</h2>
         <div className="relative">
           <Button
             onClick={() => setShowCartDialog(true)}
             className="bg-green-800 hover:bg-green-900"
           >
-            Cart ({cart.length})
+            Cart ({cart.reduce((total, item) => total + item.quantity, 0)})
           </Button>
           {cart.length > 0 && (
             <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -135,34 +164,34 @@ const ProductCatalog: React.FC = () => {
       
       <Tabs defaultValue="ALL" value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="overflow-x-auto pb-4">
-          <TabsList className="grid grid-cols-5 w-full mb-8">
+          <TabsList className="mb-8 w-full flex justify-between">
             <TabsTrigger 
               value="ALL" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800"
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 flex-1 px-5"
             >
               All
             </TabsTrigger>
             <TabsTrigger 
               value={ProductCategory.FOOD} 
-              className="data-[state=active]:bg-amber-200 data-[state=active]:text-amber-800"
+              className="data-[state=active]:bg-amber-200 data-[state=active]:text-amber-800 flex-1 px-5"
             >
               Food
             </TabsTrigger>
             <TabsTrigger 
               value={ProductCategory.TECHNOLOGY} 
-              className="data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800"
+              className="data-[state=active]:bg-blue-200 data-[state=active]:text-blue-800 flex-1 px-5"
             >
               Technology
             </TabsTrigger>
             <TabsTrigger 
               value={ProductCategory.CLOTHING} 
-              className="data-[state=active]:bg-purple-200 data-[state=active]:text-purple-800"
+              className="data-[state=active]:bg-purple-200 data-[state=active]:text-purple-800 flex-1 px-5"
             >
               Clothing
             </TabsTrigger>
             <TabsTrigger 
               value={ProductCategory.SHOES} 
-              className="data-[state=active]:bg-pink-200 data-[state=active]:text-pink-800"
+              className="data-[state=active]:bg-pink-200 data-[state=active]:text-pink-800 flex-1 px-5"
             >
               Shoes
             </TabsTrigger>

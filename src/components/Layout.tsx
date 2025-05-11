@@ -19,7 +19,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-gray-900 to-black text-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-900 to-black text-white">
       <header className="bg-black border-b border-green-800 shadow-md">
         <div className="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center">
           <Link to="/" className="text-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform">
@@ -30,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {user ? (
               <>
                 <span className="text-sm hidden sm:inline-block mr-2">
-                  Welcome, {user.name}
+                  Welcome, {user.name.includes('@') ? user.name.split('@')[0] : user.name}
                 </span>
                 <Button
                   variant="ghost"
@@ -40,15 +40,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 >
                   <Home className="h-4 w-4 mr-1" />
                   <span>Products</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-green-800/30 transition-all"
-                  onClick={() => navigate("/cart")}
-                >
-                  <ShoppingCart className="h-4 w-4 mr-1" />
-                  <span>Cart</span>
                 </Button>
                 {isAdmin && (
                   <Button
@@ -61,15 +52,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <span>Admin</span>
                   </Button>
                 )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-green-800 text-white hover:bg-green-700 border-green-700 transition-all"
-                  onClick={() => navigate("/profile")}
-                >
-                  <User className="h-4 w-4 mr-1" />
-                  <span>Profile</span>
-                </Button>
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -114,6 +96,57 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="flex-grow container mx-auto px-4 py-8 w-full">
         {children}
       </main>
+      
+      {/* Bottom navigation bar */}
+      {user && (
+        <div className="sticky bottom-0 bg-black border-t border-green-800 shadow-lg py-3 px-4 z-50">
+          <div className="container mx-auto flex justify-around items-center">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/")}
+              className="flex flex-col items-center text-green-500 hover:text-green-400"
+            >
+              <Home className="h-5 w-5" />
+              <span className="text-xs mt-1">Home</span>
+            </Button>
+            
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/cart")}
+              className="flex flex-col items-center text-green-500 hover:text-green-400 relative"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              <span className="text-xs mt-1">Cart</span>
+              {localStorage.getItem('userCart') && JSON.parse(localStorage.getItem('userCart') || '[]').length > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {JSON.parse(localStorage.getItem('userCart') || '[]').reduce((sum: number, item: any) => sum + item.quantity, 0)}
+                </span>
+              )}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/profile")}
+              className="flex flex-col items-center text-green-500 hover:text-green-400"
+            >
+              <User className="h-5 w-5" />
+              <span className="text-xs mt-1">Profile</span>
+            </Button>
+            
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                onClick={() => navigate("/admin")}
+                className="flex flex-col items-center text-green-500 hover:text-green-400"
+              >
+                <Shield className="h-5 w-5" />
+                <span className="text-xs mt-1">Admin</span>
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+      
       <footer className="bg-black border-t border-green-900 text-white py-4">
         <div className="container mx-auto px-4 text-center text-sm">
           &copy; {new Date().getFullYear()} w8 Market - Best Shopping Experience

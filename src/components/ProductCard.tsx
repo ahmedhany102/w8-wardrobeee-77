@@ -49,7 +49,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
           onError={(e) => {
-            e.currentTarget.src = 'https://placehold.co/600x400/333/white?text=Product+Image';
+            e.currentTarget.src = 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=800';
           }}
         />
         <span className={`absolute top-2 right-2 ${getCategoryColor(product.category)} text-xs px-2 py-1 rounded-full`}>
@@ -59,7 +59,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
       
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <h3 className="product-title leading-tight line-clamp-2">{product.name}</h3>
+          <h3 className="product-title leading-tight line-clamp-2 tracking-normal">{product.name}</h3>
           <Badge variant="success" className="ml-2 whitespace-nowrap">
             {product.price.toFixed(2)} EGP
           </Badge>
@@ -67,7 +67,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
       </CardHeader>
       
       <CardContent className="text-sm text-gray-600 dark:text-gray-300 flex-grow">
-        <p className="line-clamp-2">{product.description}</p>
+        <p className="line-clamp-2 tracking-normal">{product.description}</p>
       </CardContent>
       
       <CardFooter>
