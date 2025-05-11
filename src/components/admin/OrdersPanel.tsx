@@ -1,37 +1,20 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Order } from "@/models/Order";
-import OrderDatabase from "@/models/OrderDatabase";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import OrderDatabase from "@/models/OrderDatabase";
+import { Order } from "@/models/Order";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Order status badge color map
-const statusColorMap: Record<Order['status'], string> = {
-  'pending': 'bg-yellow-500',
-  'processing': 'bg-blue-500',
-  'shipped': 'bg-purple-500',
-  'delivered': 'bg-green-500',
-  'cancelled': 'bg-red-500'
-};
-
-// Payment status badge color map
-const paymentStatusColorMap: Record<Order['paymentStatus'], string> = {
-  'paid': 'bg-green-500',
-  'unpaid': 'bg-red-500',
-  'refunded': 'bg-yellow-500'
-};
-
-const OrdersPanel: React.FC = () => {
+const OrdersPanel = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [viewOrder, setViewOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
-  const orderDb = OrderDatabase.getInstance();
 
   useEffect(() => {
     fetchOrders();
@@ -40,38 +23,39 @@ const OrdersPanel: React.FC = () => {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
+      const orderDb = OrderDatabase.getInstance();
       const allOrders = await orderDb.getAllOrders();
       setOrders(allOrders.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       ));
     } catch (error) {
       console.error("Error fetching orders:", error);
-      toast.error("Failed to fetch orders");
+      toast.error("Failed to load orders");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleViewOrderDetails = (order: Order) => {
-    setViewOrder(order);
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrder(order);
     setIsDialogOpen(true);
   };
 
-  const handleUpdateStatus = async (orderId: string, status: Order['status']) => {
+  const handleStatusChange = async (orderId: string, status: Order["status"]) => {
     try {
+      const orderDb = OrderDatabase.getInstance();
       const updatedOrder = await orderDb.updateOrderStatus(orderId, status);
+      
       if (updatedOrder) {
-        // Update local state
         setOrders(orders.map(order => 
           order.id === orderId ? { ...order, status } : order
         ));
         
-        // If the dialog is open with this order, update it
-        if (viewOrder && viewOrder.id === orderId) {
-          setViewOrder({ ...viewOrder, status });
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status });
         }
         
-        toast.success(`Order status updated to ${status}`);
+        toast.success("Order status updated");
       }
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -79,21 +63,21 @@ const OrdersPanel: React.FC = () => {
     }
   };
 
-  const handleUpdatePaymentStatus = async (orderId: string, paymentStatus: Order['paymentStatus']) => {
+  const handlePaymentStatusChange = async (orderId: string, paymentStatus: Order["paymentStatus"]) => {
     try {
+      const orderDb = OrderDatabase.getInstance();
       const updatedOrder = await orderDb.updatePaymentStatus(orderId, paymentStatus);
+      
       if (updatedOrder) {
-        // Update local state
         setOrders(orders.map(order => 
           order.id === orderId ? { ...order, paymentStatus } : order
         ));
         
-        // If the dialog is open with this order, update it
-        if (viewOrder && viewOrder.id === orderId) {
-          setViewOrder({ ...viewOrder, paymentStatus });
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, paymentStatus });
         }
         
-        toast.success(`Payment status updated to ${paymentStatus}`);
+        toast.success("Payment status updated");
       }
     } catch (error) {
       console.error("Error updating payment status:", error);
@@ -101,253 +85,268 @@ const OrdersPanel: React.FC = () => {
     }
   };
 
-  // Format date to readable format
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric'
-    }).format(date);
+  const getStatusBadgeVariant = (status: Order["status"]) => {
+    switch (status) {
+      case "PENDING": return "warning";
+      case "PROCESSING": return "info";
+      case "SHIPPED": return "success";
+      case "DELIVERED": return "success";
+      case "CANCELLED": return "destructive";
+      default: return "secondary";
+    }
+  };
+
+  const getPaymentStatusBadgeVariant = (status: Order["paymentStatus"]) => {
+    switch (status) {
+      case "PAID": return "success";
+      case "PENDING": return "warning";
+      case "FAILED": return "destructive";
+      case "REFUNDED": return "secondary";
+      default: return "secondary";
+    }
   };
 
   return (
-    <Card className="mb-8 transition-all duration-300 hover:shadow-lg">
-      <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-t-md">
-        <CardTitle className="text-2xl flex items-center gap-2">
-          Customer Orders
-        </CardTitle>
-        <CardDescription className="text-gray-100">
-          View and manage all customer orders
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-purple-700">Order Management</h2>
-          <Button 
-            onClick={fetchOrders} 
-            variant="outline"
-            className="border-purple-300 hover:bg-purple-50 transition-all"
-          >
-            Refresh Orders
-          </Button>
+    <CardContent className="p-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-green-800">Orders Management</h2>
+        <Button 
+          onClick={fetchOrders} 
+          variant="outline"
+          className="border-green-500 hover:bg-green-50 transition-all"
+        >
+          Refresh
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-800 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading orders...</p>
         </div>
-
-        {isLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">Loading orders...</p>
-          </div>
-        ) : (
-          <div className="rounded-md border overflow-hidden transition-all duration-300">
-            <Table>
-              <TableHeader className="bg-purple-100">
-                <TableRow>
-                  <TableHead>Order #</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="text-center h-24 text-muted-foreground"
+      ) : orders.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-gray-500">No orders found</p>
+          <p className="text-sm text-gray-400 mt-1">Orders will appear here once customers make purchases</p>
+        </div>
+      ) : (
+        <div className="rounded-md border overflow-hidden transition-all duration-300 hover:shadow-md">
+          <Table>
+            <TableHeader className="bg-green-100">
+              <TableRow>
+                <TableHead>Order #</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Payment</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {orders.map((order) => (
+                <TableRow key={order.id} className="hover:bg-green-50 transition-colors">
+                  <TableCell className="font-medium">{order.orderNumber}</TableCell>
+                  <TableCell>{order.customerInfo.name}</TableCell>
+                  <TableCell>
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>{order.totalAmount.toFixed(2)} EGP</TableCell>
+                  <TableCell>
+                    <Badge variant={getStatusBadgeVariant(order.status)}>
+                      {order.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
+                      {order.paymentStatus}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(order)}
+                      className="border-green-500 hover:bg-green-50 transition-all"
                     >
-                      No orders found
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  orders.map((order) => (
-                    <TableRow key={order.id} className="hover:bg-purple-50 transition-colors">
-                      <TableCell className="font-medium">
-                        {order.orderNumber}
-                      </TableCell>
-                      <TableCell>{formatDate(order.createdAt)}</TableCell>
-                      <TableCell>{order.customerInfo.name}</TableCell>
-                      <TableCell>{order.items.length} items</TableCell>
-                      <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <Badge className={`${statusColorMap[order.status]} text-white`}>
-                          {order.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${paymentStatusColorMap[order.paymentStatus]} text-white`}>
-                          {order.paymentStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewOrderDetails(order)}
-                          className="border-purple-300 hover:bg-purple-50 transition-all"
-                        >
-                          View Details
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
+                      View Details
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
-      {/* Order Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl flex items-center gap-2 text-purple-700">
-              Order Details - {viewOrder?.orderNumber}
-            </DialogTitle>
+            <DialogTitle className="text-xl text-green-800">Order Details</DialogTitle>
             <DialogDescription>
-              Complete information about this order
+              Order #{selectedOrder?.orderNumber} - {new Date(selectedOrder?.createdAt || "").toLocaleDateString()}
             </DialogDescription>
           </DialogHeader>
           
-          {viewOrder && (
-            <div className="space-y-6">
-              {/* Order Status Section */}
-              <div className="flex flex-wrap gap-3 justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Order Status</h3>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge className={`${statusColorMap[viewOrder.status]} text-white`}>
-                      {viewOrder.status}
-                    </Badge>
-                    <select 
-                      className="text-sm border rounded p-1"
-                      value={viewOrder.status}
-                      onChange={(e) => handleUpdateStatus(viewOrder.id, e.target.value as Order['status'])}
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="processing">Processing</option>
-                      <option value="shipped">Shipped</option>
-                      <option value="delivered">Delivered</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Payment Status</h3>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge className={`${paymentStatusColorMap[viewOrder.paymentStatus]} text-white`}>
-                      {viewOrder.paymentStatus}
-                    </Badge>
-                    <select 
-                      className="text-sm border rounded p-1"
-                      value={viewOrder.paymentStatus}
-                      onChange={(e) => handleUpdatePaymentStatus(viewOrder.id, e.target.value as Order['paymentStatus'])}
-                    >
-                      <option value="paid">Paid</option>
-                      <option value="unpaid">Unpaid</option>
-                      <option value="refunded">Refunded</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Order Date</h3>
-                  <p className="mt-1">{formatDate(viewOrder.createdAt)}</p>
-                </div>
-              </div>
-              
+          {selectedOrder && (
+            <div className="space-y-6 py-4">
               {/* Customer Information */}
-              <div className="border-t pt-4">
-                <h3 className="font-semibold text-purple-700 mb-2">Customer Information</h3>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-green-800 border-b border-green-200 pb-2 mb-2">Customer Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p><span className="font-medium">Name:</span> {viewOrder.customerInfo.name}</p>
-                    <p><span className="font-medium">Email:</span> {viewOrder.customerInfo.email}</p>
-                    <p><span className="font-medium">Phone:</span> {viewOrder.customerInfo.phone}</p>
+                    <p className="text-sm font-medium text-gray-500">Name</p>
+                    <p>{selectedOrder.customerInfo.name}</p>
                   </div>
                   <div>
-                    <p><span className="font-medium">Address:</span></p>
-                    <address className="not-italic">
-                      {viewOrder.customerInfo.address.street}<br />
-                      {viewOrder.customerInfo.address.city}, {viewOrder.customerInfo.address.state} {viewOrder.customerInfo.address.zip}<br />
-                      {viewOrder.customerInfo.address.country}
-                    </address>
+                    <p className="text-sm font-medium text-gray-500">Email</p>
+                    <p>{selectedOrder.customerInfo.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Phone</p>
+                    <p>{selectedOrder.customerInfo.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Address</p>
+                    <p>
+                      {selectedOrder.customerInfo.address.street}, {selectedOrder.customerInfo.address.city}, {selectedOrder.customerInfo.address.zipCode}
+                    </p>
                   </div>
                 </div>
               </div>
               
               {/* Order Items */}
-              <div className="border-t pt-4">
-                <h3 className="font-semibold text-purple-700 mb-2">Order Items</h3>
-                <Table>
-                  <TableHeader className="bg-purple-50">
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {viewOrder.items.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell>{item.productName}</TableCell>
-                        <TableCell>${item.price.toFixed(2)}</TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell className="text-right">${item.total.toFixed(2)}</TableCell>
+              <div>
+                <h3 className="font-semibold text-green-800 border-b border-green-200 pb-2 mb-4">Order Items</h3>
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader className="bg-green-100">
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead className="text-right">Quantity</TableHead>
+                        <TableHead className="text-right">Unit Price</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
                       </TableRow>
-                    ))}
-                    <TableRow>
-                      <TableCell colSpan={2}></TableCell>
-                      <TableCell className="font-bold">Subtotal</TableCell>
-                      <TableCell className="text-right">
-                        ${viewOrder.items.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={2}></TableCell>
-                      <TableCell className="font-bold">Shipping</TableCell>
-                      <TableCell className="text-right">${viewOrder.shippingCost.toFixed(2)}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={2}></TableCell>
-                      <TableCell className="font-bold text-lg">Total</TableCell>
-                      <TableCell className="text-right font-bold text-lg">${viewOrder.totalAmount.toFixed(2)}</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-              
-              {/* Payment & Shipping Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4">
-                <div>
-                  <h3 className="font-semibold text-purple-700 mb-2">Payment Information</h3>
-                  <p><span className="font-medium">Method:</span> {viewOrder.paymentMethod}</p>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-purple-700 mb-2">Shipping Information</h3>
-                  <p><span className="font-medium">Method:</span> {viewOrder.shippingMethod}</p>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedOrder.items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.productName}</TableCell>
+                          <TableCell className="text-right">{item.quantity}</TableCell>
+                          <TableCell className="text-right">{item.unitPrice.toFixed(2)} EGP</TableCell>
+                          <TableCell className="text-right">{item.totalPrice.toFixed(2)} EGP</TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-green-50">
+                        <TableCell colSpan={3} className="text-right font-semibold">
+                          Total Amount:
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {selectedOrder.totalAmount.toFixed(2)} EGP
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
               
-              {/* Order Notes */}
-              {viewOrder.notes && (
-                <div className="border-t pt-4">
-                  <h3 className="font-semibold text-purple-700 mb-2">Order Notes</h3>
-                  <p className="bg-gray-50 p-3 rounded-md">{viewOrder.notes}</p>
+              {/* Payment Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-800 border-b border-green-200 pb-2 mb-2">Payment Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Payment Method</p>
+                      <p>{selectedOrder.paymentInfo?.method}</p>
+                    </div>
+                    {selectedOrder.paymentInfo?.cardLast4 && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Card Details</p>
+                        <p>{selectedOrder.paymentInfo.cardBrand} ending in {selectedOrder.paymentInfo.cardLast4}</p>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Payment Status</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <Badge variant={getPaymentStatusBadgeVariant(selectedOrder.paymentStatus)}>
+                          {selectedOrder.paymentStatus}
+                        </Badge>
+                        <Select
+                          value={selectedOrder.paymentStatus}
+                          onValueChange={(value: Order["paymentStatus"]) => {
+                            handlePaymentStatusChange(selectedOrder.id, value);
+                          }}
+                        >
+                          <SelectTrigger className="w-36">
+                            <SelectValue placeholder="Update status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                            <SelectItem value="PAID">Paid</SelectItem>
+                            <SelectItem value="FAILED">Failed</SelectItem>
+                            <SelectItem value="REFUNDED">Refunded</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Order Status */}
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-800 border-b border-green-200 pb-2 mb-2">Order Status</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Current Status</p>
+                      <div className="flex items-center justify-between mt-2">
+                        <Badge variant={getStatusBadgeVariant(selectedOrder.status)}>
+                          {selectedOrder.status}
+                        </Badge>
+                        <Select
+                          value={selectedOrder.status}
+                          onValueChange={(value: Order["status"]) => {
+                            handleStatusChange(selectedOrder.id, value);
+                          }}
+                        >
+                          <SelectTrigger className="w-36">
+                            <SelectValue placeholder="Update status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                            <SelectItem value="PROCESSING">Processing</SelectItem>
+                            <SelectItem value="SHIPPED">Shipped</SelectItem>
+                            <SelectItem value="DELIVERED">Delivered</SelectItem>
+                            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Order Date</p>
+                      <p>{new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Last Updated</p>
+                      <p>{new Date(selectedOrder.updatedAt).toLocaleString()}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Additional Notes */}
+              {selectedOrder.notes && (
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-800 border-b border-yellow-200 pb-2 mb-2">Customer Notes</h3>
+                  <p className="italic">{selectedOrder.notes}</p>
                 </div>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
-    </Card>
+    </CardContent>
   );
 };
 

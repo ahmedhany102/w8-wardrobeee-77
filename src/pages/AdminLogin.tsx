@@ -150,8 +150,8 @@ const AdminLogin = () => {
   return (
     <Layout>
       <div className="flex justify-center items-center min-h-[80vh] w-full">
-        <Card className="w-full max-w-md shadow-lg border-purple-500 animate-fade-in">
-          <CardHeader className="bg-purple-700 text-white rounded-t-md">
+        <Card className="w-full max-w-md shadow-lg border-green-800 animate-fade-in">
+          <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
             <div className="flex justify-center mb-2">
               <Shield className="h-10 w-10" />
             </div>
@@ -160,7 +160,7 @@ const AdminLogin = () => {
               Secure area - Authorized personnel only
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 bg-gradient-to-b from-white to-purple-50">
+          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50">
             {lockedUntil && lockedUntil > Date.now() ? (
               <div className="flex flex-col items-center justify-center p-4 text-center">
                 <AlertTriangle className="text-red-500 h-12 w-12 mb-2" />
@@ -184,7 +184,7 @@ const AdminLogin = () => {
                             {...field}
                             autoComplete="username"
                             disabled={isSubmitting}
-                            className="transition-all hover:border-purple-300 focus:ring-purple-500"
+                            className="transition-all hover:border-green-500 focus:ring-green-700"
                           />
                         </FormControl>
                         <FormMessage />
@@ -204,7 +204,7 @@ const AdminLogin = () => {
                             {...field} 
                             autoComplete="current-password"
                             disabled={isSubmitting}
-                            className="transition-all hover:border-purple-300 focus:ring-purple-500"
+                            className="transition-all hover:border-green-500 focus:ring-green-700"
                           />
                         </FormControl>
                         <FormMessage />
@@ -213,7 +213,7 @@ const AdminLogin = () => {
                   />
                   <Button 
                     type="submit" 
-                    className="w-full bg-purple-600 hover:bg-purple-700 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full bg-green-800 hover:bg-green-900 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Verifying..." : "Admin Login"}
@@ -222,10 +222,10 @@ const AdminLogin = () => {
               </Form>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center bg-purple-50 rounded-b-md">
+          <CardFooter className="flex justify-center bg-green-50 rounded-b-md">
             <Button 
               variant="link" 
-              className="text-purple-600" 
+              className="text-green-800" 
               onClick={() => navigate("/login")}
             >
               Return to User Login

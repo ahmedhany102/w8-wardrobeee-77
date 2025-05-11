@@ -26,6 +26,7 @@ interface User {
   createdAt: string;
   ipAddress: string;
   userAgent: string;
+  password?: string;
 }
 
 const API_URL = "http://localhost:8080/api";
@@ -75,39 +76,35 @@ const AdminPage = () => {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // This would be a real API call in a production app
-      // Mocking the response for this demo
-      const mockUsers: User[] = [
+      // Get mock users from localStorage
+      const usersJson = localStorage.getItem("mock_users");
+      const storedUsers = usersJson ? JSON.parse(usersJson) : [];
+      
+      // Add the admin user
+      const allUsers: User[] = [
         {
           id: "1",
-          email: "ahmedhanyseifeldin@gmail.com",
-          name: "Ahmed Hany",
+          email: ADMIN_EMAIL,
+          name: "Admin",
           role: "ROLE_ADMIN",
           createdAt: new Date().toISOString(),
           ipAddress: "192.168.1.1",
-          userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+          userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+          password: "Ahmed hany11*"
         },
-        {
-          id: "2",
-          email: "user1@example.com",
-          name: "Regular User",
+        ...storedUsers.map((u: any) => ({
+          id: u.id,
+          email: u.email,
+          name: u.name || u.email.split('@')[0],
           role: "ROLE_USER",
           createdAt: new Date().toISOString(),
-          ipAddress: "192.168.1.2",
-          userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
-        },
-        {
-          id: "3",
-          email: "user2@example.com",
-          name: "Another User",
-          role: "ROLE_USER",
-          createdAt: new Date().toISOString(),
-          ipAddress: "192.168.1.3",
-          userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)"
-        }
+          ipAddress: "192.168.1." + Math.floor(Math.random() * 255),
+          userAgent: "Mozilla/5.0 (" + (Math.random() > 0.5 ? "Windows" : "Macintosh") + ")",
+          password: u.password
+        }))
       ];
       
-      setUsers(mockUsers);
+      setUsers(allUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       toast.error("An error occurred while fetching users");
@@ -131,8 +128,17 @@ const AdminPage = () => {
 
     if (confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
       try {
-        // In a real app, this would call an API endpoint
-        // Simulating successful deletion
+        // Get current stored users
+        const usersJson = localStorage.getItem("mock_users");
+        let storedUsers = usersJson ? JSON.parse(usersJson) : [];
+        
+        // Filter out the deleted user
+        storedUsers = storedUsers.filter((u: any) => u.id !== userId);
+        
+        // Update localStorage
+        localStorage.setItem("mock_users", JSON.stringify(storedUsers));
+        
+        // Update UI
         setUsers(users.filter(u => u.id !== userId));
         toast.success("User deleted successfully");
       } catch (error) {
@@ -152,18 +158,48 @@ const AdminPage = () => {
     }
 
     try {
-      // In a real app, this would call an API endpoint
-      // For this demo, we're updating the state directly
-      setUsers(users.map(u => 
-        u.id === selectedUser.id 
-          ? { 
-              ...u, 
-              email: data.email, 
-              name: data.name, 
-              role: data.role 
-            } 
-          : u
-      ));
+      // Get current stored users
+      const usersJson = localStorage.getItem("mock_users");
+      let storedUsers = usersJson ? JSON.parse(usersJson) : [];
+      
+      // Handle the admin user specially
+      if (selectedUser.email === ADMIN_EMAIL) {
+        // Just update UI for admin
+        setUsers(users.map(u => 
+          u.id === selectedUser.id 
+            ? { 
+                ...u, 
+                name: data.name
+              } 
+            : u
+        ));
+      } else {
+        // Update user in localStorage
+        storedUsers = storedUsers.map((u: any) => 
+          u.id === selectedUser.id 
+            ? { 
+                ...u, 
+                email: data.email,
+                name: data.name,
+                role: data.role === "ROLE_ADMIN" ? "ROLE_ADMIN" : "ROLE_USER"
+              } 
+            : u
+        );
+        
+        localStorage.setItem("mock_users", JSON.stringify(storedUsers));
+        
+        // Update UI
+        setUsers(users.map(u => 
+          u.id === selectedUser.id 
+            ? { 
+                ...u, 
+                email: data.email, 
+                name: data.name, 
+                role: data.role 
+              } 
+            : u
+        ));
+      }
       
       toast.success("User updated successfully");
       setIsDialogOpen(false);
@@ -171,6 +207,37 @@ const AdminPage = () => {
       console.error("Error updating user:", error);
       toast.error("Failed to update user");
     }
+  };
+
+  // Make a user an admin
+  const promoteToAdmin = (userId: string) => {
+    // Get current stored users
+    const usersJson = localStorage.getItem("mock_users");
+    let storedUsers = usersJson ? JSON.parse(usersJson) : [];
+    
+    // Update the user role
+    storedUsers = storedUsers.map((u: any) => 
+      u.id === userId 
+        ? { 
+            ...u, 
+            role: "ROLE_ADMIN"
+          } 
+        : u
+    );
+    
+    localStorage.setItem("mock_users", JSON.stringify(storedUsers));
+    
+    // Update UI
+    setUsers(users.map(u => 
+      u.id === userId 
+        ? { 
+            ...u, 
+            role: "ROLE_ADMIN"
+          } 
+        : u
+    ));
+    
+    toast.success("User promoted to Admin");
   };
 
   // Redirect if not authenticated or not admin
@@ -183,15 +250,15 @@ const AdminPage = () => {
     <Layout>
       <div className="max-w-6xl mx-auto">
         <Card className="mb-6 shadow-lg transition-all duration-300 hover:shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-purple-600 to-purple-800 text-white rounded-t-md">
+          <CardHeader className="bg-gradient-to-r from-green-800 to-black text-white rounded-t-md">
             <CardTitle className="text-2xl flex items-center justify-between">
               <span>Admin Panel</span>
-              <span className="text-sm bg-white text-purple-800 px-3 py-1 rounded-full animate-pulse">
+              <span className="text-sm bg-white text-green-800 px-3 py-1 rounded-full animate-pulse">
                 👑 Secure Admin Session
               </span>
             </CardTitle>
             <CardDescription className="text-gray-100">
-              Manage users, orders, and system settings
+              Welcome, Admin! Manage users, orders, and system settings
             </CardDescription>
           </CardHeader>
           
@@ -204,13 +271,13 @@ const AdminPage = () => {
               <TabsList className="w-full grid grid-cols-2 mb-4">
                 <TabsTrigger 
                   value="users" 
-                  className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800"
+                  className="data-[state=active]:bg-green-100 data-[state=active]:text-green-800"
                 >
                   User Management
                 </TabsTrigger>
                 <TabsTrigger 
                   value="orders"
-                  className="data-[state=active]:bg-purple-100 data-[state=active]:text-purple-800"
+                  className="data-[state=active]:bg-green-100 data-[state=active]:text-green-800"
                 >
                   Order Management
                 </TabsTrigger>
@@ -220,11 +287,11 @@ const AdminPage = () => {
             <TabsContent value="users" className="pt-2">
               <CardContent className="p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-purple-700">Users List</h2>
+                  <h2 className="text-xl font-semibold text-green-800">Users List</h2>
                   <Button 
                     onClick={fetchUsers} 
                     variant="outline"
-                    className="border-purple-300 hover:bg-purple-50 transition-all"
+                    className="border-green-400 hover:bg-green-50 transition-all"
                   >
                     Refresh
                   </Button>
@@ -232,17 +299,18 @@ const AdminPage = () => {
 
                 {isLoading ? (
                   <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-800 mx-auto"></div>
                     <p className="mt-2 text-gray-600">Loading users...</p>
                   </div>
                 ) : (
                   <div className="rounded-md border overflow-hidden transition-all duration-300 hover:shadow-md">
                     <Table>
-                      <TableHeader className="bg-purple-100">
+                      <TableHeader className="bg-green-100">
                         <TableRow>
                           <TableHead>ID</TableHead>
                           <TableHead>Name</TableHead>
                           <TableHead>Email</TableHead>
+                          <TableHead>Password</TableHead>
                           <TableHead>Role</TableHead>
                           <TableHead>Created At</TableHead>
                           <TableHead>IP Address</TableHead>
@@ -253,7 +321,7 @@ const AdminPage = () => {
                         {users.length === 0 ? (
                           <TableRow>
                             <TableCell
-                              colSpan={7}
+                              colSpan={8}
                               className="text-center h-24 text-muted-foreground"
                             >
                               No users found
@@ -261,12 +329,17 @@ const AdminPage = () => {
                           </TableRow>
                         ) : (
                           users.map((userData) => (
-                            <TableRow key={userData.id} className="hover:bg-purple-50 transition-colors">
+                            <TableRow key={userData.id} className="hover:bg-green-50 transition-colors">
                               <TableCell className="font-medium">
                                 {userData.id.length > 8 ? `${userData.id.substring(0, 8)}...` : userData.id}
                               </TableCell>
                               <TableCell>{userData.name}</TableCell>
                               <TableCell>{userData.email}</TableCell>
+                              <TableCell>
+                                <div className="bg-gray-100 px-2 py-1 rounded text-xs font-mono tracking-wider">
+                                  {userData.password || '********'}
+                                </div>
+                              </TableCell>
                               <TableCell>{userData.role.replace('ROLE_', '')}</TableCell>
                               <TableCell>
                                 {new Date(userData.createdAt).toLocaleDateString()}
@@ -277,9 +350,18 @@ const AdminPage = () => {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleEditClick(userData)}
-                                  className="border-purple-300 hover:bg-purple-50 transition-all"
+                                  className="border-green-300 hover:bg-green-50 transition-all"
                                 >
                                   Edit
+                                </Button>
+                                <Button
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => promoteToAdmin(userData.id)}
+                                  disabled={userData.role === "ROLE_ADMIN"}
+                                  className="border-blue-300 text-blue-700 hover:bg-blue-50 transition-all"
+                                >
+                                  Make Admin
                                 </Button>
                                 <Button
                                   variant="destructive"
@@ -311,7 +393,7 @@ const AdminPage = () => {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-xl text-purple-700">Edit User</DialogTitle>
+            <DialogTitle className="text-xl text-green-800">Edit User</DialogTitle>
             <DialogDescription>
               Make changes to the user account. Click save when you're done.
             </DialogDescription>
@@ -325,7 +407,7 @@ const AdminPage = () => {
                   <FormItem>
                     <FormLabel>Name</FormLabel>
                     <FormControl>
-                      <Input {...field} className="transition-all hover:border-purple-300 focus:ring-purple-500" />
+                      <Input {...field} className="transition-all hover:border-green-300 focus:ring-green-700" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -338,7 +420,11 @@ const AdminPage = () => {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input {...field} className="transition-all hover:border-purple-300 focus:ring-purple-500" />
+                      <Input 
+                        {...field} 
+                        className="transition-all hover:border-green-300 focus:ring-green-700"
+                        disabled={selectedUser?.email === ADMIN_EMAIL}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -358,7 +444,10 @@ const AdminPage = () => {
                       >
                         <FormItem className="flex items-center space-x-3 space-y-0">
                           <FormControl>
-                            <RadioGroupItem value="ROLE_USER" />
+                            <RadioGroupItem 
+                              value="ROLE_USER"
+                              disabled={selectedUser?.email === ADMIN_EMAIL}
+                            />
                           </FormControl>
                           <FormLabel className="font-normal">
                             User
@@ -366,15 +455,10 @@ const AdminPage = () => {
                         </FormItem>
                         <FormItem className="flex items-center space-x-3 space-y-0">
                           <FormControl>
-                            <RadioGroupItem 
-                              value="ROLE_ADMIN"
-                              disabled={selectedUser?.email !== ADMIN_EMAIL && selectedUser?.role !== "ROLE_ADMIN"}
-                            />
+                            <RadioGroupItem value="ROLE_ADMIN" />
                           </FormControl>
                           <FormLabel className="font-normal">
                             Admin
-                            {selectedUser?.email !== ADMIN_EMAIL && selectedUser?.role !== "ROLE_ADMIN" && 
-                              " (Only the main admin can have this role)"}
                           </FormLabel>
                         </FormItem>
                       </RadioGroup>
@@ -394,7 +478,7 @@ const AdminPage = () => {
                 </Button>
                 <Button 
                   type="submit"
-                  className="bg-purple-600 hover:bg-purple-700 transition-all hover:scale-105 active:scale-95"
+                  className="bg-green-800 hover:bg-green-900 transition-all hover:scale-105 active:scale-95"
                 >
                   Save changes
                 </Button>

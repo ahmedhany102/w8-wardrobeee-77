@@ -59,14 +59,14 @@ const Login = () => {
   return (
     <Layout>
       <div className="flex justify-center items-center min-h-[80vh] w-full">
-        <Card className="w-full max-w-md shadow-lg border-purple-200 animate-fade-in">
-          <CardHeader className="bg-purple-600 text-white rounded-t-md">
+        <Card className="w-full max-w-md shadow-lg border-green-800 animate-fade-in">
+          <CardHeader className="bg-gradient-to-r from-green-800 to-black text-white rounded-t-md">
             <CardTitle className="text-center text-2xl">User Login</CardTitle>
             <CardDescription className="text-center text-gray-100">
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 bg-gradient-to-b from-white to-purple-50">
+          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -81,7 +81,7 @@ const Login = () => {
                           {...field}
                           autoComplete="username"
                           disabled={isSubmitting}
-                          className="transition-all hover:border-purple-300 focus:ring-purple-500"
+                          className="transition-all hover:border-green-500 focus:ring-green-700"
                         />
                       </FormControl>
                       <FormMessage />
@@ -101,7 +101,7 @@ const Login = () => {
                           {...field} 
                           autoComplete="current-password"
                           disabled={isSubmitting}
-                          className="transition-all hover:border-purple-300 focus:ring-purple-500"
+                          className="transition-all hover:border-green-500 focus:ring-green-700"
                         />
                       </FormControl>
                       <FormMessage />
@@ -110,7 +110,7 @@ const Login = () => {
                 />
                 <Button 
                   type="submit" 
-                  className="w-full bg-purple-600 hover:bg-purple-700 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full bg-green-800 hover:bg-green-900 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? "Logging in..." : "Log in"}
@@ -118,19 +118,19 @@ const Login = () => {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2 bg-purple-50 rounded-b-md">
+          <CardFooter className="flex flex-col space-y-2 bg-green-50 rounded-b-md">
             <div className="text-center text-sm">
               Don't have an account?{" "}
               <Button 
                 variant="link" 
-                className="p-0 h-auto text-purple-600" 
+                className="p-0 h-auto text-green-800" 
                 onClick={() => navigate("/signup")}
               >
                 Sign up
               </Button>
             </div>
             <div className="text-center text-sm mt-2">
-              <Link to="/admin-login" className="text-purple-600 hover:underline">
+              <Link to="/admin-login" className="text-green-800 hover:underline">
                 Admin Login
               </Link>
             </div>

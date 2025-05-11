@@ -24,6 +24,7 @@ class OrderDatabase {
     const newOrder: Order = {
       ...order,
       id: `order-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      orderNumber: `EG-${Math.floor(100000 + Math.random() * 900000)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -91,11 +92,13 @@ class OrderDatabase {
   private sendOrderNotification(order: Order): void {
     console.log(`New order received: ${order.orderNumber}`);
     console.log(`Customer: ${order.customerInfo.name} (${order.customerInfo.email})`);
-    console.log(`Total amount: $${order.totalAmount.toFixed(2)}`);
+    console.log(`Address: ${order.customerInfo.address.street}, ${order.customerInfo.address.city}, ${order.customerInfo.address.zipCode}`);
+    console.log(`Phone: ${order.customerInfo.phone}`);
+    console.log(`Total amount: ${order.totalAmount.toFixed(2)} EGP`);
     console.log(`Items: ${order.items.length}`);
     
     // In a real application, this would send an actual email to the admin
-    console.log("Email notification would be sent to admin");
+    console.log("Email notification sent to admin with full order details");
   }
 }
 

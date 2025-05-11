@@ -5,6 +5,7 @@ import { toast } from "sonner";
 interface User {
   id: string;
   email: string;
+  name: string;
   role: string;
 }
 
@@ -12,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => void;
   isAdmin: boolean;
   checkAuthStatus: () => Promise<void>;
@@ -28,22 +29,25 @@ const ADMIN_PASSWORD = "Ahmed hany11*"; // Hardcoded admin password for validati
 const MOCK_USERS_STORAGE_KEY = "mock_users";
 
 // Helper function to get mock users from localStorage
-const getMockUsers = (): {email: string, password: string, id: string}[] => {
+const getMockUsers = (): {email: string, password: string, id: string, name: string}[] => {
   const usersJson = localStorage.getItem(MOCK_USERS_STORAGE_KEY);
   return usersJson ? JSON.parse(usersJson) : [];
 };
 
 // Helper function to save mock users to localStorage
-const saveMockUser = (email: string, password: string) => {
+const saveMockUser = (email: string, password: string, name: string = "") => {
   const users = getMockUsers();
   if (!users.find(u => u.email === email)) {
     users.push({
       id: `user-${Date.now()}`,
       email,
-      password
+      password,
+      name: name || email.split('@')[0]
     });
     localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(users));
+    return true;
   }
+  return false;
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -98,6 +102,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const adminUser = {
             id: "admin-1",
             email: ADMIN_EMAIL,
+            name: "Admin",
             role: "ROLE_ADMIN"
           };
           setUser(adminUser);
@@ -120,12 +125,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const userData = {
           id: foundUser.id,
           email: foundUser.email,
+          name: foundUser.name || email.split('@')[0],
           role: "ROLE_USER"
         };
         
         setUser(userData);
         // Store user in localStorage (simulate session)
         localStorage.setItem('currentUser', JSON.stringify(userData));
+        console.log("Login successful, stored user:", userData);
         setLoginAttempts(0); // Reset attempts on success
         return true;
       } else {
@@ -141,7 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const signup = async (email: string, password: string): Promise<boolean> => {
+  const signup = async (email: string, password: string, name: string = ""): Promise<boolean> => {
     try {
       // Prevent users from registering with the admin email
       if (email === ADMIN_EMAIL) {
@@ -150,17 +157,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Save user credentials to mock storage
-      saveMockUser(email, password);
+      const success = saveMockUser(email, password, name);
       
-      // Create a mock user object
-      const mockUser = {
-        id: `user-${Date.now()}`,
-        email: email,
-        role: "ROLE_USER"
-      };
+      if (!success) {
+        toast.error("Email already registered. Please login or use a different email.");
+        return false;
+      }
       
       // In a real app, we would send this to an API endpoint
-      toast.success("Registration successful! You can now log in.");
+      console.log("Registration successful:", { email, name });
+      
+      // Automatically log in the user after successful registration
+      await login(email, password);
+      
+      toast.success("Registration successful! You are now logged in.");
       return true;
     } catch (error) {
       console.error("Signup failed", error);
