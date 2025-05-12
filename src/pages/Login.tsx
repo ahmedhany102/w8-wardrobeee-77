@@ -46,6 +46,9 @@ const Login = () => {
   const onSubmit = async (data: LoginFormValues) => {
     setIsSubmitting(true);
     try {
+      // Add Network request simulation for better security feeling
+      console.log("Sending login request...");
+      
       const success = await login(data.email, data.password);
       if (success) {
         toast.success("Login successful!");
@@ -60,7 +63,7 @@ const Login = () => {
     <Layout>
       <div className="flex justify-center items-center min-h-[80vh] w-full">
         <Card className="w-full max-w-md shadow-lg border-green-800 animate-fade-in">
-          <CardHeader className="bg-gradient-to-r from-green-800 to-black text-white rounded-t-md">
+          <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
             <CardTitle className="text-center text-2xl">User Login</CardTitle>
             <CardDescription className="text-center text-gray-100">
               Enter your credentials to access your account
@@ -119,8 +122,8 @@ const Login = () => {
             </Form>
           </CardContent>
           <CardFooter className="flex flex-col space-y-2 bg-green-50 rounded-b-md">
-            <div className="text-center text-sm">
-              Don't have an account?{" "}
+            <div className="text-center w-full">
+              <span className="text-sm">Don't have an account? </span>
               <Button 
                 variant="link" 
                 className="p-0 h-auto text-green-800" 
@@ -128,11 +131,6 @@ const Login = () => {
               >
                 Sign up
               </Button>
-            </div>
-            <div className="text-center text-sm mt-2">
-              <Link to="/admin-login" className="text-green-800 hover:underline">
-                Admin Login
-              </Link>
             </div>
           </CardFooter>
         </Card>

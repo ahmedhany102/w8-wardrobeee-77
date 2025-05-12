@@ -29,7 +29,7 @@ const ADMIN_PASSWORD = "Ahmed hany11*"; // Hardcoded admin password for validati
 const MOCK_USERS_STORAGE_KEY = "mock_users";
 
 // Helper function to get mock users from localStorage
-const getMockUsers = (): {email: string, password: string, id: string, name: string}[] => {
+const getMockUsers = (): {email: string, password: string, id: string, name: string, role?: string}[] => {
   const usersJson = localStorage.getItem(MOCK_USERS_STORAGE_KEY);
   return usersJson ? JSON.parse(usersJson) : [];
 };
@@ -42,9 +42,11 @@ const saveMockUser = (email: string, password: string, name: string = "") => {
       id: `user-${Date.now()}`,
       email,
       password,
-      name: name || email.split('@')[0]
+      name: name || email.split('@')[0],
+      role: "ROLE_USER"
     });
     localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(users));
+    console.log("User registration request sent", { email, name });
     return true;
   }
   return false;
@@ -95,6 +97,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
+      console.log("Login request sent", { email });
+
       // Special handling for admin login
       if (email === ADMIN_EMAIL) {
         // For demo purposes only - in production this should be handled by backend
@@ -126,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: foundUser.id,
           email: foundUser.email,
           name: foundUser.name || email.split('@')[0],
-          role: "ROLE_USER"
+          role: foundUser.role || "ROLE_USER"
         };
         
         setUser(userData);
@@ -155,6 +159,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         toast.error("This email is reserved. Please use a different email address.");
         return false;
       }
+
+      console.log("Registration request sent", { email, name });
 
       // Save user credentials to mock storage
       const success = saveMockUser(email, password, name);

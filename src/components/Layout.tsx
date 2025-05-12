@@ -23,6 +23,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Sync the cart count between top and bottom navigation
   useEffect(() => {
     const updateCartCount = () => {
+      // Don't show cart for admin users
+      if (isAdmin) {
+        setCartCount(0);
+        return;
+      }
+      
       const userCart = localStorage.getItem('userCart');
       if (userCart) {
         try {
@@ -50,7 +56,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       window.removeEventListener('storage', updateCartCount);
       window.removeEventListener('cartUpdated', updateCartCount);
     };
-  }, []);
+  }, [isAdmin]);
+
+  // Get display name (name, not email)
+  const getDisplayName = () => {
+    if (!user || !user.name) return "User";
+    return user.name.includes('@') ? user.name.split('@')[0] : user.name;
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-900 to-black text-white">
@@ -63,7 +75,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             {user ? (
               <>
                 <span className="text-sm hidden sm:inline-block mr-2">
-                  Welcome, {user.name.includes('@') ? user.name.split('@')[0] : user.name}
+                  Welcome, {getDisplayName()}
                 </span>
                 <Button
                   variant="ghost"
@@ -113,17 +125,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 >
                   <span>Sign Up</span>
                 </Button>
-                {!isAdmin && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-black text-green-500 hover:bg-green-900/30 border-green-700 transition-all ml-1"
-                    onClick={() => navigate("/admin-login")}
-                  >
-                    <Shield className="h-4 w-4 mr-1" />
-                    <span>Admin</span>
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-black text-green-500 hover:bg-green-900/30 border-green-700 transition-all ml-1"
+                  onClick={() => navigate("/admin-login")}
+                >
+                  <Shield className="h-4 w-4 mr-1" />
+                  <span>Admin Login</span>
+                </Button>
               </>
             )}
           </nav>
@@ -133,8 +143,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {children}
       </main>
       
-      {/* Bottom navigation bar */}
-      {user && (
+      {/* Bottom navigation bar - only for regular users, not admins */}
+      {user && !isAdmin && (
         <div className="sticky bottom-0 bg-black border-t border-green-800 shadow-lg py-3 px-4 z-50">
           <div className="container mx-auto flex justify-around items-center">
             <Button
@@ -192,7 +202,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       
       <footer className="bg-black border-t border-green-900 text-white py-4">
         <div className="container mx-auto px-4 text-center text-sm">
-          &copy; {new Date().getFullYear()} W8 - Best Shopping Experience
+          &copy; {new Date().getFullYear()} W8
         </div>
       </footer>
     </div>

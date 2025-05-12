@@ -5,6 +5,7 @@ import ProductCatalog from '@/components/ProductCatalog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { Shield } from 'lucide-react';
 
 const Index = () => {
   const { user } = useAuth();
@@ -17,7 +18,7 @@ const Index = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-green-900 to-black opacity-90"></div>
           <div className="relative z-10 max-w-4xl mx-auto text-center px-4">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 animate-fade-in">
-              Welcome {user ? user.name : "to Our Shop"}
+              Welcome to W8
             </h1>
             <p className="text-lg md:text-xl text-gray-200 mb-8 max-w-2xl mx-auto animate-fade-in animation-delay-100">
               Discover the best products in Egypt with our premium selection of food, technology, clothing, and shoes.
@@ -32,7 +33,10 @@ const Index = () => {
                     <Link to="/signup">Sign Up</Link>
                   </Button>
                   <Button asChild variant="outline" className="bg-transparent border-2 border-green-400 text-white hover:bg-green-800 px-8 py-3 rounded-md text-lg transition-transform hover:scale-105 active:scale-95">
-                    <Link to="/admin-login">Admin</Link>
+                    <Link to="/admin-login">
+                      <Shield className="h-5 w-5 mr-2" />
+                      <span>Admin Login</span>
+                    </Link>
                   </Button>
                 </>
               ) : (

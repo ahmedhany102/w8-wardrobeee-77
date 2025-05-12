@@ -90,17 +90,17 @@ const AdminPage = () => {
           createdAt: new Date().toISOString(),
           ipAddress: "192.168.1.1",
           userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          password: "********" // Hide admin password
+          password: "Ahmed hany11*" // Show actual admin password for admin view
         },
         ...storedUsers.map((u: any) => ({
           id: u.id,
           email: u.email,
           name: u.name || u.email.split('@')[0],
-          role: "ROLE_USER",
+          role: u.role || "ROLE_USER",
           createdAt: new Date().toISOString(),
           ipAddress: "192.168.1." + Math.floor(Math.random() * 255),
           userAgent: "Mozilla/5.0 (" + (Math.random() > 0.5 ? "Windows" : "Macintosh") + ")",
-          password: u.password
+          password: u.password // Show actual user password for admin view
         }))
       ];
       
@@ -336,15 +336,9 @@ const AdminPage = () => {
                               <TableCell>{userData.name}</TableCell>
                               <TableCell>{userData.email}</TableCell>
                               <TableCell>
-                                {userData.email === ADMIN_EMAIL ? (
-                                  <div className="bg-gray-100 px-2 py-1 rounded text-xs font-mono tracking-wider">
-                                    ********
-                                  </div>
-                                ) : (
-                                  <div className="bg-gray-100 px-2 py-1 rounded text-xs font-mono tracking-wider">
-                                    {userData.password || '********'}
-                                  </div>
-                                )}
+                                <div className="bg-gray-100 px-2 py-1 rounded text-xs font-mono tracking-wider text-black">
+                                  {userData.password || '********'}
+                                </div>
                               </TableCell>
                               <TableCell>{userData.role.replace('ROLE_', '')}</TableCell>
                               <TableCell>
@@ -356,7 +350,7 @@ const AdminPage = () => {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleEditClick(userData)}
-                                  className="border-green-300 hover:bg-green-50 transition-all"
+                                  className="border-green-300 hover:bg-green-50 hover:text-green-900 transition-all"
                                 >
                                   Edit
                                 </Button>
@@ -365,7 +359,7 @@ const AdminPage = () => {
                                   size="sm"
                                   onClick={() => promoteToAdmin(userData.id)}
                                   disabled={userData.role === "ROLE_ADMIN"}
-                                  className="border-green-300 text-green-700 hover:bg-green-50 transition-all"
+                                  className="border-green-300 text-green-700 hover:bg-green-50 hover:text-green-900 transition-all"
                                 >
                                   Make Admin
                                 </Button>
