@@ -42,21 +42,21 @@
   color: #888;
 }
 
-/* Fix hover color issues */
+/* Remove problematic hover effects */
 .hover\:bg-white:hover {
-  background-color: rgba(255, 255, 255, 0.7) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 .hover\:text-white:hover {
-  color: #333 !important;
+  color: inherit !important;
 }
 
 .dark .hover\:bg-white:hover {
-  background-color: rgba(255, 255, 255, 0.1) !important;
+  background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 .dark .hover\:text-white:hover {
-  color: #f0f0f0 !important;
+  color: inherit !important;
 }
 
 /* Admin table hover fix */
@@ -85,4 +85,3 @@ footer {
   display: flex;
   flex-direction: column;
 }
-
