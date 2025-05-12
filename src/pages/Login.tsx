@@ -127,9 +127,9 @@ const Login = () => {
               <Button 
                 variant="link" 
                 className="p-0 h-auto text-green-800" 
-                onClick={() => navigate("/signup")}
+                asChild
               >
-                Sign up
+                <Link to="/signup">Sign up</Link>
               </Button>
             </div>
           </CardFooter>

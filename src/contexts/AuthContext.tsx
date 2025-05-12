@@ -76,6 +76,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           userData.role = "ROLE_ADMIN";
         }
         
+        // Ensure the user has a display name
+        if (!userData.name) {
+          userData.name = userData.email.split('@')[0];
+        }
+        
         setUser(userData);
       } else {
         // Clear any potentially invalid session data

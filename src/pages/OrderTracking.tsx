@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Package, Check, Clock, X, Truck } from 'lucide-react';
+import { Package, Check, Clock, X, Truck, Archive } from 'lucide-react';
 import OrderDatabase from '@/models/OrderDatabase';
 import { Order } from '@/models/Order';
 
@@ -36,6 +36,19 @@ const OrderTracking = () => {
 
     fetchOrders();
   }, [user, navigate]);
+
+  // Separate orders by status
+  const activeOrders = orders.filter(order => 
+    ['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status)
+  );
+  
+  const completedOrders = orders.filter(order => 
+    order.status === 'DELIVERED'
+  );
+  
+  const cancelledOrders = orders.filter(order => 
+    order.status === 'CANCELLED'
+  );
 
   const getStatusIcon = (status: Order['status']) => {
     switch (status) {
@@ -107,6 +120,125 @@ const OrderTracking = () => {
     );
   };
 
+  const renderOrderCard = (order: Order) => {
+    return (
+      <Card key={order.id} className="border border-green-800 bg-black text-white overflow-hidden mb-4">
+        <CardHeader className="border-b border-green-900 bg-gradient-to-r from-green-900 to-black">
+          <div className="flex flex-wrap justify-between items-center">
+            <div>
+              <CardTitle className="text-xl">Order #{order.orderNumber}</CardTitle>
+              <CardDescription className="text-gray-300">
+                {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              {getStatusIcon(order.status)}
+              <Badge className={`${getStatusBadgeClass(order.status)} border`}>
+                {order.status}
+              </Badge>
+            </div>
+          </div>
+        </CardHeader>
+        
+        <CardContent className="pt-4">
+          {renderProgressBar(order.status)}
+          
+          <Tabs defaultValue="items" className="w-full mt-4">
+            <TabsList className="bg-green-900/30 border border-green-800 grid grid-cols-3 mb-4">
+              <TabsTrigger value="items">Items</TabsTrigger>
+              <TabsTrigger value="shipping">Shipping Info</TabsTrigger>
+              <TabsTrigger value="payment">Payment</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="items" className="space-y-4">
+              <div className="rounded-md overflow-hidden border border-green-900">
+                <table className="min-w-full divide-y divide-green-900">
+                  <thead className="bg-green-900/30">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Item</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Qty</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-black divide-y divide-green-900">
+                    {order.items.map((item, index) => (
+                      <tr key={index} className="hover:bg-green-900/10">
+                        <td className="px-4 py-3">{item.productName}</td>
+                        <td className="px-4 py-3">{item.quantity}</td>
+                        <td className="px-4 py-3">{item.unitPrice.toFixed(2)} EGP</td>
+                        <td className="px-4 py-3">{item.totalPrice.toFixed(2)} EGP</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-green-900/20">
+                      <td colSpan={3} className="px-4 py-3 text-right font-bold">Total:</td>
+                      <td className="px-4 py-3 font-bold">{order.totalAmount.toFixed(2)} EGP</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="shipping" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
+                  <h3 className="text-lg font-medium mb-2 text-green-400">Shipping Address</h3>
+                  <p className="mb-1">{order.customerInfo.name}</p>
+                  <p className="mb-1">{order.customerInfo.address.street}</p>
+                  <p className="mb-1">
+                    {order.customerInfo.address.city}, {order.customerInfo.address.state} {order.customerInfo.address.zipCode}
+                  </p>
+                  <p className="mb-1">{order.customerInfo.address.country}</p>
+                </div>
+                
+                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
+                  <h3 className="text-lg font-medium mb-2 text-green-400">Contact Information</h3>
+                  <p className="mb-1">Email: {order.customerInfo.email}</p>
+                  <p className="mb-1">Phone: {order.customerInfo.phone}</p>
+                </div>
+              </div>
+              
+              {order.notes && (
+                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
+                  <h3 className="text-lg font-medium mb-2 text-green-400">Order Notes</h3>
+                  <p>{order.notes}</p>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="payment" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
+                  <h3 className="text-lg font-medium mb-2 text-green-400">Payment Method</h3>
+                  <p className="mb-1">Method: {order.paymentInfo?.method || 'N/A'}</p>
+                  {order.paymentInfo?.cardLast4 && (
+                    <p className="mb-1">Card: **** **** **** {order.paymentInfo.cardLast4}</p>
+                  )}
+                  {order.paymentInfo?.cardBrand && (
+                    <p className="mb-1">Card Type: {order.paymentInfo.cardBrand}</p>
+                  )}
+                </div>
+                
+                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
+                  <h3 className="text-lg font-medium mb-2 text-green-400">Payment Status</h3>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`
+                      ${order.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800 border-green-300' : 
+                        order.paymentStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                        order.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800 border-red-300' : 
+                        'bg-gray-100 text-gray-800 border-gray-300'} border`}>
+                      {order.paymentStatus}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    );
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -141,122 +273,76 @@ const OrderTracking = () => {
           </Card>
         ) : (
           <div className="space-y-6">
-            {orders.map((order) => (
-              <Card key={order.id} className="border border-green-800 bg-black text-white overflow-hidden">
-                <CardHeader className="border-b border-green-900 bg-gradient-to-r from-green-900 to-black">
-                  <div className="flex flex-wrap justify-between items-center">
-                    <div>
-                      <CardTitle className="text-xl">Order #{order.orderNumber}</CardTitle>
-                      <CardDescription className="text-gray-300">
-                        {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(order.status)}
-                      <Badge className={`${getStatusBadgeClass(order.status)} border`}>
-                        {order.status}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
+            <Tabs defaultValue="active" className="w-full">
+              <TabsList className="bg-green-900/30 border border-green-800 grid w-full max-w-md mx-auto grid-cols-3 mb-8">
+                <TabsTrigger value="active" className="data-[state=active]:bg-green-700 data-[state=active]:text-white">
+                  Active Orders
+                </TabsTrigger>
+                <TabsTrigger value="completed" className="data-[state=active]:bg-green-700 data-[state=active]:text-white">
+                  Completed
+                </TabsTrigger>
+                <TabsTrigger value="cancelled" className="data-[state=active]:bg-green-700 data-[state=active]:text-white">
+                  Cancelled
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="active" className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Truck className="h-5 w-5 text-green-500" />
+                  <h2 className="text-xl font-medium text-green-500">Orders in Progress</h2>
+                </div>
                 
-                <CardContent className="pt-4">
-                  {renderProgressBar(order.status)}
-                  
-                  <Tabs defaultValue="items" className="w-full mt-4">
-                    <TabsList className="bg-green-900/30 border border-green-800 grid grid-cols-3 mb-4">
-                      <TabsTrigger value="items">Items</TabsTrigger>
-                      <TabsTrigger value="shipping">Shipping Info</TabsTrigger>
-                      <TabsTrigger value="payment">Payment</TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="items" className="space-y-4">
-                      <div className="rounded-md overflow-hidden border border-green-900">
-                        <table className="min-w-full divide-y divide-green-900">
-                          <thead className="bg-green-900/30">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Item</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Qty</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total</th>
-                            </tr>
-                          </thead>
-                          <tbody className="bg-black divide-y divide-green-900">
-                            {order.items.map((item, index) => (
-                              <tr key={index} className="hover:bg-green-900/10">
-                                <td className="px-4 py-3">{item.productName}</td>
-                                <td className="px-4 py-3">{item.quantity}</td>
-                                <td className="px-4 py-3">{item.unitPrice.toFixed(2)} EGP</td>
-                                <td className="px-4 py-3">{item.totalPrice.toFixed(2)} EGP</td>
-                              </tr>
-                            ))}
-                            <tr className="bg-green-900/20">
-                              <td colSpan={3} className="px-4 py-3 text-right font-bold">Total:</td>
-                              <td className="px-4 py-3 font-bold">{order.totalAmount.toFixed(2)} EGP</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </TabsContent>
-                    
-                    <TabsContent value="shipping" className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                          <h3 className="text-lg font-medium mb-2 text-green-400">Shipping Address</h3>
-                          <p className="mb-1">{order.customerInfo.name}</p>
-                          <p className="mb-1">{order.customerInfo.address.street}</p>
-                          <p className="mb-1">
-                            {order.customerInfo.address.city}, {order.customerInfo.address.state} {order.customerInfo.address.zipCode}
-                          </p>
-                          <p className="mb-1">{order.customerInfo.address.country}</p>
-                        </div>
-                        
-                        <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                          <h3 className="text-lg font-medium mb-2 text-green-400">Contact Information</h3>
-                          <p className="mb-1">Email: {order.customerInfo.email}</p>
-                          <p className="mb-1">Phone: {order.customerInfo.phone}</p>
-                        </div>
-                      </div>
-                      
-                      {order.notes && (
-                        <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                          <h3 className="text-lg font-medium mb-2 text-green-400">Order Notes</h3>
-                          <p>{order.notes}</p>
-                        </div>
-                      )}
-                    </TabsContent>
-                    
-                    <TabsContent value="payment" className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                          <h3 className="text-lg font-medium mb-2 text-green-400">Payment Method</h3>
-                          <p className="mb-1">Method: {order.paymentInfo?.method || 'N/A'}</p>
-                          {order.paymentInfo?.cardLast4 && (
-                            <p className="mb-1">Card: **** **** **** {order.paymentInfo.cardLast4}</p>
-                          )}
-                          {order.paymentInfo?.cardBrand && (
-                            <p className="mb-1">Card Type: {order.paymentInfo.cardBrand}</p>
-                          )}
-                        </div>
-                        
-                        <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                          <h3 className="text-lg font-medium mb-2 text-green-400">Payment Status</h3>
-                          <div className="flex items-center gap-2">
-                            <Badge className={`
-                              ${order.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800 border-green-300' : 
-                                order.paymentStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                                order.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800 border-red-300' : 
-                                'bg-gray-100 text-gray-800 border-gray-300'} border`}>
-                              {order.paymentStatus}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            ))}
+                {activeOrders.length === 0 ? (
+                  <div className="text-center py-10 bg-green-900/10 rounded-md border border-green-900">
+                    <Package className="h-12 w-12 mx-auto text-green-500 opacity-50 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-300">No Active Orders</h3>
+                    <p className="text-gray-400 mt-1">You don't have any orders in progress</p>
+                  </div>
+                ) : (
+                  <div>
+                    {activeOrders.map(renderOrderCard)}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="completed" className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Check className="h-5 w-5 text-green-500" />
+                  <h2 className="text-xl font-medium text-green-500">Completed Orders</h2>
+                </div>
+                
+                {completedOrders.length === 0 ? (
+                  <div className="text-center py-10 bg-green-900/10 rounded-md border border-green-900">
+                    <Archive className="h-12 w-12 mx-auto text-green-500 opacity-50 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-300">No Completed Orders</h3>
+                    <p className="text-gray-400 mt-1">You don't have any completed orders yet</p>
+                  </div>
+                ) : (
+                  <div>
+                    {completedOrders.map(renderOrderCard)}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="cancelled" className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <X className="h-5 w-5 text-red-500" />
+                  <h2 className="text-xl font-medium text-red-500">Cancelled Orders</h2>
+                </div>
+                
+                {cancelledOrders.length === 0 ? (
+                  <div className="text-center py-10 bg-green-900/10 rounded-md border border-green-900">
+                    <X className="h-12 w-12 mx-auto text-red-500 opacity-50 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-300">No Cancelled Orders</h3>
+                    <p className="text-gray-400 mt-1">You don't have any cancelled orders</p>
+                  </div>
+                ) : (
+                  <div>
+                    {cancelledOrders.map(renderOrderCard)}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </div>

@@ -15,7 +15,7 @@ const ProductCatalog: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
-  const [cart, setCart] = useState<OrderItem[]>([]);
+  const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [showCartDialog, setShowCartDialog] = useState(false);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const { user, isAdmin } = useAuth();
@@ -24,7 +24,7 @@ const ProductCatalog: React.FC = () => {
   useEffect(() => {
     fetchProducts();
     // Load cart from localStorage on component mount
-    const savedCart = localStorage.getItem('userCart');
+    const savedCart = localStorage.getItem('cart');
     if (savedCart) {
       try {
         setCart(JSON.parse(savedCart));
@@ -37,7 +37,7 @@ const ProductCatalog: React.FC = () => {
   // Save cart to localStorage whenever it changes
   useEffect(() => {
     if (cart.length > 0) {
-      localStorage.setItem('userCart', JSON.stringify(cart));
+      localStorage.setItem('cart', JSON.stringify(cart));
       // Dispatch custom event for other components to update
       window.dispatchEvent(new Event('cartUpdated'));
     }
@@ -72,27 +72,24 @@ const ProductCatalog: React.FC = () => {
       return;
     }
 
-    const existingItem = cart.find(item => item.productId === product.id);
+    const existingItem = cart.find(item => item.product.id === product.id);
     
     if (existingItem) {
-      setCart(cart.map(item => 
-        item.productId === product.id 
+      const updatedCart = cart.map(item => 
+        item.product.id === product.id 
           ? { 
               ...item, 
               quantity: item.quantity + 1,
-              totalPrice: (item.quantity + 1) * item.unitPrice 
             } 
           : item
-      ));
+      );
+      setCart(updatedCart);
     } else {
       setCart([
         ...cart, 
         {
-          productId: product.id,
-          productName: product.name,
+          product: product,
           quantity: 1,
-          unitPrice: product.price,
-          totalPrice: product.price
         }
       ]);
     }
@@ -102,14 +99,13 @@ const ProductCatalog: React.FC = () => {
 
   const handleUpdateCartItem = (productId: string, quantity: number) => {
     if (quantity <= 0) {
-      setCart(cart.filter(item => item.productId !== productId));
+      setCart(cart.filter(item => item.product.id !== productId));
     } else {
       setCart(cart.map(item => 
-        item.productId === productId 
+        item.product.id === productId 
           ? { 
               ...item, 
               quantity,
-              totalPrice: quantity * item.unitPrice 
             } 
           : item
       ));
@@ -117,12 +113,12 @@ const ProductCatalog: React.FC = () => {
   };
 
   const calculateTotal = () => {
-    return cart.reduce((sum, item) => sum + item.totalPrice, 0);
+    return cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   };
 
   const handleClearCart = () => {
     setCart([]);
-    localStorage.removeItem('userCart');
+    localStorage.removeItem('cart');
     setShowCartDialog(false);
   };
 
@@ -139,15 +135,9 @@ const ProductCatalog: React.FC = () => {
       return;
     }
     
+    // Instead of showing the form dialog, redirect to the cart page
+    navigate('/cart');
     setShowCartDialog(false);
-    setShowOrderForm(true);
-  };
-
-  const handleOrderComplete = () => {
-    setShowOrderForm(false);
-    setCart([]);
-    localStorage.removeItem('userCart');
-    toast.success('Thank you for your order!');
   };
 
   const getFilteredProducts = () => {
@@ -182,8 +172,8 @@ const ProductCatalog: React.FC = () => {
       </div>
       
       <Tabs defaultValue="ALL" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="overflow-x-auto pb-4">
-          <TabsList className="mb-8 w-full bg-gradient-to-r from-green-900 to-black flex justify-center space-x-12 px-4">
+        <div className="overflow-x-auto pb-4 flex justify-center">
+          <TabsList className="mb-8 bg-gradient-to-r from-green-900 to-black flex justify-between space-x-8 px-8 w-auto">
             <TabsTrigger 
               value="ALL" 
               className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
@@ -248,21 +238,21 @@ const ProductCatalog: React.FC = () => {
               <>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                   {cart.map((item) => (
-                    <div key={item.productId} className="flex justify-between items-center p-2 border-b border-green-800">
+                    <div key={item.product.id} className="flex justify-between items-center p-2 border-b border-green-800">
                       <div>
-                        <p className="font-medium">{item.productName}</p>
-                        <p className="text-sm text-gray-300">{item.unitPrice.toFixed(2)} EGP × {item.quantity}</p>
+                        <p className="font-medium">{item.product.name}</p>
+                        <p className="text-sm text-gray-300">{item.product.price.toFixed(2)} EGP × {item.quantity}</p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <button 
-                          onClick={() => handleUpdateCartItem(item.productId, item.quantity - 1)}
+                          onClick={() => handleUpdateCartItem(item.product.id, item.quantity - 1)}
                           className="w-6 h-6 flex items-center justify-center rounded-full bg-green-800 hover:bg-green-700"
                         >
                           -
                         </button>
                         <span>{item.quantity}</span>
                         <button 
-                          onClick={() => handleUpdateCartItem(item.productId, item.quantity + 1)}
+                          onClick={() => handleUpdateCartItem(item.product.id, item.quantity + 1)}
                           className="w-6 h-6 flex items-center justify-center rounded-full bg-green-800 hover:bg-green-700"
                         >
                           +
@@ -298,17 +288,6 @@ const ProductCatalog: React.FC = () => {
               </>
             )}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Order Form Dialog */}
-      <Dialog open={showOrderForm} onOpenChange={setShowOrderForm}>
-        <DialogContent className="sm:max-w-2xl bg-gradient-to-b from-green-900 to-black text-white overflow-y-auto max-h-[90vh]">
-          <OrderForm 
-            items={cart} 
-            totalAmount={calculateTotal()} 
-            onOrderComplete={handleOrderComplete} 
-          />
         </DialogContent>
       </Dialog>
     </div>
