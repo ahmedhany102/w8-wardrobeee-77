@@ -48,6 +48,9 @@ function App() {
               {/* Admin route */}
               <Route element={<RequireAuth adminOnly={true} />}>
                 <Route path="/admin" element={<Admin />} />
+                <Route path="/admin/products" element={<Admin activeTab="products" />} />
+                <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
+                <Route path="/admin/users" element={<Admin activeTab="users" />} />
               </Route>
 
               {/* 404 */}

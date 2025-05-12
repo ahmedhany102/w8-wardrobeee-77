@@ -1,249 +1,158 @@
 
-import React, { useState, useEffect } from 'react';
-import Layout from '@/components/Layout';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Package, Check, Clock, X, Truck, Archive } from 'lucide-react';
-import OrderDatabase from '@/models/OrderDatabase';
-import { Order } from '@/models/Order';
+import React, { useState, useEffect } from "react";
+import Layout from "@/components/Layout";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Order } from "@/models/Order";
+import OrderDatabase from "@/models/OrderDatabase";
+import { formatDistanceToNow } from "date-fns";
+import { Loader2, Truck, Package, ShoppingBag, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 const OrderTracking = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("all");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      navigate('/login');
-      return;
+    if (user) {
+      fetchOrders();
     }
+  }, [user]);
 
-    const fetchOrders = async () => {
-      try {
-        const orderDb = OrderDatabase.getInstance();
-        const userOrders = await orderDb.getOrdersByCustomerId(user.id);
-        setOrders(userOrders);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-      } finally {
-        setIsLoading(false);
+  const fetchOrders = async () => {
+    setLoading(true);
+    try {
+      const orderDb = OrderDatabase.getInstance();
+      const userOrders = await orderDb.getOrdersByCustomerId(user?.id || "");
+      setOrders(userOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      toast.error("Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: Order["status"]) => {
+    switch (status) {
+      case "PENDING":
+        return "bg-yellow-500 text-white hover:bg-yellow-600";
+      case "PROCESSING":
+        return "bg-blue-500 text-white hover:bg-blue-600";
+      case "SHIPPED":
+        return "bg-green-500 text-white hover:bg-green-600";
+      case "DELIVERED":
+        return "bg-green-700 text-white hover:bg-green-800";
+      case "CANCELLED":
+        return "bg-red-500 text-white hover:bg-red-600";
+      default:
+        return "bg-gray-400 hover:bg-gray-500";
+    }
+  };
+
+  const getPaymentStatusColor = (status: Order["paymentStatus"]) => {
+    switch (status) {
+      case "PAID":
+        return "bg-green-500 text-white hover:bg-green-600";
+      case "PENDING":
+        return "bg-yellow-500 text-white hover:bg-yellow-600";
+      case "FAILED":
+        return "bg-red-500 text-white hover:bg-red-600";
+      case "REFUNDED":
+        return "bg-blue-500 text-white hover:bg-blue-600";
+      default:
+        return "bg-gray-400 hover:bg-gray-500";
+    }
+  };
+
+  const getStatusIcon = (status: Order["status"]) => {
+    switch (status) {
+      case "PENDING":
+        return <Loader2 className="h-4 w-4 mr-1 animate-spin" />;
+      case "PROCESSING":
+        return <Package className="h-4 w-4 mr-1" />;
+      case "SHIPPED":
+        return <Truck className="h-4 w-4 mr-1" />;
+      case "DELIVERED":
+        return <CheckCircle className="h-4 w-4 mr-1" />;
+      case "CANCELLED":
+        return <XCircle className="h-4 w-4 mr-1" />;
+      default:
+        return <ShoppingBag className="h-4 w-4 mr-1" />;
+    }
+  };
+
+  const canCancel = (order: Order) => {
+    return order.status === "PENDING" || order.status === "PROCESSING";
+  };
+
+  const handleCancelOrder = async () => {
+    if (!selectedOrder) return;
+
+    try {
+      const orderDb = OrderDatabase.getInstance();
+      const updatedOrder = await orderDb.updateOrderStatus(selectedOrder.id, "CANCELLED");
+      if (updatedOrder) {
+        toast.success(`Order #${selectedOrder.orderNumber} has been cancelled`);
+        // Refresh orders list
+        fetchOrders();
+      } else {
+        toast.error("Failed to cancel order");
       }
-    };
-
-    fetchOrders();
-  }, [user, navigate]);
-
-  // Separate orders by status
-  const activeOrders = orders.filter(order => 
-    ['PENDING', 'PROCESSING', 'SHIPPED'].includes(order.status)
-  );
-  
-  const completedOrders = orders.filter(order => 
-    order.status === 'DELIVERED'
-  );
-  
-  const cancelledOrders = orders.filter(order => 
-    order.status === 'CANCELLED'
-  );
-
-  const getStatusIcon = (status: Order['status']) => {
-    switch (status) {
-      case 'PENDING':
-        return <Clock className="h-5 w-5 text-yellow-500" />;
-      case 'PROCESSING':
-        return <Package className="h-5 w-5 text-blue-500" />;
-      case 'SHIPPED':
-        return <Truck className="h-5 w-5 text-green-500" />;
-      case 'DELIVERED':
-        return <Check className="h-5 w-5 text-green-500" />;
-      case 'CANCELLED':
-        return <X className="h-5 w-5 text-red-500" />;
-      default:
-        return <Clock className="h-5 w-5 text-gray-500" />;
+    } catch (error) {
+      console.error("Error cancelling order:", error);
+      toast.error("An error occurred while cancelling the order");
+    } finally {
+      setShowCancelDialog(false);
+      setSelectedOrder(null);
     }
   };
 
-  const getStatusBadgeClass = (status: Order['status']) => {
-    switch (status) {
-      case 'PENDING':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      case 'PROCESSING':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'SHIPPED': 
-        return 'bg-green-100 text-green-800 border-green-300';
-      case 'DELIVERED':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800 border-red-300';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-300';
-    }
-  };
+  const filteredOrders = orders.filter(order => {
+    if (activeTab === "all") return true;
+    if (activeTab === "active") return ["PENDING", "PROCESSING", "SHIPPED"].includes(order.status);
+    if (activeTab === "completed") return order.status === "DELIVERED";
+    if (activeTab === "cancelled") return order.status === "CANCELLED";
+    return true;
+  });
 
-  const getStepProgress = (status: Order['status']) => {
-    switch (status) {
-      case 'PENDING': return 1;
-      case 'PROCESSING': return 2;
-      case 'SHIPPED': return 3;
-      case 'DELIVERED': return 4;
-      case 'CANCELLED': return -1;
-      default: return 0;
-    }
-  };
-
-  const renderProgressBar = (status: Order['status']) => {
-    const progress = getStepProgress(status);
-    if (progress === -1) return null; // Don't show progress for cancelled orders
-    
-    return (
-      <div className="w-full mt-4 mb-2">
-        <div className="relative">
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-green-500 rounded-full"
-              style={{ width: `${progress * 25}%` }}
-            ></div>
-          </div>
-          
-          <div className="flex justify-between mt-1 text-xs text-gray-500">
-            <span className={`${progress >= 1 ? 'text-green-600 font-medium' : ''}`}>Confirmed</span>
-            <span className={`${progress >= 2 ? 'text-green-600 font-medium' : ''}`}>Processing</span>
-            <span className={`${progress >= 3 ? 'text-green-600 font-medium' : ''}`}>Shipped</span>
-            <span className={`${progress >= 4 ? 'text-green-600 font-medium' : ''}`}>Delivered</span>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderOrderCard = (order: Order) => {
-    return (
-      <Card key={order.id} className="border border-green-800 bg-black text-white overflow-hidden mb-4">
-        <CardHeader className="border-b border-green-900 bg-gradient-to-r from-green-900 to-black">
-          <div className="flex flex-wrap justify-between items-center">
-            <div>
-              <CardTitle className="text-xl">Order #{order.orderNumber}</CardTitle>
-              <CardDescription className="text-gray-300">
-                {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
-              </CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              {getStatusIcon(order.status)}
-              <Badge className={`${getStatusBadgeClass(order.status)} border`}>
-                {order.status}
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        
-        <CardContent className="pt-4">
-          {renderProgressBar(order.status)}
-          
-          <Tabs defaultValue="items" className="w-full mt-4">
-            <TabsList className="bg-green-900/30 border border-green-800 grid grid-cols-3 mb-4">
-              <TabsTrigger value="items">Items</TabsTrigger>
-              <TabsTrigger value="shipping">Shipping Info</TabsTrigger>
-              <TabsTrigger value="payment">Payment</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="items" className="space-y-4">
-              <div className="rounded-md overflow-hidden border border-green-900">
-                <table className="min-w-full divide-y divide-green-900">
-                  <thead className="bg-green-900/30">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Item</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Qty</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Price</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-black divide-y divide-green-900">
-                    {order.items.map((item, index) => (
-                      <tr key={index} className="hover:bg-green-900/10">
-                        <td className="px-4 py-3">{item.productName}</td>
-                        <td className="px-4 py-3">{item.quantity}</td>
-                        <td className="px-4 py-3">{item.unitPrice.toFixed(2)} EGP</td>
-                        <td className="px-4 py-3">{item.totalPrice.toFixed(2)} EGP</td>
-                      </tr>
-                    ))}
-                    <tr className="bg-green-900/20">
-                      <td colSpan={3} className="px-4 py-3 text-right font-bold">Total:</td>
-                      <td className="px-4 py-3 font-bold">{order.totalAmount.toFixed(2)} EGP</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="shipping" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                  <h3 className="text-lg font-medium mb-2 text-green-400">Shipping Address</h3>
-                  <p className="mb-1">{order.customerInfo.name}</p>
-                  <p className="mb-1">{order.customerInfo.address.street}</p>
-                  <p className="mb-1">
-                    {order.customerInfo.address.city}, {order.customerInfo.address.state} {order.customerInfo.address.zipCode}
-                  </p>
-                  <p className="mb-1">{order.customerInfo.address.country}</p>
-                </div>
-                
-                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                  <h3 className="text-lg font-medium mb-2 text-green-400">Contact Information</h3>
-                  <p className="mb-1">Email: {order.customerInfo.email}</p>
-                  <p className="mb-1">Phone: {order.customerInfo.phone}</p>
-                </div>
-              </div>
-              
-              {order.notes && (
-                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                  <h3 className="text-lg font-medium mb-2 text-green-400">Order Notes</h3>
-                  <p>{order.notes}</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="payment" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                  <h3 className="text-lg font-medium mb-2 text-green-400">Payment Method</h3>
-                  <p className="mb-1">Method: {order.paymentInfo?.method || 'N/A'}</p>
-                  {order.paymentInfo?.cardLast4 && (
-                    <p className="mb-1">Card: **** **** **** {order.paymentInfo.cardLast4}</p>
-                  )}
-                  {order.paymentInfo?.cardBrand && (
-                    <p className="mb-1">Card Type: {order.paymentInfo.cardBrand}</p>
-                  )}
-                </div>
-                
-                <div className="p-4 border border-green-900 rounded-md bg-green-900/10">
-                  <h3 className="text-lg font-medium mb-2 text-green-400">Payment Status</h3>
-                  <div className="flex items-center gap-2">
-                    <Badge className={`
-                      ${order.paymentStatus === 'PAID' ? 'bg-green-100 text-green-800 border-green-300' : 
-                        order.paymentStatus === 'PENDING' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                        order.paymentStatus === 'FAILED' ? 'bg-red-100 text-red-800 border-red-300' : 
-                        'bg-gray-100 text-gray-800 border-gray-300'} border`}>
-                      {order.paymentStatus}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  if (isLoading) {
+  if (loading) {
     return (
       <Layout>
         <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-800"></div>
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-800 mb-4"></div>
+            <p>Loading your orders...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="text-center py-12">
+          <h2 className="text-2xl font-bold mb-4">You need to login to view your orders</h2>
+          <Button onClick={() => window.location.href = "/login"}>Login</Button>
         </div>
       </Layout>
     );
@@ -251,101 +160,269 @@ const OrderTracking = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold mb-6 text-green-500">Your Orders</h1>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6 text-green-800">Order Tracking & History</h1>
         
-        {orders.length === 0 ? (
-          <Card className="border border-green-800 bg-black text-white">
-            <CardHeader>
-              <CardTitle>No orders found</CardTitle>
-              <CardDescription className="text-gray-400">
-                You haven't placed any orders yet.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <button 
-                onClick={() => navigate('/')}
-                className="py-2 px-4 bg-green-800 text-white rounded-md hover:bg-green-700 transition-all"
-              >
-                Browse Products
-              </button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-6">
-            <Tabs defaultValue="active" className="w-full">
-              <TabsList className="bg-green-900/30 border border-green-800 grid w-full max-w-md mx-auto grid-cols-3 mb-8">
-                <TabsTrigger value="active" className="data-[state=active]:bg-green-700 data-[state=active]:text-white">
-                  Active Orders
-                </TabsTrigger>
-                <TabsTrigger value="completed" className="data-[state=active]:bg-green-700 data-[state=active]:text-white">
-                  Completed
-                </TabsTrigger>
-                <TabsTrigger value="cancelled" className="data-[state=active]:bg-green-700 data-[state=active]:text-white">
-                  Cancelled
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="active" className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Truck className="h-5 w-5 text-green-500" />
-                  <h2 className="text-xl font-medium text-green-500">Orders in Progress</h2>
-                </div>
-                
-                {activeOrders.length === 0 ? (
-                  <div className="text-center py-10 bg-green-900/10 rounded-md border border-green-900">
-                    <Package className="h-12 w-12 mx-auto text-green-500 opacity-50 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-300">No Active Orders</h3>
-                    <p className="text-gray-400 mt-1">You don't have any orders in progress</p>
-                  </div>
-                ) : (
-                  <div>
-                    {activeOrders.map(renderOrderCard)}
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="completed" className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Check className="h-5 w-5 text-green-500" />
-                  <h2 className="text-xl font-medium text-green-500">Completed Orders</h2>
-                </div>
-                
-                {completedOrders.length === 0 ? (
-                  <div className="text-center py-10 bg-green-900/10 rounded-md border border-green-900">
-                    <Archive className="h-12 w-12 mx-auto text-green-500 opacity-50 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-300">No Completed Orders</h3>
-                    <p className="text-gray-400 mt-1">You don't have any completed orders yet</p>
-                  </div>
-                ) : (
-                  <div>
-                    {completedOrders.map(renderOrderCard)}
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="cancelled" className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <X className="h-5 w-5 text-red-500" />
-                  <h2 className="text-xl font-medium text-red-500">Cancelled Orders</h2>
-                </div>
-                
-                {cancelledOrders.length === 0 ? (
-                  <div className="text-center py-10 bg-green-900/10 rounded-md border border-green-900">
-                    <X className="h-12 w-12 mx-auto text-red-500 opacity-50 mb-4" />
-                    <h3 className="text-lg font-medium text-gray-300">No Cancelled Orders</h3>
-                    <p className="text-gray-400 mt-1">You don't have any cancelled orders</p>
-                  </div>
-                ) : (
-                  <div>
-                    {cancelledOrders.map(renderOrderCard)}
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
+        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-8 bg-gradient-to-r from-green-900 to-black flex justify-between space-x-4 px-4 w-full">
+            <TabsTrigger value="all" className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800">
+              All Orders
+            </TabsTrigger>
+            <TabsTrigger value="active" className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800">
+              Active
+            </TabsTrigger>
+            <TabsTrigger value="completed" className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800">
+              Completed
+            </TabsTrigger>
+            <TabsTrigger value="cancelled" className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800">
+              Cancelled
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value={activeTab} className="mt-0">
+            {filteredOrders.length === 0 ? (
+              <Card>
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
+                  <p className="text-xl text-gray-500 mb-4">No {activeTab !== 'all' ? activeTab : ''} orders found</p>
+                  <Button 
+                    onClick={() => window.location.href = "/"} 
+                    className="bg-green-800 hover:bg-green-900"
+                  >
+                    Browse Products
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {filteredOrders.map((order) => (
+                  <Card key={order.id} className="overflow-hidden border-green-100 hover:shadow-lg transition-all duration-300">
+                    <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white p-4">
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3">
+                        <div className="space-y-1">
+                          <CardTitle className="text-lg md:text-xl">Order #{order.orderNumber}</CardTitle>
+                          <CardDescription className="text-gray-200">
+                            Placed {formatDistanceToNow(new Date(order.createdAt), { addSuffix: true })}
+                          </CardDescription>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge className={getStatusColor(order.status)}>
+                            <span className="flex items-center">
+                              {getStatusIcon(order.status)}
+                              {order.status}
+                            </span>
+                          </Badge>
+                          <Badge className={getPaymentStatusColor(order.paymentStatus)}>
+                            {order.paymentStatus}
+                          </Badge>
+                          {canCancel(order) && (
+                            <Button 
+                              variant="destructive" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setShowCancelDialog(true);
+                              }}
+                              className="h-7 bg-red-600 hover:bg-red-700"
+                            >
+                              Cancel Order
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Shipping Information */}
+                          <div>
+                            <h3 className="font-medium text-green-800 mb-2">Shipping Details</h3>
+                            <div className="text-sm space-y-1">
+                              <p><span className="font-medium">Name:</span> {order.customerInfo.name}</p>
+                              <p><span className="font-medium">Address:</span> {order.customerInfo.address.street}, {order.customerInfo.address.city}, {order.customerInfo.address.state}</p>
+                              <p><span className="font-medium">Country:</span> {order.customerInfo.address.country}</p>
+                              <p><span className="font-medium">Phone:</span> {order.customerInfo.phone}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Payment Information */}
+                          <div>
+                            <h3 className="font-medium text-green-800 mb-2">Payment Information</h3>
+                            <div className="text-sm space-y-1">
+                              <p><span className="font-medium">Method:</span> {order.paymentInfo?.method}</p>
+                              {order.paymentInfo?.cardLast4 && (
+                                <p><span className="font-medium">Card:</span> **** **** **** {order.paymentInfo.cardLast4}</p>
+                              )}
+                              <p><span className="font-medium">Total:</span> {order.totalAmount.toFixed(2)} EGP</p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Order Items */}
+                        <div>
+                          <h3 className="font-medium text-green-800 mb-2">Order Items</h3>
+                          <div className="overflow-x-auto">
+                            <Table className="w-full">
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Item</TableHead>
+                                  <TableHead className="text-right">Quantity</TableHead>
+                                  <TableHead className="text-right">Unit Price</TableHead>
+                                  <TableHead className="text-right">Total</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {order.items.map((item, index) => (
+                                  <TableRow key={index} className="hover:bg-green-50">
+                                    <TableCell className="font-medium">{item.productName}</TableCell>
+                                    <TableCell className="text-right">{item.quantity}</TableCell>
+                                    <TableCell className="text-right">{item.unitPrice.toFixed(2)} EGP</TableCell>
+                                    <TableCell className="text-right">{item.totalPrice.toFixed(2)} EGP</TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </div>
+                        
+                        {/* Order Timeline */}
+                        {["PENDING", "PROCESSING", "SHIPPED", "DELIVERED"].includes(order.status) && (
+                          <div className="mt-6">
+                            <h3 className="font-medium text-green-800 mb-2">Order Progress</h3>
+                            <div className="flex items-center w-full">
+                              <div className="flex-1 text-center">
+                                <HoverCard>
+                                  <HoverCardTrigger>
+                                    <div className={`rounded-full h-8 w-8 flex items-center justify-center mx-auto ${
+                                      ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED"].includes(order.status) 
+                                        ? "bg-green-600 text-white" 
+                                        : "bg-gray-300"
+                                    }`}>
+                                      1
+                                    </div>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="text-sm p-2">Order Confirmed</HoverCardContent>
+                                </HoverCard>
+                                <p className="text-xs mt-2">Confirmed</p>
+                              </div>
+                              
+                              <div className="h-1 flex-1 bg-gray-300">
+                                <div className={`h-full ${
+                                  ["PROCESSING", "SHIPPED", "DELIVERED"].includes(order.status) 
+                                    ? "bg-green-600" 
+                                    : "bg-gray-300"
+                                }`}></div>
+                              </div>
+                              
+                              <div className="flex-1 text-center">
+                                <HoverCard>
+                                  <HoverCardTrigger>
+                                    <div className={`rounded-full h-8 w-8 flex items-center justify-center mx-auto ${
+                                      ["PROCESSING", "SHIPPED", "DELIVERED"].includes(order.status) 
+                                        ? "bg-green-600 text-white" 
+                                        : "bg-gray-300"
+                                    }`}>
+                                      2
+                                    </div>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="text-sm p-2">Order Processing</HoverCardContent>
+                                </HoverCard>
+                                <p className="text-xs mt-2">Processing</p>
+                              </div>
+                              
+                              <div className="h-1 flex-1 bg-gray-300">
+                                <div className={`h-full ${
+                                  ["SHIPPED", "DELIVERED"].includes(order.status) 
+                                    ? "bg-green-600" 
+                                    : "bg-gray-300"
+                                }`}></div>
+                              </div>
+                              
+                              <div className="flex-1 text-center">
+                                <HoverCard>
+                                  <HoverCardTrigger>
+                                    <div className={`rounded-full h-8 w-8 flex items-center justify-center mx-auto ${
+                                      ["SHIPPED", "DELIVERED"].includes(order.status) 
+                                        ? "bg-green-600 text-white" 
+                                        : "bg-gray-300"
+                                    }`}>
+                                      3
+                                    </div>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="text-sm p-2">Order Shipped</HoverCardContent>
+                                </HoverCard>
+                                <p className="text-xs mt-2">Shipped</p>
+                              </div>
+                              
+                              <div className="h-1 flex-1 bg-gray-300">
+                                <div className={`h-full ${
+                                  order.status === "DELIVERED" 
+                                    ? "bg-green-600" 
+                                    : "bg-gray-300"
+                                }`}></div>
+                              </div>
+                              
+                              <div className="flex-1 text-center">
+                                <HoverCard>
+                                  <HoverCardTrigger>
+                                    <div className={`rounded-full h-8 w-8 flex items-center justify-center mx-auto ${
+                                      order.status === "DELIVERED" 
+                                        ? "bg-green-600 text-white" 
+                                        : "bg-gray-300"
+                                    }`}>
+                                      4
+                                    </div>
+                                  </HoverCardTrigger>
+                                  <HoverCardContent className="text-sm p-2">Order Delivered</HoverCardContent>
+                                </HoverCard>
+                                <p className="text-xs mt-2">Delivered</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Cancelled Status */}
+                        {order.status === "CANCELLED" && (
+                          <div className="bg-red-50 border border-red-200 rounded-md p-4 mt-4 text-center">
+                            <div className="flex items-center justify-center mb-2">
+                              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                              <span className="text-red-700 font-medium">This order has been cancelled</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
+      
+      {/* Cancel Order Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancel Order</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to cancel this order? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">No, keep order</Button>
+            </DialogClose>
+            <Button 
+              variant="destructive" 
+              onClick={handleCancelOrder}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Yes, cancel order
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

@@ -4,20 +4,20 @@ import ProductCard from './ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Product, ProductCategory, default as ProductDatabase } from '@/models/Product';
 import { toast } from 'sonner';
-import { OrderItem } from '@/models/Order';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import OrderForm from './OrderForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
 import { useNavigate } from 'react-router-dom';
+import SearchBar from './SearchBar';
 
 const ProductCatalog: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [showCartDialog, setShowCartDialog] = useState(false);
-  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -49,11 +49,56 @@ const ProductCatalog: React.FC = () => {
       const productDb = ProductDatabase.getInstance();
       const allProducts = await productDb.getAllProducts();
       setProducts(allProducts);
+      setFilteredProducts(allProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handle search functionality
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      // If search is empty, reset to all products in current category
+      setFilteredProducts(
+        activeTab === 'ALL' 
+          ? products 
+          : products.filter(product => product.category === activeTab)
+      );
+    } else {
+      // Filter products based on search query and current category
+      const lowercaseQuery = query.toLowerCase();
+      
+      const searchResults = products.filter(product => {
+        const matchesSearch = 
+          product.name.toLowerCase().includes(lowercaseQuery) || 
+          product.description.toLowerCase().includes(lowercaseQuery);
+        
+        const matchesCategory = activeTab === 'ALL' || product.category === activeTab;
+        
+        return matchesSearch && matchesCategory;
+      });
+      
+      setFilteredProducts(searchResults);
+    }
+  };
+
+  // Reset filtered products when changing tabs
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Reset search when changing tabs
+    if (searchQuery) {
+      handleSearch(searchQuery);
+    } else {
+      setFilteredProducts(
+        value === 'ALL' 
+          ? products 
+          : products.filter(product => product.category === value)
+      );
     }
   };
 
@@ -120,6 +165,7 @@ const ProductCatalog: React.FC = () => {
     setCart([]);
     localStorage.removeItem('cart');
     setShowCartDialog(false);
+    window.dispatchEvent(new Event('cartUpdated'));
   };
 
   const handleProceedToCheckout = () => {
@@ -138,13 +184,6 @@ const ProductCatalog: React.FC = () => {
     // Instead of showing the form dialog, redirect to the cart page
     navigate('/cart');
     setShowCartDialog(false);
-  };
-
-  const getFilteredProducts = () => {
-    if (activeTab === 'ALL') {
-      return products;
-    }
-    return products.filter(product => product.category === activeTab);
   };
 
   // Don't show cart button for admin users
@@ -171,8 +210,11 @@ const ProductCatalog: React.FC = () => {
         )}
       </div>
       
-      <Tabs defaultValue="ALL" value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="overflow-x-auto pb-4 flex justify-center">
+      {/* Search Bar */}
+      <SearchBar onSearch={handleSearch} />
+      
+      <Tabs defaultValue="ALL" value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <div className="flex justify-center overflow-x-auto pb-4">
           <TabsList className="mb-8 bg-gradient-to-r from-green-900 to-black flex justify-between space-x-8 px-8 w-auto">
             <TabsTrigger 
               value="ALL" 
@@ -211,9 +253,22 @@ const ProductCatalog: React.FC = () => {
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-800"></div>
           </div>
+        ) : filteredProducts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-xl text-gray-500 mb-4">No products found</p>
+            <Button 
+              onClick={() => {
+                setSearchQuery('');
+                handleSearch('');
+              }}
+              className="bg-green-800 hover:bg-green-900"
+            >
+              Clear Search
+            </Button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {getFilteredProducts().map((product) => (
+            {filteredProducts.map((product) => (
               <ProductCard 
                 key={product.id} 
                 product={product} 

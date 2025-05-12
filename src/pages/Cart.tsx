@@ -108,7 +108,7 @@ const Cart = () => {
     window.dispatchEvent(new Event('cartUpdated'));
   };
 
-  const handleIncreaseQuantity = (productId: number) => {
+  const handleIncreaseQuantity = (productId: string) => {
     const updatedCart = cartItems.map(item =>
       item.product.id === productId
         ? { ...item, quantity: item.quantity + 1 }
@@ -117,7 +117,7 @@ const Cart = () => {
     updateCart(updatedCart);
   };
 
-  const handleDecreaseQuantity = (productId: number) => {
+  const handleDecreaseQuantity = (productId: string) => {
     const updatedCart = cartItems.map(item =>
       item.product.id === productId && item.quantity > 1
         ? { ...item, quantity: item.quantity - 1 }
@@ -126,7 +126,7 @@ const Cart = () => {
     updateCart(updatedCart);
   };
 
-  const handleRemoveItem = (productId: number) => {
+  const handleRemoveItem = (productId: string) => {
     const updatedCart = cartItems.filter(item => item.product.id !== productId);
     updateCart(updatedCart);
     toast.success("Item removed from cart");

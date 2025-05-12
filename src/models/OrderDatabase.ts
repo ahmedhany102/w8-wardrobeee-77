@@ -38,6 +38,11 @@ class OrderDatabase {
     return newOrder;
   }
 
+  // Cancel order by ID
+  public async cancelOrder(orderId: string): Promise<Order | null> {
+    return this.updateOrderStatus(orderId, "CANCELLED");
+  }
+
   // Get all orders (for admin)
   public async getAllOrders(): Promise<Order[]> {
     return this.orders;
@@ -51,6 +56,11 @@ class OrderDatabase {
   // Get order by ID
   public async getOrderById(orderId: string): Promise<Order | undefined> {
     return this.orders.find(order => order.id === orderId);
+  }
+
+  // Get order by order number
+  public async getOrderByOrderNumber(orderNumber: string): Promise<Order | undefined> {
+    return this.orders.find(order => order.orderNumber === orderNumber);
   }
 
   // Update order status
