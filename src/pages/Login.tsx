@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,7 +68,7 @@ const Login = () => {
               Enter your credentials to access your account
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50">
+          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50 dark:from-gray-800 dark:to-gray-900">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -77,14 +76,14 @@ const Login = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-gray-700 dark:text-gray-300">Email</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="you@example.com"
                           {...field}
                           autoComplete="username"
                           disabled={isSubmitting}
-                          className="transition-all hover:border-green-500 focus:ring-green-700"
+                          className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
                         />
                       </FormControl>
                       <FormMessage />
@@ -96,7 +95,7 @@ const Login = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-gray-700 dark:text-gray-300">Password</FormLabel>
                       <FormControl>
                         <Input 
                           type="password" 
@@ -104,7 +103,7 @@ const Login = () => {
                           {...field} 
                           autoComplete="current-password"
                           disabled={isSubmitting}
-                          className="transition-all hover:border-green-500 focus:ring-green-700"
+                          className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
                         />
                       </FormControl>
                       <FormMessage />
@@ -121,16 +120,12 @@ const Login = () => {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2 bg-green-50 rounded-b-md">
+          <CardFooter className="flex flex-col space-y-2 bg-green-50 rounded-b-md dark:bg-gray-900 py-4">
             <div className="text-center w-full">
-              <span className="text-sm">Don't have an account? </span>
-              <Button 
-                variant="link" 
-                className="p-0 h-auto text-green-800" 
-                asChild
-              >
-                <Link to="/signup">Sign up</Link>
-              </Button>
+              <span className="text-sm text-gray-700 dark:text-gray-300">Don't have an account? </span>
+              <Link to="/signup" className="text-green-800 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium">
+                Sign up
+              </Link>
             </div>
           </CardFooter>
         </Card>

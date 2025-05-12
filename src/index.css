@@ -120,6 +120,20 @@
   .card-hover {
     @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
   }
+
+  /* Fix text legibility on hover */
+  .hover\:bg-white:hover {
+    @apply bg-opacity-10 text-inherit;
+  }
+  
+  .table tr:hover td {
+    @apply text-inherit bg-green-100/10 dark:bg-green-900/20;
+  }
+
+  /* Button better hover states */
+  .btn, .button, button[type="submit"] {
+    @apply hover:brightness-110 active:brightness-90 transition-all;
+  }
 }
 
 /* Custom animations */

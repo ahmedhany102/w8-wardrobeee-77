@@ -13,6 +13,7 @@ import Contact from './pages/Contact';
 import Cart from './pages/Cart';
 import NotFound from './pages/NotFound';
 import OrderTracking from './pages/OrderTracking';
+import Footer from './components/Footer';
 
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/toaster';
@@ -30,32 +31,35 @@ function App() {
       <ThemeProvider defaultTheme="dark" attribute="class">
         <AuthProvider>
           <Router>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/admin-login" element={<AdminLogin />} />
-              <Route path="/contact" element={<Contact />} />
+            <div className="flex flex-col min-h-screen">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/contact" element={<Contact />} />
 
-              {/* Protected routes */}
-              <Route element={<RequireAuth adminOnly={false} />}>
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/tracking" element={<OrderTracking />} />
-                <Route path="/orders" element={<OrderTracking />} />
-              </Route>
+                {/* Protected routes */}
+                <Route element={<RequireAuth adminOnly={false} />}>
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/tracking" element={<OrderTracking />} />
+                  <Route path="/orders" element={<OrderTracking />} />
+                </Route>
 
-              {/* Admin route */}
-              <Route element={<RequireAuth adminOnly={true} />}>
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/products" element={<Admin activeTab="products" />} />
-                <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
-                <Route path="/admin/users" element={<Admin activeTab="users" />} />
-              </Route>
+                {/* Admin route */}
+                <Route element={<RequireAuth adminOnly={true} />}>
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/products" element={<Admin activeTab="products" />} />
+                  <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
+                  <Route path="/admin/users" element={<Admin activeTab="users" />} />
+                </Route>
 
-              {/* 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+                {/* 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Footer />
+            </div>
           </Router>
 
           <SonnerToaster position="top-right" richColors closeButton />

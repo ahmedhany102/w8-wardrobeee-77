@@ -1,3 +1,4 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -40,3 +41,48 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Fix hover color issues */
+.hover\:bg-white:hover {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.hover\:text-white:hover {
+  color: #333 !important;
+}
+
+.dark .hover\:bg-white:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.dark .hover\:text-white:hover {
+  color: #f0f0f0 !important;
+}
+
+/* Admin table hover fix */
+.table tr:hover td {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+  color: inherit !important;
+}
+
+.dark .table tr:hover td {
+  background-color: rgba(34, 197, 94, 0.2) !important;
+  color: inherit !important;
+}
+
+/* Fix Card hover effects */
+.card:hover {
+  background-color: inherit;
+}
+
+/* Enhanced footer */
+footer {
+  margin-top: auto;
+}
+
+.min-h-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+

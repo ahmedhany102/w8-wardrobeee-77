@@ -1,6 +1,5 @@
-
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -75,7 +74,7 @@ const Signup = () => {
               Enter your information to sign up for an account
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50">
+          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50 dark:from-gray-800 dark:to-gray-900">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -83,14 +82,14 @@ const Signup = () => {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel className="text-gray-700 dark:text-gray-300">Name</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Your name" 
                           {...field}
                           autoComplete="name"
                           disabled={isSubmitting}
-                          className="transition-all hover:border-green-500 focus:ring-green-700"
+                          className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
                         />
                       </FormControl>
                       <FormMessage />
@@ -102,14 +101,14 @@ const Signup = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-gray-700 dark:text-gray-300">Email</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="you@example.com" 
                           {...field}
                           autoComplete="email"
                           disabled={isSubmitting}
-                          className="transition-all hover:border-green-500 focus:ring-green-700"
+                          className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
                         />
                       </FormControl>
                       <FormMessage />
@@ -121,7 +120,7 @@ const Signup = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-gray-700 dark:text-gray-300">Password</FormLabel>
                       <FormControl>
                         <Input 
                           type="password" 
@@ -129,7 +128,7 @@ const Signup = () => {
                           {...field}
                           autoComplete="new-password"
                           disabled={isSubmitting} 
-                          className="transition-all hover:border-green-500 focus:ring-green-700"
+                          className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
                         />
                       </FormControl>
                       <FormMessage />
@@ -141,7 +140,7 @@ const Signup = () => {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Confirm Password</FormLabel>
+                      <FormLabel className="text-gray-700 dark:text-gray-300">Confirm Password</FormLabel>
                       <FormControl>
                         <Input 
                           type="password" 
@@ -149,7 +148,7 @@ const Signup = () => {
                           {...field}
                           autoComplete="new-password"
                           disabled={isSubmitting} 
-                          className="transition-all hover:border-green-500 focus:ring-green-700"
+                          className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
                         />
                       </FormControl>
                       <FormMessage />
@@ -166,16 +165,12 @@ const Signup = () => {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-2 bg-green-50 rounded-b-md">
-            <div className="text-center text-sm">
-              Already have an account?{" "}
-              <Button 
-                variant="link" 
-                className="p-0 h-auto text-green-800" 
-                onClick={() => navigate("/login")}
-              >
+          <CardFooter className="flex flex-col space-y-2 bg-green-50 rounded-b-md dark:bg-gray-900 py-4">
+            <div className="text-center w-full">
+              <span className="text-sm text-gray-700 dark:text-gray-300">Already have an account? </span>
+              <Link to="/login" className="text-green-800 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium">
                 Log in
-              </Button>
+              </Link>
             </div>
           </CardFooter>
         </Card>
