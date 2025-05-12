@@ -165,7 +165,7 @@ const Cart = () => {
     try {
       // Create OrderItems from cartItems with correct properties to match the OrderItem interface
       const orderItems: OrderItem[] = cartItems.map(item => ({
-        productId: item.product.id.toString(),
+        productId: item.product.id.toString(), // Convert to string to match OrderItem interface
         productName: item.product.name,
         quantity: item.quantity,
         unitPrice: item.product.price,
