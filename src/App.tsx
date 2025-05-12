@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import RequireAuth from './components/RequireAuth';
+import { RequireAuth } from './components/RequireAuth';
 
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -38,7 +38,7 @@ function App() {
               <Route path="/contact" element={<Contact />} />
 
               {/* Protected routes */}
-              <Route element={<RequireAuth />}>
+              <Route element={<RequireAuth adminOnly={false} />}>
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/tracking" element={<OrderTracking />} />
@@ -46,7 +46,7 @@ function App() {
               </Route>
 
               {/* Admin route */}
-              <Route element={<RequireAuth requireAdmin={true} />}>
+              <Route element={<RequireAuth adminOnly={true} />}>
                 <Route path="/admin" element={<Admin />} />
               </Route>
 

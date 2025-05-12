@@ -11,7 +11,8 @@ const UserWelcome = () => {
   if (!user) return null;
   
   // Extract just the name part before @ if it's an email
-  const displayName = user.name.includes('@') ? user.name.split('@')[0] : user.name;
+  // Adding a safety check to prevent the "includes" error
+  const displayName = user.name && user.name.includes('@') ? user.name.split('@')[0] : user.name || 'User';
   
   return (
     <div className="flex items-center gap-4">

@@ -1,15 +1,15 @@
 
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 
 interface RequireAuthProps {
-  children: JSX.Element;
   adminOnly?: boolean;
+  children?: JSX.Element;
 }
 
-export const RequireAuth = ({ children, adminOnly = false }: RequireAuthProps) => {
+export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) => {
   const { user, loading, isAdmin, checkAuthStatus } = useAuth();
   const location = useLocation();
   const [lastActivity, setLastActivity] = useState(Date.now());
@@ -169,5 +169,6 @@ export const RequireAuth = ({ children, adminOnly = false }: RequireAuthProps) =
     return <Navigate to="/" replace />;
   }
 
-  return children;
+  // Return children or outlet based on what's provided
+  return children ? children : <Outlet />;
 };
