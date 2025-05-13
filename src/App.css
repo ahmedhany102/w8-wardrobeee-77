@@ -1,9 +1,13 @@
 
 #root {
-  max-width: 1280px;
+  max-width: 100%;
+  width: 100%;
+  min-height: 100vh;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0;
   text-align: center;
+  display: flex;
+  flex-direction: column;
 }
 
 .logo {
@@ -36,14 +40,24 @@
 
 .card {
   padding: 2em;
+  width: 100%;
 }
 
 .read-the-docs {
   color: #888;
 }
 
-/* Remove problematic hover effects */
-.hover\:bg-white:hover {
+/* Completely remove problematic hover effects */
+.hover\:bg-white:hover,
+.hover\:bg-white\/10:hover,
+.hover\:bg-white\/20:hover,
+.hover\:bg-white\/30:hover,
+.hover\:bg-white\/40:hover,
+.hover\:bg-white\/50:hover,
+.hover\:bg-white\/60:hover,
+.hover\:bg-white\/70:hover,
+.hover\:bg-white\/80:hover,
+.hover\:bg-white\/90:hover {
   background-color: transparent !important;
 }
 
@@ -51,12 +65,29 @@
   color: inherit !important;
 }
 
-.dark .hover\:bg-white:hover {
+.dark .hover\:bg-white:hover,
+.dark .hover\:bg-white\/10:hover,
+.dark .hover\:bg-white\/20:hover,
+.dark .hover\:bg-white\/30:hover,
+.dark .hover\:bg-white\/40:hover,
+.dark .hover\:bg-white\/50:hover,
+.dark .hover\:bg-white\/60:hover,
+.dark .hover\:bg-white\/70:hover,
+.dark .hover\:bg-white\/80:hover,
+.dark .hover\:bg-white\/90:hover {
   background-color: transparent !important;
 }
 
 .dark .hover\:text-white:hover {
   color: inherit !important;
+}
+
+/* Better hover states for buttons and links */
+button:hover, 
+a:hover,
+.button:hover {
+  opacity: 0.9;
+  transition: opacity 0.2s ease-in-out;
 }
 
 /* Admin table hover fix */
@@ -78,6 +109,7 @@
 /* Enhanced footer */
 footer {
   margin-top: auto;
+  width: 100%;
 }
 
 .min-h-screen {
@@ -86,26 +118,77 @@ footer {
   flex-direction: column;
 }
 
+/* Full width responsive fixes */
+.container {
+  width: 100% !important;
+  max-width: 100% !important;
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 100% !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1280px !important;
+  }
+}
+
 /* Responsive fixes */
 @media (max-width: 767px) {
   #root {
-    padding: 0.5rem;
+    padding: 0;
     max-width: 100%;
     width: 100%;
   }
   
   .container {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
     width: 100% !important;
     max-width: 100% !important;
   }
   
-  .card, .card-content {
+  .card-content {
     padding: 0.75em;
   }
   
   button, .button, [type="button"], [type="submit"] {
     min-height: 2.5rem;
+  }
+
+  /* Ensure tables are scrollable on mobile */
+  .table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure forms fill the width on mobile */
+  form, .form {
+    width: 100%;
+  }
+  
+  /* Increase touch target sizes on mobile */
+  button, .button, a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Improve form field sizing on mobile */
+  input, select, textarea {
+    min-height: 44px;
   }
 }

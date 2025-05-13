@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, AlertTriangle } from "lucide-react";
+import { Shield, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import Layout from "@/components/Layout";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
@@ -35,6 +35,7 @@ const AdminLogin = () => {
   const [attempts, setAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Check if account is locked from localStorage
   useEffect(() => {
@@ -147,6 +148,10 @@ const AdminLogin = () => {
     }
   };
 
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   return (
     <Layout>
       <div className="flex justify-center items-center min-h-[80vh] w-full">
@@ -198,14 +203,27 @@ const AdminLogin = () => {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="••••••••" 
-                            {...field} 
-                            autoComplete="current-password"
-                            disabled={isSubmitting}
-                            className="transition-all hover:border-green-500 focus:ring-green-700"
-                          />
+                          <div className="relative">
+                            <Input 
+                              type={showPassword ? "text" : "password"}
+                              placeholder="••••••••" 
+                              {...field} 
+                              autoComplete="current-password"
+                              disabled={isSubmitting}
+                              className="transition-all hover:border-green-500 focus:ring-green-700 pr-10"
+                            />
+                            <button
+                              type="button"
+                              className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                              onClick={togglePasswordVisibility}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-5 w-5 text-gray-500" />
+                              ) : (
+                                <Eye className="h-5 w-5 text-gray-500" />
+                              )}
+                            </button>
+                          </div>
                         </FormControl>
                         <FormMessage />
                       </FormItem>

@@ -11,6 +11,8 @@ import OrdersPanel from '@/components/admin/OrdersPanel';
 import ProductManagement from '@/components/admin/ProductManagement';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, UserRound } from 'lucide-react';
+import { formatDistance } from 'date-fns';
 
 interface AdminProps {
   activeTab?: string;
@@ -21,67 +23,168 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(activeTab);
   const [users, setUsers] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>({});
+  const [activities, setActivities] = useState<any[]>([]);
+  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   
   useEffect(() => {
-    // Load mock users from localStorage or create default users if none exist
-    const loadUsers = () => {
-      const loadedUsers = localStorage.getItem('users');
-      if (loadedUsers) {
-        try {
-          const parsedUsers = JSON.parse(loadedUsers);
-          setUsers(parsedUsers);
-        } catch (error) {
-          console.error("Error parsing users:", error);
-          createDefaultUsers();
-        }
-      } else {
+    // Load data from localStorage
+    loadUsers();
+    loadOrders();
+    loadProducts();
+    loadActivities();
+  }, []);
+
+  // Load users from localStorage
+  const loadUsers = () => {
+    const loadedUsers = localStorage.getItem('users');
+    if (loadedUsers) {
+      try {
+        const parsedUsers = JSON.parse(loadedUsers);
+        setUsers(parsedUsers);
+      } catch (error) {
+        console.error("Error parsing users:", error);
         createDefaultUsers();
       }
+    } else {
+      createDefaultUsers();
+    }
+  };
+
+  // Load orders from localStorage
+  const loadOrders = () => {
+    const loadedOrders = localStorage.getItem('orders');
+    if (loadedOrders) {
+      try {
+        const parsedOrders = JSON.parse(loadedOrders);
+        setOrders(parsedOrders);
+      } catch (error) {
+        console.error("Error parsing orders:", error);
+        setOrders([]);
+      }
+    } else {
+      setOrders([]);
+    }
+  };
+
+  // Load products from localStorage
+  const loadProducts = () => {
+    const loadedProducts = localStorage.getItem('products');
+    if (loadedProducts) {
+      try {
+        const parsedProducts = JSON.parse(loadedProducts);
+        setProducts(parsedProducts);
+      } catch (error) {
+        console.error("Error parsing products:", error);
+        setProducts([]);
+      }
+    } else {
+      setProducts([]);
+    }
+  };
+
+  // Load activities from localStorage
+  const loadActivities = () => {
+    const loadedActivities = localStorage.getItem('activities');
+    if (loadedActivities) {
+      try {
+        const parsedActivities = JSON.parse(loadedActivities);
+        setActivities(parsedActivities);
+      } catch (error) {
+        console.error("Error parsing activities:", error);
+        createDefaultActivities();
+      }
+    } else {
+      createDefaultActivities();
+    }
+  };
+
+  // Record a new activity
+  const recordActivity = (description: string, type: string = "system") => {
+    const newActivity = {
+      id: `act-${Date.now()}`,
+      description,
+      timestamp: new Date().toISOString(),
+      type,
     };
+
+    const updatedActivities = [newActivity, ...activities].slice(0, 20); // Keep only last 20 activities
+    setActivities(updatedActivities);
+    localStorage.setItem('activities', JSON.stringify(updatedActivities));
+    return newActivity;
+  };
     
-    // Create mock users with the required admin account
-    const createDefaultUsers = () => {
-      const currentDate = new Date().toISOString();
-      const mockUsers = [
-        {
-          id: 'admin-1',
-          name: 'Ahmed Hany',
-          email: 'ahmedhanyseifeldein@gmail.com',
-          password: 'password123', // This would be encrypted in a real app
-          role: 'ADMIN',
-          createdAt: currentDate,
-          ipAddress: '192.168.1.1',
-          status: 'ACTIVE'
-        },
-        {
-          id: 'user-1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          password: 'userpass123', // This would be encrypted in a real app
-          role: 'USER',
-          createdAt: currentDate,
-          ipAddress: '192.168.1.2',
-          status: 'ACTIVE'
-        },
-        {
-          id: 'user-2',
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          password: 'janepass456', // This would be encrypted in a real app
-          role: 'USER',
-          createdAt: currentDate,
-          ipAddress: '192.168.1.3',
-          status: 'ACTIVE'
-        }
-      ];
-      setUsers(mockUsers);
-      localStorage.setItem('users', JSON.stringify(mockUsers));
-    };
-    
-    loadUsers();
-  }, []);
+  // Create mock users with the required admin account
+  const createDefaultUsers = () => {
+    const currentDate = new Date().toISOString();
+    const mockUsers = [
+      {
+        id: 'admin-1',
+        name: 'Ahmed Hany',
+        email: 'ahmedhanyseifeldien@gmail.com',
+        password: 'Ahmed hany11*', // This would be encrypted in a real app
+        role: 'ADMIN',
+        createdAt: currentDate,
+        lastLogin: currentDate,
+        ipAddress: '192.168.1.1',
+        status: 'ACTIVE'
+      },
+      {
+        id: 'user-1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'userpass123', // This would be encrypted in a real app
+        role: 'USER',
+        createdAt: currentDate,
+        lastLogin: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        ipAddress: '192.168.1.2',
+        status: 'ACTIVE'
+      },
+      {
+        id: 'user-2',
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        password: 'janepass456', // This would be encrypted in a real app
+        role: 'USER',
+        createdAt: new Date(Date.now() - 7 * 86400000).toISOString(), // 7 days ago
+        lastLogin: new Date(Date.now() - 2 * 86400000).toISOString(), // 2 days ago
+        ipAddress: '192.168.1.3',
+        status: 'ACTIVE'
+      }
+    ];
+    setUsers(mockUsers);
+    localStorage.setItem('users', JSON.stringify(mockUsers));
+  };
+
+  // Create default activities
+  const createDefaultActivities = () => {
+    const now = Date.now();
+    const defaultActivities = [
+      {
+        id: `act-${now - 300000}`, // 5 minutes ago
+        description: "New user registered: John Doe",
+        timestamp: new Date(now - 300000).toISOString(),
+        type: "user"
+      },
+      {
+        id: `act-${now - 900000}`, // 15 minutes ago
+        description: "New order placed: #ORD-12345",
+        timestamp: new Date(now - 900000).toISOString(),
+        type: "order"
+      },
+      {
+        id: `act-${now - 3600000}`, // 1 hour ago
+        description: "Product stock low: Egyptian Koshari (5 left)",
+        timestamp: new Date(now - 3600000).toISOString(),
+        type: "product"
+      }
+    ];
+    setActivities(defaultActivities);
+    localStorage.setItem('activities', JSON.stringify(defaultActivities));
+  };
 
   const handleTabChange = (value: string) => {
     setCurrentTab(value);
@@ -94,6 +197,10 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     );
     setUsers(updatedUsers);
     localStorage.setItem('users', JSON.stringify(updatedUsers));
+    
+    const targetUser = users.find(u => u.id === userId);
+    recordActivity(`User ${targetUser?.name} promoted to Admin role`, "user");
+    
     toast.success('User role updated to Admin');
   };
 
@@ -103,13 +210,21 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     );
     setUsers(updatedUsers);
     localStorage.setItem('users', JSON.stringify(updatedUsers));
+    
+    const targetUser = users.find(u => u.id === userId);
+    recordActivity(`Admin privileges removed from ${targetUser?.name}`, "user");
+    
     toast.success('Admin privileges removed');
   };
 
   const handleDeleteUser = (userId: string) => {
+    const userToDelete = users.find(u => u.id === userId);
     const updatedUsers = users.filter(u => u.id !== userId);
     setUsers(updatedUsers);
     localStorage.setItem('users', JSON.stringify(updatedUsers));
+    
+    recordActivity(`User deleted: ${userToDelete?.name} (${userToDelete?.email})`, "user");
+    
     toast.success('User deleted');
   };
   
@@ -135,6 +250,9 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     
     setUsers(updatedUsers);
     localStorage.setItem('users', JSON.stringify(updatedUsers));
+    
+    recordActivity(`User information updated: ${editData.name} (${editData.email})`, "user");
+    
     setIsEditing(null);
     setEditData({});
     toast.success('User information updated');
@@ -146,12 +264,28 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   };
 
   const handleStatusChange = (userId: string, status: string) => {
+    const userToUpdate = users.find(u => u.id === userId);
     const updatedUsers = users.map(u =>
       u.id === userId ? { ...u, status } : u
     );
     setUsers(updatedUsers);
     localStorage.setItem('users', JSON.stringify(updatedUsers));
+    
+    recordActivity(`User status updated: ${userToUpdate?.name} is now ${status}`, "user");
+    
     toast.success(`User status updated to ${status}`);
+  };
+
+  const togglePasswordVisibility = (userId: string) => {
+    setShowPassword(prev => ({ ...prev, [userId]: !prev[userId] }));
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    try {
+      return formatDistance(new Date(dateString), new Date(), { addSuffix: true });
+    } catch (error) {
+      return "unknown time";
+    }
   };
 
   return (
@@ -214,7 +348,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                   <CardTitle>Orders</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <p className="text-2xl md:text-3xl font-bold">12</p>
+                  <p className="text-2xl md:text-3xl font-bold">{orders.length}</p>
                 </CardContent>
               </Card>
               
@@ -223,7 +357,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                   <CardTitle>Products</CardTitle>
                 </CardHeader>
                 <CardContent className="pt-4">
-                  <p className="text-2xl md:text-3xl font-bold">24</p>
+                  <p className="text-2xl md:text-3xl font-bold">{products.length}</p>
                 </CardContent>
               </Card>
             </div>
@@ -235,24 +369,20 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="space-y-4">
-                  <div className="flex items-center border-b pb-2">
-                    <div className="ml-0 sm:ml-4">
-                      <p className="font-medium">New user registered: John Doe</p>
-                      <p className="text-sm text-gray-500">5 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center border-b pb-2">
-                    <div className="ml-0 sm:ml-4">
-                      <p className="font-medium">New order placed: #ORD-12345</p>
-                      <p className="text-sm text-gray-500">15 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center border-b pb-2">
-                    <div className="ml-0 sm:ml-4">
-                      <p className="font-medium">Product stock low: Egyptian Koshari (5 left)</p>
-                      <p className="text-sm text-gray-500">1 hour ago</p>
-                    </div>
-                  </div>
+                  {activities.length > 0 ? (
+                    activities.slice(0, 10).map(activity => (
+                      <div key={activity.id} className="flex items-center border-b pb-2">
+                        <div className="ml-0 sm:ml-4 w-full">
+                          <div className="flex justify-between w-full">
+                            <p className="font-medium">{activity.description}</p>
+                            <p className="text-sm text-gray-500">{formatTimeAgo(activity.timestamp)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-gray-500">No recent activities</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -265,16 +395,16 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                 <CardDescription className="text-white/80">Manage user accounts and permissions</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="table-container">
+                <div className="table-container w-full overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-green-50 dark:bg-green-900/20">
                       <TableRow>
-                        <TableHead className="w-[50px]">ID</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Password</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Last Login</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -284,7 +414,6 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                           {isEditing === user.id ? (
                             // Edit mode
                             <>
-                              <TableCell>{user.id.substring(0, 6)}...</TableCell>
                               <TableCell>
                                 <input 
                                   type="text" 
@@ -304,13 +433,26 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                                 />
                               </TableCell>
                               <TableCell>
-                                <input 
-                                  type="text" 
-                                  name="password" 
-                                  value={editData.password || ''} 
-                                  onChange={handleInputChange}
-                                  className="w-full p-1 border rounded bg-gray-100 dark:bg-gray-800 text-black dark:text-white"
-                                />
+                                <div className="flex items-center">
+                                  <input 
+                                    type={showPassword[user.id] ? "text" : "password"} 
+                                    name="password" 
+                                    value={editData.password || ''} 
+                                    onChange={handleInputChange}
+                                    className="w-full p-1 border rounded bg-gray-100 dark:bg-gray-800 text-black dark:text-white"
+                                  />
+                                  <button
+                                    onClick={() => togglePasswordVisibility(user.id)}
+                                    className="ml-2 focus:outline-none"
+                                    type="button"
+                                  >
+                                    {showPassword[user.id] ? (
+                                      <EyeOff size={16} className="text-gray-500" />
+                                    ) : (
+                                      <Eye size={16} className="text-gray-500" />
+                                    )}
+                                  </button>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <select 
@@ -335,6 +477,9 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                                   <option value="PENDING">PENDING</option>
                                 </select>
                               </TableCell>
+                              <TableCell>
+                                {user.lastLogin ? formatTimeAgo(user.lastLogin) : 'Never'}
+                              </TableCell>
                               <TableCell className="text-right space-x-1">
                                 <Button 
                                   variant="outline" 
@@ -357,19 +502,24 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                           ) : (
                             // View mode
                             <>
-                              <TableCell className="font-medium">{user.id.substring(0, 6)}...</TableCell>
                               <TableCell>{user.name}</TableCell>
                               <TableCell>{user.email}</TableCell>
                               <TableCell>
-                                <span className="text-gray-500">
-                                  ••••••••
+                                <div className="flex items-center">
+                                  <span className="text-gray-500">
+                                    {showPassword[user.id] ? user.password : '••••••••'}
+                                  </span>
                                   <button 
-                                    onClick={() => toast.info(`Password: ${user.password}`)} 
-                                    className="ml-1 text-xs text-blue-500"
+                                    onClick={() => togglePasswordVisibility(user.id)} 
+                                    className="ml-1 text-xs text-blue-500 focus:outline-none"
                                   >
-                                    Show
+                                    {showPassword[user.id] ? (
+                                      <EyeOff size={16} className="text-gray-500" />
+                                    ) : (
+                                      <Eye size={16} className="text-gray-500" />
+                                    )}
                                   </button>
-                                </span>
+                                </div>
                               </TableCell>
                               <TableCell>
                                 <Badge className={user.role === 'ADMIN' ? 'bg-green-800 text-white' : 'bg-blue-500 text-white'}>
@@ -384,6 +534,9 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                                 }>
                                   {user.status || 'ACTIVE'}
                                 </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {user.lastLogin ? formatTimeAgo(user.lastLogin) : 'Never'}
                               </TableCell>
                               <TableCell className="text-right space-x-1">
                                 <Button 

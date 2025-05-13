@@ -47,9 +47,31 @@ const saveMockUser = (email: string, password: string, name: string = "") => {
     });
     localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(users));
     console.log("User registration request sent", { email, name });
+    
+    // Record activity for admin dashboard
+    recordActivity(`New user registered: ${name || email.split('@')[0]} (${email})`, "user");
+    
     return true;
   }
   return false;
+};
+
+// Record activity for admin dashboard
+const recordActivity = (description: string, type: string = "system") => {
+  try {
+    const activities = JSON.parse(localStorage.getItem('activities') || '[]');
+    const newActivity = {
+      id: `act-${Date.now()}`,
+      description,
+      timestamp: new Date().toISOString(),
+      type
+    };
+    
+    const updatedActivities = [newActivity, ...activities].slice(0, 20); // Keep only last 20 activities
+    localStorage.setItem('activities', JSON.stringify(updatedActivities));
+  } catch (error) {
+    console.error("Error recording activity:", error);
+  }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -99,6 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Check for rate limiting on client side
       if (loginAttempts >= 5) {
         toast.error("Too many login attempts. Please try again later.");
+        recordActivity(`Login attempt blocked due to rate limiting: ${email}`, "security");
         return false;
       }
 
@@ -111,16 +134,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const adminUser = {
             id: "admin-1",
             email: ADMIN_EMAIL,
-            name: "Admin",
+            name: "Ahmed Hany",
             role: "ROLE_ADMIN"
           };
           setUser(adminUser);
           // Store user in localStorage (simulate session)
           localStorage.setItem('currentUser', JSON.stringify(adminUser));
           setLoginAttempts(0); // Reset attempts on success
+          
+          // Update last login time
+          const updatedUsers = getMockUsers().map(u => {
+            if (u.email === email) {
+              return { ...u, lastLogin: new Date().toISOString() };
+            }
+            return u;
+          });
+          localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
+          
+          recordActivity(`Admin logged in: ${adminUser.name}`, "security");
           return true;
         } else {
           setLoginAttempts(prev => prev + 1);
+          recordActivity(`Failed admin login attempt: ${email}`, "security");
           toast.error("Invalid password for admin account");
           return false;
         }
@@ -143,15 +178,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('currentUser', JSON.stringify(userData));
         console.log("Login successful, stored user:", userData);
         setLoginAttempts(0); // Reset attempts on success
+        
+        // Update last login time
+        const updatedUsers = users.map(u => {
+          if (u.email === email) {
+            return { ...u, lastLogin: new Date().toISOString() };
+          }
+          return u;
+        });
+        localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
+        
+        recordActivity(`User logged in: ${userData.name}`, "user");
         return true;
       } else {
         // Increment failed attempts
         setLoginAttempts(prev => prev + 1);
+        recordActivity(`Failed login attempt: ${email}`, "security");
         toast.error("Invalid email or password");
         return false;
       }
     } catch (error) {
       console.error("Login failed", error);
+      recordActivity(`Login error: ${email}`, "error");
       toast.error("Login failed. Please try again.");
       return false;
     }
@@ -162,6 +210,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Prevent users from registering with the admin email
       if (email === ADMIN_EMAIL) {
         toast.error("This email is reserved. Please use a different email address.");
+        recordActivity(`Attempted registration with reserved email: ${email}`, "security");
         return false;
       }
 
@@ -172,6 +221,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (!success) {
         toast.error("Email already registered. Please login or use a different email.");
+        recordActivity(`Registration attempt with existing email: ${email}`, "user");
         return false;
       }
       
@@ -185,6 +235,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return true;
     } catch (error) {
       console.error("Signup failed", error);
+      recordActivity(`Registration error: ${email}`, "error");
       toast.error("Registration failed. Please try again later.");
       return false;
     }
@@ -192,6 +243,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
+      if (user) {
+        recordActivity(`User logged out: ${user.name}`, "user");
+      }
+      
       // Clear user data from localStorage
       localStorage.removeItem('currentUser');
       setUser(null);
