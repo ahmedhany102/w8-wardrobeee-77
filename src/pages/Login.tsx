@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Eye, EyeOff } from "lucide-react";
+import PasswordInput from "@/components/PasswordInput";
 
 const loginSchema = z.object({
   email: z.string().email({
@@ -28,7 +28,6 @@ const Login = () => {
   const { login, user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if already logged in
   React.useEffect(() => {
@@ -59,10 +58,6 @@ const Login = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
   };
 
   return (
@@ -104,27 +99,13 @@ const Login = () => {
                     <FormItem>
                       <FormLabel className="text-gray-700 dark:text-gray-300">Password</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••" 
-                            {...field} 
-                            autoComplete="current-password"
-                            disabled={isSubmitting}
-                            className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800 pr-10"
-                          />
-                          <button
-                            type="button"
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                            onClick={togglePasswordVisibility}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-5 w-5 text-gray-500" />
-                            ) : (
-                              <Eye className="h-5 w-5 text-gray-500" />
-                            )}
-                          </button>
-                        </div>
+                        <PasswordInput 
+                          {...field} 
+                          placeholder="••••••••" 
+                          id="password"
+                          className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
+                          disabled={isSubmitting}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

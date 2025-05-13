@@ -58,6 +58,7 @@ function App() {
                     <Route path="/admin/products" element={<Admin activeTab="products" />} />
                     <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
                     <Route path="/admin/users" element={<Admin activeTab="users" />} />
+                    <Route path="/admin/offers" element={<Admin activeTab="offers" />} />
                   </Route>
 
                   {/* 404 */}

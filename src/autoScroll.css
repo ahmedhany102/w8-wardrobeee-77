@@ -1,0 +1,36 @@
+
+/* Auto-scrolling carousel styles */
+.auto-scroll {
+  animation: autoScroll 30s linear infinite;
+}
+
+@keyframes autoScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(-100% + 100vw));
+  }
+}
+
+/* Fix for white hover issues */
+button:hover, 
+.hover\:bg-white:hover,
+.hover\:bg-gray-100:hover {
+  background-color: transparent !important;
+}
+
+/* Hide scrollbar but allow scrolling */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Additional styling for offers page */
+.mb-20 {
+  margin-bottom: 5rem !important;
+}

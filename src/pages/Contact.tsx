@@ -12,6 +12,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Phone, Mail } from "lucide-react";
+import PasswordInput from "@/components/PasswordInput";
 
 const contactSchema = z.object({
   name: z.string().min(2, {
@@ -61,24 +62,24 @@ const Contact = () => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto mb-20">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-2">Contact Us</h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Have a question or feedback? We'd love to hear from you.
           </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            <Card className="shadow-md">
-              <CardHeader>
+            <Card className="shadow-md border-green-700">
+              <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white">
                 <CardTitle>Send Us a Message</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-200">
                   Fill out the form below and we'll get back to you as soon as possible.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-6">
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <FormField
@@ -125,7 +126,7 @@ const Contact = () => {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full bg-green-700 hover:bg-green-800" disabled={isSubmitting}>
                       {isSubmitting ? "Sending..." : "Send Message"}
                     </Button>
                   </form>
@@ -135,23 +136,23 @@ const Contact = () => {
           </div>
           
           <div>
-            <Card className="shadow-md">
-              <CardHeader>
+            <Card className="shadow-md border-green-700">
+              <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white">
                 <CardTitle>Contact Information</CardTitle>
-                <CardDescription>
+                <CardDescription className="text-gray-200">
                   You can also reach us through these channels:
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pt-6">
                 <div className="flex items-start space-x-3">
-                  <Mail className="h-5 w-5 mt-0.5 text-navy-600" />
+                  <Mail className="h-5 w-5 mt-0.5 text-green-600" />
                   <div>
                     <Label className="block mb-1">Email</Label>
                     <p className="text-sm">ahmmeed10101010@gmail.com</p>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
-                  <Phone className="h-5 w-5 mt-0.5 text-navy-600" />
+                  <Phone className="h-5 w-5 mt-0.5 text-green-600" />
                   <div>
                     <Label className="block mb-1">Phone</Label>
                     <p className="text-sm">+1 (555) 123-4567</p>
