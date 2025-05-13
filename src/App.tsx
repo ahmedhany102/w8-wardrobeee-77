@@ -15,6 +15,7 @@ import NotFound from './pages/NotFound';
 import OrderTracking from './pages/OrderTracking';
 import Footer from './components/Footer';
 import AppHeader from './components/AppHeader';
+import Offers from './pages/Offers';
 
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/toaster';
@@ -41,6 +42,7 @@ function App() {
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/admin-login" element={<AdminLogin />} />
                   <Route path="/contact" element={<Contact />} />
+                  <Route path="/offers" element={<Offers />} />
 
                   {/* Protected routes */}
                   <Route element={<RequireAuth adminOnly={false} />}>

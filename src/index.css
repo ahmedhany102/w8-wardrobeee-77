@@ -130,16 +130,39 @@
     @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
   }
 
-  /* Fix text legibility on hover */
-  .hover\:bg-white:hover {
-    @apply bg-opacity-0 text-inherit;
+  /* FIX: Completely remove all white hover effects */
+  button:hover,
+  a:hover,
+  [role="button"]:hover,
+  .hover\:bg-white:hover,
+  .hover\:bg-white\/10:hover,
+  .hover\:bg-white\/20:hover,
+  .hover\:bg-white\/30:hover,
+  .hover\:bg-white\/40:hover,
+  .hover\:bg-white\/50:hover,
+  .hover\:bg-white\/60:hover,
+  .hover\:bg-white\/70:hover,
+  .hover\:bg-white\/80:hover,
+  .hover\:bg-white\/90:hover {
+    background-color: transparent !important;
+    color: inherit !important;
   }
   
+  /* Custom hover styles for buttons */
+  button:hover, 
+  a:hover,
+  .button:hover {
+    opacity: 0.85;
+    transform: translateY(-1px);
+    transition: all 0.2s ease-in-out;
+  }
+  
+  /* Fix for table hover */
   .table tr:hover td {
     @apply text-inherit bg-green-100/10 dark:bg-green-900/20;
   }
 
-  /* Button better hover states */
+  /* Button hover states */
   .btn, .button, button[type="submit"] {
     @apply hover:brightness-110 active:brightness-90 transition-all;
   }
@@ -153,16 +176,22 @@
     @apply w-full;
   }
   
-  button, .button, [type="button"], [type="submit"] {
-    @apply min-h-[40px] px-3 py-2 text-sm sm:text-base;
-  }
-  
   .mobile-full {
     @apply w-full max-w-full mx-0 px-2 sm:px-4;
   }
   
   .table-container {
     @apply w-full overflow-x-auto;
+  }
+  
+  /* Hide scrollbar class */
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -231,6 +260,11 @@
   
   .table {
     @apply min-w-full;
+  }
+  
+  /* Fix bottom spacing for main content to account for sticky footer nav */
+  main {
+    padding-bottom: 80px !important;
   }
 }
 

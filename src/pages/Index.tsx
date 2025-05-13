@@ -1,14 +1,80 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
-import ProductCatalog from '@/components/ProductCatalog';
+import ProductCard from '@/components/ProductCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Shield } from 'lucide-react';
+import { Product, ProductCategory, default as ProductDatabase } from '@/models/Product';
+import { Badge } from '@/components/ui/badge';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { toast } from 'sonner';
+
+const CategoryButton = ({ category, active, onClick }: { category: string, active: boolean, onClick: () => void }) => (
+  <Button 
+    variant={active ? "default" : "outline"}
+    className={`rounded-full px-4 ${active ? 'bg-green-700' : 'border-green-700 text-green-500'}`}
+    onClick={onClick}
+  >
+    {category}
+  </Button>
+);
+
+const categoryIcons: Record<string, string> = {
+  [ProductCategory.FOOD]: '🍔',
+  [ProductCategory.TECHNOLOGY]: '📱',
+  [ProductCategory.CLOTHING]: '👕',
+  [ProductCategory.SHOES]: '👟',
+  'All': '🛍️',
+};
 
 const Index = () => {
   const { user } = useAuth();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>(['All']);
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const productDb = ProductDatabase.getInstance();
+      const allProducts = await productDb.getAllProducts();
+      setProducts(allProducts);
+      
+      // Extract unique categories
+      const uniqueCategories = ['All', ...new Set(allProducts.map(p => p.category))];
+      setCategories(uniqueCategories);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddToCart = (product: Product) => {
+    toast.success(`${product.name} added to cart`);
+  };
+
+  const filteredProducts = selectedCategory === 'All' 
+    ? products 
+    : products.filter(product => product.category === selectedCategory);
+
+  // Get featured products (first 3 products for each category)
+  const getFeaturedProducts = (category: string) => {
+    if (category === 'All') {
+      return products.slice(0, 6);
+    }
+    return products
+      .filter(product => product.category === category)
+      .slice(0, 6);
+  };
 
   return (
     <Layout>
@@ -48,9 +114,78 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Products Section */}
-        <section id="products" className="py-10">
-          <ProductCatalog />
+        {/* Categories Carousel */}
+        <section className="mb-8 overflow-hidden">
+          <h2 className="text-2xl font-bold text-green-500 mb-4">Categories</h2>
+          <div className="flex gap-3 overflow-x-auto pb-4 hide-scrollbar">
+            {categories.map(category => (
+              <CategoryButton 
+                key={category} 
+                category={`${categoryIcons[category] || '🔍'} ${category}`}
+                active={selectedCategory === category}
+                onClick={() => setSelectedCategory(category)}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Featured Products Carousel */}
+        <section id="featured" className="mb-12">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-green-500">Featured Products</h2>
+            <Link to="/offers" className="text-sm font-medium text-green-400">
+              See All Offers →
+            </Link>
+          </div>
+          
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+            </div>
+          ) : (
+            <Carousel className="w-full">
+              <CarouselContent>
+                {getFeaturedProducts(selectedCategory).map((product) => (
+                  <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
+                    <div className="p-1">
+                      <ProductCard product={product} onAddToCart={handleAddToCart} />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <div className="flex justify-end gap-2 mt-4">
+                <CarouselPrevious className="static translate-y-0 mr-2" />
+                <CarouselNext className="static translate-y-0" />
+              </div>
+            </Carousel>
+          )}
+        </section>
+
+        {/* Products Grid */}
+        <section id="products" className="py-8">
+          <h2 className="text-2xl font-bold text-green-500 mb-6">
+            {selectedCategory === 'All' ? 'All Products' : selectedCategory}
+          </h2>
+          
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-800"></div>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <p className="text-xl text-gray-500 mb-4">No products found</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {filteredProducts.map((product) => (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                  onAddToCart={handleAddToCart} 
+                />
+              ))}
+            </div>
+          )}
         </section>
       </div>
     </Layout>
