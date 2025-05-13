@@ -14,6 +14,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -64,23 +65,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return user.name.includes('@') ? user.name.split('@')[0] : user.name;
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-900 to-black text-white">
-      <header className="bg-black border-b border-green-800 shadow-md">
-        <div className="container mx-auto px-4 py-4 flex flex-wrap justify-between items-center">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-green-900 to-black text-white w-full overflow-hidden">
+      <header className="bg-black border-b border-green-800 shadow-md w-full">
+        <div className="container mx-auto px-2 py-3 flex flex-wrap justify-between items-center">
           <Link to="/" className="text-xl font-bold flex items-center gap-2 hover:scale-105 transition-transform">
             <span className="font-bold text-2xl text-green-500">W8</span>
           </Link>
-          <nav className="flex items-center flex-wrap gap-2 mt-2 sm:mt-0">
+          
+          <button 
+            onClick={toggleMobileMenu}
+            className="md:hidden text-white p-2"
+            aria-label="Toggle menu"
+          >
+            {isMobileMenuOpen ? 'Close' : 'Menu'}
+          </button>
+          
+          <nav className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex items-center flex-wrap gap-2 w-full md:w-auto mt-2 md:mt-0 flex-col md:flex-row`}>
             {user ? (
               <>
-                <span className="text-sm hidden sm:inline-block mr-2">
+                <span className="text-sm md:inline-block mr-2">
                   Welcome, {getDisplayName()}
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-white hover:bg-green-800/30 transition-all"
+                  className="text-white hover:bg-green-800/30 transition-all w-full md:w-auto justify-center"
                   onClick={() => navigate("/")}
                 >
                   <Home className="h-4 w-4 mr-1" />
@@ -90,7 +104,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-green-800 text-white hover:bg-green-700 border-green-700 transition-all"
+                    className="bg-green-800 text-white hover:bg-green-700 border-green-700 transition-all w-full md:w-auto justify-center"
                     onClick={() => navigate("/admin")}
                   >
                     <Shield className="h-4 w-4 mr-1" />
@@ -101,7 +115,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   variant="ghost" 
                   size="sm" 
                   onClick={handleLogout}
-                  className="hover:bg-green-800/30 transition-all"
+                  className="hover:bg-green-800/30 transition-all w-full md:w-auto justify-center"
                 >
                   <LogOut className="h-4 w-4 mr-1" />
                   <span>Logout</span>
@@ -112,7 +126,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-green-800 text-white hover:bg-green-700 border-green-700 transition-all"
+                  className="bg-green-800 text-white hover:bg-green-700 border-green-700 transition-all w-full md:w-auto justify-center"
                   onClick={() => navigate("/login")}
                 >
                   <span>Login</span>
@@ -120,7 +134,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-green-800 text-white hover:bg-green-700 border-green-700 transition-all"
+                  className="bg-green-800 text-white hover:bg-green-700 border-green-700 transition-all w-full md:w-auto justify-center"
                   onClick={() => navigate("/signup")}
                 >
                   <span>Sign Up</span>
@@ -128,7 +142,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-black text-green-500 hover:bg-green-900/30 border-green-700 transition-all ml-1"
+                  className="bg-black text-green-500 hover:bg-green-900/30 border-green-700 transition-all ml-1 w-full md:w-auto justify-center"
                   onClick={() => navigate("/admin-login")}
                 >
                   <Shield className="h-4 w-4 mr-1" />
@@ -139,18 +153,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </nav>
         </div>
       </header>
-      <main className="flex-grow container mx-auto px-4 py-8 w-full">
+      <main className="flex-grow container mx-auto px-2 py-4 w-full">
         {children}
       </main>
       
       {/* Bottom navigation bar - only for regular users, not admins */}
       {user && !isAdmin && (
-        <div className="sticky bottom-0 bg-black border-t border-green-800 shadow-lg py-3 px-4 z-50">
+        <div className="sticky bottom-0 bg-black border-t border-green-800 shadow-lg py-3 px-2 z-50 w-full">
           <div className="container mx-auto flex justify-around items-center">
             <Button
               variant="ghost"
               onClick={() => navigate("/")}
-              className="flex flex-col items-center text-green-500 hover:text-green-400"
+              className="flex flex-col items-center text-green-500 hover:text-green-400 px-1 py-1"
             >
               <Home className="h-5 w-5" />
               <span className="text-xs mt-1">Home</span>
@@ -159,7 +173,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Button
               variant="ghost"
               onClick={() => navigate("/cart")}
-              className="flex flex-col items-center text-green-500 hover:text-green-400 relative"
+              className="flex flex-col items-center text-green-500 hover:text-green-400 relative px-1 py-1"
             >
               <ShoppingCart className="h-5 w-5" />
               <span className="text-xs mt-1">Cart</span>
@@ -173,7 +187,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Button
               variant="ghost"
               onClick={() => navigate("/orders")}
-              className="flex flex-col items-center text-green-500 hover:text-green-400"
+              className="flex flex-col items-center text-green-500 hover:text-green-400 px-1 py-1"
             >
               <Package className="h-5 w-5" />
               <span className="text-xs mt-1">Orders</span>
@@ -182,7 +196,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Button
               variant="ghost"
               onClick={() => navigate("/tracking")}
-              className="flex flex-col items-center text-green-500 hover:text-green-400"
+              className="flex flex-col items-center text-green-500 hover:text-green-400 px-1 py-1"
             >
               <Clock className="h-5 w-5" />
               <span className="text-xs mt-1">Track</span>
@@ -191,7 +205,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Button
               variant="ghost"
               onClick={() => navigate("/profile")}
-              className="flex flex-col items-center text-green-500 hover:text-green-400"
+              className="flex flex-col items-center text-green-500 hover:text-green-400 px-1 py-1"
             >
               <User className="h-5 w-5" />
               <span className="text-xs mt-1">Profile</span>
@@ -200,9 +214,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       )}
       
-      <footer className="bg-black border-t border-green-900 text-white py-4">
+      <footer className="bg-black border-t border-green-900 text-white py-4 w-full">
         <div className="container mx-auto px-4 text-center text-sm">
-          &copy; {new Date().getFullYear()} W8
+          {/* Footer content is in the Footer.tsx component */}
         </div>
       </footer>
     </div>

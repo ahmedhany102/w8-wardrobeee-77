@@ -92,11 +92,20 @@
 
   body {
     @apply bg-background text-foreground;
+    width: 100%;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
   }
   
   /* Add default theme as dark */
   :root {
     color-scheme: dark;
+  }
+  
+  html, body, #root {
+    min-height: 100vh;
+    width: 100%;
   }
 }
 
@@ -106,7 +115,7 @@
   }
   
   .product-grid {
-    @apply grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4;
+    @apply grid grid-cols-1 gap-4 sm:gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4;
   }
   
   .btn-primary {
@@ -123,7 +132,7 @@
 
   /* Fix text legibility on hover */
   .hover\:bg-white:hover {
-    @apply bg-opacity-10 text-inherit;
+    @apply bg-opacity-0 text-inherit;
   }
   
   .table tr:hover td {
@@ -133,6 +142,27 @@
   /* Button better hover states */
   .btn, .button, button[type="submit"] {
     @apply hover:brightness-110 active:brightness-90 transition-all;
+  }
+  
+  /* Mobile responsive improvements */
+  .container {
+    @apply w-full px-2 sm:px-4 mx-auto;
+  }
+  
+  .card {
+    @apply w-full;
+  }
+  
+  button, .button, [type="button"], [type="submit"] {
+    @apply min-h-[40px] px-3 py-2 text-sm sm:text-base;
+  }
+  
+  .mobile-full {
+    @apply w-full max-w-full mx-0 px-2 sm:px-4;
+  }
+  
+  .table-container {
+    @apply w-full overflow-x-auto;
   }
 }
 
@@ -176,4 +206,35 @@
 /* Fix spacing in tabs */
 [role="tablist"] {
   @apply space-x-2;
+}
+
+/* Responsive layout fixes */
+@media (max-width: 767px) {
+  .card {
+    @apply rounded-md;
+  }
+  
+  .container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  h1, h2, h3 {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl;
+  }
+
+  .table-container {
+    @apply -mx-4 px-0 overflow-x-auto;
+  }
+  
+  .table {
+    @apply min-w-full;
+  }
+}
+
+/* Fix unwanted white background */
+.bg-white { 
+  @apply dark:bg-gray-900;
 }

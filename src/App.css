@@ -44,7 +44,7 @@
 
 /* Remove problematic hover effects */
 .hover\:bg-white:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-color: transparent !important;
 }
 
 .hover\:text-white:hover {
@@ -52,7 +52,7 @@
 }
 
 .dark .hover\:bg-white:hover {
-  background-color: rgba(255, 255, 255, 0.05) !important;
+  background-color: transparent !important;
 }
 
 .dark .hover\:text-white:hover {
@@ -84,4 +84,28 @@ footer {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* Responsive fixes */
+@media (max-width: 767px) {
+  #root {
+    padding: 0.5rem;
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .card, .card-content {
+    padding: 0.75em;
+  }
+  
+  button, .button, [type="button"], [type="submit"] {
+    min-height: 2.5rem;
+  }
 }
