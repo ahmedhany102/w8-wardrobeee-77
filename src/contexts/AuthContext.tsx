@@ -22,8 +22,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = "http://localhost:8080/api"; // Backend API URL
-const ADMIN_EMAIL = "ahmedhanyseifeldin@gmail.com"; // Hardcoded admin email
-const ADMIN_PASSWORD = "Ahmed hany11*"; // Hardcoded admin password for validation
+const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com"; // Updated admin email
+const ADMIN_PASSWORD = "Ahmed hany11*"; // Updated admin password for validation
 
 // Mock user storage for demo purposes
 const MOCK_USERS_STORAGE_KEY = "mock_users";

@@ -13,7 +13,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-const ADMIN_EMAIL = "ahmedhanyseifeldin@gmail.com";
+const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com"; // Updated admin email
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
 
