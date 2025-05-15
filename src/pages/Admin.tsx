@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OrdersPanel from '@/components/admin/OrdersPanel';
 import ProductManagement from '@/components/admin/ProductManagement';
+import OffersManagement from '@/components/admin/OffersManagement';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserRound } from 'lucide-react';
@@ -19,7 +20,7 @@ interface AdminProps {
 }
 
 const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(activeTab);
   const [users, setUsers] = useState<any[]>([]);
@@ -31,12 +32,19 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   
   useEffect(() => {
+    // Verify admin status on component mount
+    if (!user || user.role !== 'ADMIN') {
+      toast.error("Unauthorized access");
+      navigate("/");
+      return;
+    }
+    
     // Load data from localStorage
     loadUsers();
     loadOrders();
     loadProducts();
     loadActivities();
-  }, []);
+  }, [user, navigate]);
 
   // Load users from localStorage
   const loadUsers = () => {
@@ -288,10 +296,26 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    toast.success('Logged out from admin panel');
+    navigate('/admin-login');
+  };
+
   return (
-    <Layout>
-      <div className="w-full px-2 sm:px-4">
-        <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6">Admin Dashboard</h1>
+    <div className="w-full px-2 sm:px-4 min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="container mx-auto py-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold">Admin Dashboard</h1>
+          <Button 
+            variant="destructive" 
+            size="sm" 
+            onClick={handleLogout}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            Logout
+          </Button>
+        </div>
         
         <Tabs defaultValue={currentTab} value={currentTab} onValueChange={handleTabChange} className="w-full">
           <div className="overflow-x-auto">
@@ -320,6 +344,12 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
               >
                 Products
               </TabsTrigger>
+              <TabsTrigger 
+                value="offers" 
+                className="flex-1 data-[state=active]:bg-green-200 data-[state=active]:text-green-800"
+              >
+                Offers
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -329,7 +359,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                 <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md py-3">
                   <CardTitle>Total Users</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4">
+                <CardContent className="pt-4 dark:bg-gray-800 dark:text-white">
                   <p className="text-2xl md:text-3xl font-bold">{users.length}</p>
                 </CardContent>
               </Card>
@@ -338,7 +368,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                 <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md py-3">
                   <CardTitle>Admins</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4">
+                <CardContent className="pt-4 dark:bg-gray-800 dark:text-white">
                   <p className="text-2xl md:text-3xl font-bold">{users.filter(u => u.role === 'ADMIN').length}</p>
                 </CardContent>
               </Card>
@@ -347,7 +377,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                 <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md py-3">
                   <CardTitle>Orders</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4">
+                <CardContent className="pt-4 dark:bg-gray-800 dark:text-white">
                   <p className="text-2xl md:text-3xl font-bold">{orders.length}</p>
                 </CardContent>
               </Card>
@@ -356,7 +386,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                 <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md py-3">
                   <CardTitle>Products</CardTitle>
                 </CardHeader>
-                <CardContent className="pt-4">
+                <CardContent className="pt-4 dark:bg-gray-800 dark:text-white">
                   <p className="text-2xl md:text-3xl font-bold">{products.length}</p>
                 </CardContent>
               </Card>
@@ -367,21 +397,21 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                 <CardTitle>Recent Activity</CardTitle>
                 <CardDescription className="text-white/80">Latest actions across the platform</CardDescription>
               </CardHeader>
-              <CardContent className="pt-4">
+              <CardContent className="pt-4 dark:bg-gray-800">
                 <div className="space-y-4">
                   {activities.length > 0 ? (
                     activities.slice(0, 10).map(activity => (
-                      <div key={activity.id} className="flex items-center border-b pb-2">
+                      <div key={activity.id} className="flex items-center border-b pb-2 dark:border-gray-700">
                         <div className="ml-0 sm:ml-4 w-full">
                           <div className="flex justify-between w-full">
-                            <p className="font-medium">{activity.description}</p>
-                            <p className="text-sm text-gray-500">{formatTimeAgo(activity.timestamp)}</p>
+                            <p className="font-medium dark:text-white">{activity.description}</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">{formatTimeAgo(activity.timestamp)}</p>
                           </div>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-center text-gray-500">No recent activities</p>
+                    <p className="text-center text-gray-500 dark:text-gray-400">No recent activities</p>
                   )}
                 </div>
               </CardContent>
@@ -410,7 +440,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                     </TableHeader>
                     <TableBody>
                       {users.map(user => (
-                        <TableRow key={user.id}>
+                        <TableRow key={user.id} className="dark:bg-gray-800 dark:text-white dark:border-gray-700">
                           {isEditing === user.id ? (
                             // Edit mode
                             <>
@@ -485,7 +515,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={handleSaveEdit}
-                                  className="bg-green-600 text-white hover:bg-green-700"
+                                  className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-600 dark:text-white"
                                 >
                                   Save
                                 </Button>
@@ -493,7 +523,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={handleCancelEdit}
-                                  className="bg-gray-500 text-white hover:bg-gray-600"
+                                  className="bg-gray-500 text-white hover:bg-gray-600 dark:bg-gray-600 dark:text-white"
                                 >
                                   Cancel
                                 </Button>
@@ -506,7 +536,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                               <TableCell>{user.email}</TableCell>
                               <TableCell>
                                 <div className="flex items-center">
-                                  <span className="text-gray-500">
+                                  <span className="text-gray-500 dark:text-gray-400">
                                     {showPassword[user.id] ? user.password : '••••••••'}
                                   </span>
                                   <button 
@@ -612,9 +642,13 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
           <TabsContent value="products">
             <ProductManagement />
           </TabsContent>
+
+          <TabsContent value="offers">
+            <OffersManagement />
+          </TabsContent>
         </Tabs>
       </div>
-    </Layout>
+    </div>
   );
 };
 

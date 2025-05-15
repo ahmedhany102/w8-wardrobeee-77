@@ -13,7 +13,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com"; // Updated admin email
+const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com"; // Admin email
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_TIME = 2 * 60 * 1000; // 2 minutes in milliseconds
 
@@ -29,7 +29,7 @@ const adminLoginSchema = z.object({
 type AdminLoginFormValues = z.infer<typeof adminLoginSchema>;
 
 const AdminLogin = () => {
-  const { login, user, isAdmin } = useAuth();
+  const { adminLogin, user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attempts, setAttempts] = useState(0);
@@ -111,7 +111,9 @@ const AdminLogin = () => {
     }
     
     try {
-      const success = await login(data.email, data.password);
+      // Use the dedicated admin login function
+      const success = await adminLogin(data.email, data.password);
+      
       if (success) {
         if (isAdmin) {
           // Reset attempts on successful login
@@ -165,7 +167,7 @@ const AdminLogin = () => {
               Secure area - Authorized personnel only
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50">
+          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50 dark:from-gray-800 dark:to-gray-900">
             {lockedUntil && lockedUntil > Date.now() ? (
               <div className="flex flex-col items-center justify-center p-4 text-center">
                 <AlertTriangle className="text-red-500 h-12 w-12 mb-2" />
@@ -189,7 +191,7 @@ const AdminLogin = () => {
                             {...field}
                             autoComplete="username"
                             disabled={isSubmitting}
-                            className="transition-all hover:border-green-500 focus:ring-green-700"
+                            className="transition-all hover:border-green-500 focus:ring-green-700 dark:bg-gray-800 dark:text-white"
                           />
                         </FormControl>
                         <FormMessage />
@@ -210,7 +212,7 @@ const AdminLogin = () => {
                               {...field} 
                               autoComplete="current-password"
                               disabled={isSubmitting}
-                              className="transition-all hover:border-green-500 focus:ring-green-700 pr-10"
+                              className="transition-all hover:border-green-500 focus:ring-green-700 pr-10 dark:bg-gray-800 dark:text-white"
                             />
                             <button
                               type="button"
@@ -240,10 +242,10 @@ const AdminLogin = () => {
               </Form>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center bg-green-50 rounded-b-md">
+          <CardFooter className="flex justify-center bg-green-50 dark:bg-gray-900 rounded-b-md">
             <Button 
               variant="link" 
-              className="text-green-800" 
+              className="text-green-800 dark:text-green-400" 
               onClick={() => navigate("/login")}
             >
               Return to User Login

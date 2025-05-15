@@ -21,6 +21,12 @@ const AppHeader = () => {
     navigate('/login');
   };
 
+  const handleAdminLogout = () => {
+    logout();
+    toast.success('Logged out from admin panel');
+    navigate('/admin-login');
+  };
+
   return (
     <header className="w-full bg-gradient-to-r from-green-900 to-black sticky top-0 z-40 shadow-md">
       <div className="container px-4 py-2 mx-auto">
@@ -38,7 +44,7 @@ const AppHeader = () => {
                   <Button 
                     variant="outline" 
                     size="sm" 
-                    onClick={handleLogout}
+                    onClick={isAdminPage ? handleAdminLogout : handleLogout}
                     className="flex items-center gap-1 bg-transparent border-gray-600 text-white hover:bg-gray-800"
                   >
                     <LogOut className="h-3.5 w-3.5" />

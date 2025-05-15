@@ -13,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  adminLogin: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => void;
   isAdmin: boolean;
@@ -22,8 +23,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const API_URL = "http://localhost:8080/api"; // Backend API URL
-const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com"; // Updated admin email
-const ADMIN_PASSWORD = "Ahmed hany11*"; // Updated admin password for validation
+const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com"; // Admin email
+const ADMIN_PASSWORD = "Ahmed hany11*"; // Admin password for validation
 
 // Mock user storage for demo purposes
 const MOCK_USERS_STORAGE_KEY = "mock_users";
@@ -43,7 +44,7 @@ const saveMockUser = (email: string, password: string, name: string = "") => {
       email,
       password,
       name: name || email.split('@')[0],
-      role: "ROLE_USER"
+      role: "USER"
     });
     localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(users));
     console.log("User registration request sent", { email, name });
@@ -92,17 +93,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       
       if (storedUser) {
         const userData = JSON.parse(storedUser);
-        
-        // Set admin role if the user is the hardcoded admin email
-        if (userData.email === ADMIN_EMAIL) {
-          userData.role = "ROLE_ADMIN";
-        }
-        
-        // Ensure the user has a display name
-        if (!userData.name) {
-          userData.name = userData.email.split('@')[0];
-        }
-        
         setUser(userData);
       } else {
         // Clear any potentially invalid session data
@@ -127,40 +117,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log("Login request sent", { email });
 
-      // Special handling for admin login
-      if (email === ADMIN_EMAIL) {
-        // For demo purposes only - in production this should be handled by backend
-        if (password === ADMIN_PASSWORD) {
-          const adminUser = {
-            id: "admin-1",
-            email: ADMIN_EMAIL,
-            name: "Ahmed Hany",
-            role: "ROLE_ADMIN"
-          };
-          setUser(adminUser);
-          // Store user in localStorage (simulate session)
-          localStorage.setItem('currentUser', JSON.stringify(adminUser));
-          setLoginAttempts(0); // Reset attempts on success
-          
-          // Update last login time
-          const updatedUsers = getMockUsers().map(u => {
-            if (u.email === email) {
-              return { ...u, lastLogin: new Date().toISOString() };
-            }
-            return u;
-          });
-          localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
-          
-          recordActivity(`Admin logged in: ${adminUser.name}`, "security");
-          return true;
-        } else {
-          setLoginAttempts(prev => prev + 1);
-          recordActivity(`Failed admin login attempt: ${email}`, "security");
-          toast.error("Invalid password for admin account");
-          return false;
-        }
-      }
-
       // Regular user login - check against mock users
       const users = getMockUsers();
       const foundUser = users.find(u => u.email === email && u.password === password);
@@ -170,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           id: foundUser.id,
           email: foundUser.email,
           name: foundUser.name || email.split('@')[0],
-          role: foundUser.role || "ROLE_USER"
+          role: foundUser.role || "USER"
         };
         
         setUser(userData);
@@ -201,6 +157,48 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Login failed", error);
       recordActivity(`Login error: ${email}`, "error");
       toast.error("Login failed. Please try again.");
+      return false;
+    }
+  };
+
+  // Separate admin login function
+  const adminLogin = async (email: string, password: string): Promise<boolean> => {
+    try {
+      // Check for rate limiting
+      if (loginAttempts >= 5) {
+        toast.error("Too many login attempts. Please try again later.");
+        recordActivity(`Admin login attempt blocked due to rate limiting: ${email}`, "security");
+        return false;
+      }
+
+      console.log("Admin login request sent", { email });
+
+      // Verify against admin credentials
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        const adminUser = {
+          id: "admin-1",
+          email: ADMIN_EMAIL,
+          name: "Ahmed Hany",
+          role: "ADMIN"
+        };
+        setUser(adminUser);
+        // Store admin user in localStorage
+        localStorage.setItem('currentUser', JSON.stringify(adminUser));
+        setLoginAttempts(0); // Reset attempts on success
+        
+        recordActivity(`Admin logged in: ${adminUser.name}`, "security");
+        return true;
+      } else {
+        // Increment failed attempts
+        setLoginAttempts(prev => prev + 1);
+        recordActivity(`Failed admin login attempt: ${email}`, "security");
+        toast.error("Invalid admin credentials");
+        return false;
+      }
+    } catch (error) {
+      console.error("Admin login failed", error);
+      recordActivity(`Admin login error: ${email}`, "error");
+      toast.error("Admin login failed. Please try again.");
       return false;
     }
   };
@@ -258,7 +256,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Check if user is admin
-  const isAdmin = user?.email === ADMIN_EMAIL || user?.role === "ROLE_ADMIN";
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <AuthContext.Provider
@@ -266,6 +264,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         loading,
         login,
+        adminLogin,
         signup,
         logout,
         isAdmin,
