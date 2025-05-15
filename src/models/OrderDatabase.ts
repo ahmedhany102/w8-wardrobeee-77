@@ -45,12 +45,16 @@ class OrderDatabase {
 
   // Get all orders (for admin)
   public async getAllOrders(): Promise<Order[]> {
-    return this.orders;
+    return [...this.orders].sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   }
 
   // Get orders by customer ID
   public async getOrdersByCustomerId(customerId: string): Promise<Order[]> {
-    return this.orders.filter(order => order.customerId === customerId);
+    return [...this.orders]
+      .filter(order => order.customerId === customerId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   // Get order by ID
@@ -71,8 +75,12 @@ class OrderDatabase {
       return null;
     }
     
-    this.orders[orderIndex].status = status;
-    this.orders[orderIndex].updatedAt = new Date().toISOString();
+    this.orders[orderIndex] = {
+      ...this.orders[orderIndex],
+      status: status,
+      updatedAt: new Date().toISOString()
+    };
+    
     this.persistToStorage();
     
     return this.orders[orderIndex];
@@ -86,11 +94,46 @@ class OrderDatabase {
       return null;
     }
     
-    this.orders[orderIndex].paymentStatus = status;
-    this.orders[orderIndex].updatedAt = new Date().toISOString();
+    this.orders[orderIndex] = {
+      ...this.orders[orderIndex],
+      paymentStatus: status,
+      updatedAt: new Date().toISOString()
+    };
+    
     this.persistToStorage();
     
     return this.orders[orderIndex];
+  }
+
+  // Get recent orders - for admin dashboard
+  public async getRecentOrders(limit: number = 5): Promise<Order[]> {
+    return [...this.orders]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, limit);
+  }
+
+  // Count orders by status - for admin dashboard
+  public async countOrdersByStatus(): Promise<Record<Order['status'], number>> {
+    const counts: Record<Order['status'], number> = {
+      PENDING: 0,
+      PROCESSING: 0,
+      SHIPPED: 0,
+      DELIVERED: 0,
+      CANCELLED: 0,
+    };
+    
+    this.orders.forEach(order => {
+      counts[order.status] = (counts[order.status] || 0) + 1;
+    });
+    
+    return counts;
+  }
+
+  // Get total revenue - for admin dashboard
+  public async getTotalRevenue(): Promise<number> {
+    return this.orders
+      .filter(order => order.status !== 'CANCELLED')
+      .reduce((total, order) => total + order.totalAmount, 0);
   }
 
   // Persist to localStorage
@@ -106,9 +149,10 @@ class OrderDatabase {
     console.log(`Phone: ${order.customerInfo.phone}`);
     console.log(`Total amount: ${order.totalAmount.toFixed(2)} EGP`);
     console.log(`Items: ${order.items.length}`);
+    console.log(`Payment method: ${order.paymentInfo.method}`);
     
     // In a real application, this would send an actual email to the admin
-    console.log("Email notification sent to admin with full order details");
+    console.log("Email notification sent to admin and customer with full order details");
   }
 }
 

@@ -32,16 +32,26 @@ const ProductCatalog: React.FC = () => {
         console.error('Error loading cart from localStorage', error);
       }
     }
+    
+    // Add event listener for cart updates
+    const handleCartUpdate = () => {
+      const updatedCartJSON = localStorage.getItem('cart');
+      if (updatedCartJSON) {
+        try {
+          const updatedCart = JSON.parse(updatedCartJSON);
+          setCart(updatedCart);
+        } catch (error) {
+          console.error("Error parsing updated cart data:", error);
+        }
+      }
+    };
+    
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, []);
-
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    if (cart.length > 0) {
-      localStorage.setItem('cart', JSON.stringify(cart));
-      // Dispatch custom event for other components to update
-      window.dispatchEvent(new Event('cartUpdated'));
-    }
-  }, [cart]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -129,14 +139,19 @@ const ProductCatalog: React.FC = () => {
           : item
       );
       setCart(updatedCart);
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
+      window.dispatchEvent(new Event('cartUpdated'));
     } else {
-      setCart([
+      const newCart = [
         ...cart, 
         {
           product: product,
           quantity: 1,
         }
-      ]);
+      ];
+      setCart(newCart);
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      window.dispatchEvent(new Event('cartUpdated'));
     }
     
     toast.success(`${product.name} added to cart`);
@@ -144,17 +159,23 @@ const ProductCatalog: React.FC = () => {
 
   const handleUpdateCartItem = (productId: string, quantity: number) => {
     if (quantity <= 0) {
-      setCart(cart.filter(item => item.product.id !== productId));
+      const updatedCart = cart.filter(item => item.product.id !== productId);
+      setCart(updatedCart);
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
     } else {
-      setCart(cart.map(item => 
+      const updatedCart = cart.map(item => 
         item.product.id === productId 
           ? { 
               ...item, 
               quantity,
             } 
           : item
-      ));
+      );
+      setCart(updatedCart);
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
     }
+    
+    window.dispatchEvent(new Event('cartUpdated'));
   };
 
   const calculateTotal = () => {
@@ -181,7 +202,6 @@ const ProductCatalog: React.FC = () => {
       return;
     }
     
-    // Instead of showing the form dialog, redirect to the cart page
     navigate('/cart');
     setShowCartDialog(false);
   };
@@ -190,14 +210,14 @@ const ProductCatalog: React.FC = () => {
   const showCartButton = user && !isAdmin;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-green-500">Our Products</h2>
         {showCartButton && (
           <div className="relative">
             <Button
               onClick={() => setShowCartDialog(true)}
-              className="bg-green-800 hover:bg-green-900"
+              className="bg-green-800 hover:bg-green-900 interactive-button"
             >
               Cart ({cart.reduce((total, item) => total + item.quantity, 0)})
             </Button>
@@ -261,7 +281,7 @@ const ProductCatalog: React.FC = () => {
                 setSearchQuery('');
                 handleSearch('');
               }}
-              className="bg-green-800 hover:bg-green-900"
+              className="bg-green-800 hover:bg-green-900 interactive-button"
             >
               Clear Search
             </Button>
@@ -301,14 +321,14 @@ const ProductCatalog: React.FC = () => {
                       <div className="flex items-center space-x-2">
                         <button 
                           onClick={() => handleUpdateCartItem(item.product.id, item.quantity - 1)}
-                          className="w-6 h-6 flex items-center justify-center rounded-full bg-green-800 hover:bg-green-700"
+                          className="w-6 h-6 flex items-center justify-center rounded-full bg-green-800 hover:bg-green-700 interactive-button"
                         >
                           -
                         </button>
                         <span>{item.quantity}</span>
                         <button 
                           onClick={() => handleUpdateCartItem(item.product.id, item.quantity + 1)}
-                          className="w-6 h-6 flex items-center justify-center rounded-full bg-green-800 hover:bg-green-700"
+                          className="w-6 h-6 flex items-center justify-center rounded-full bg-green-800 hover:bg-green-700 interactive-button"
                         >
                           +
                         </button>
@@ -334,7 +354,7 @@ const ProductCatalog: React.FC = () => {
                   </Button>
                   <Button 
                     onClick={handleProceedToCheckout}
-                    className="bg-green-800 hover:bg-green-700"
+                    className="bg-green-800 hover:bg-green-700 interactive-button"
                     disabled={cart.length === 0}
                   >
                     Checkout

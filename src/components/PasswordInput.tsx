@@ -1,24 +1,14 @@
 
 import React, { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
+import { Input } from './ui/input';
+import { Button } from './ui/button';
 
-interface PasswordInputProps {
-  id?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
+export interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   className?: string;
 }
 
-const PasswordInput: React.FC<PasswordInputProps> = ({ 
-  id = "password", 
-  value, 
-  onChange, 
-  placeholder = "Password", 
-  className = "" 
-}) => {
+const PasswordInput: React.FC<PasswordInputProps> = ({ className, ...props }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordVisibility = () => {
@@ -26,28 +16,21 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
   };
 
   return (
-    <div className="relative w-full">
+    <div className="relative">
       <Input
-        id={id}
         type={showPassword ? "text" : "password"}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className={`pr-10 w-full ${className}`}
-        required
+        className={`pr-10 ${className}`}
+        {...props}
       />
       <Button
         type="button"
         variant="ghost"
         size="sm"
-        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent hover:opacity-70"
+        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-8 px-1 text-gray-500 hover:bg-transparent"
         onClick={togglePasswordVisibility}
+        aria-label={showPassword ? "Hide password" : "Show password"}
       >
-        {showPassword ? (
-          <EyeOff className="h-4 w-4 text-gray-400" />
-        ) : (
-          <Eye className="h-4 w-4 text-gray-400" />
-        )}
+        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
       </Button>
     </div>
   );

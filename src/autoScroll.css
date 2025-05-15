@@ -20,6 +20,27 @@ button:hover,
   background-color: transparent !important;
 }
 
+/* Fix for hover issues in admin panel */
+.bg-white, 
+.hover\:bg-white:hover, 
+.hover\:bg-gray-100:hover,
+[type="submit"]:hover,
+[type="button"]:hover,
+.btn:hover,
+button.bg-white:hover,
+.bg-white button:hover {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* For buttons that need a visible hover state */
+.btn-primary:hover, 
+button.btn-action:hover,
+.interactive-button:hover {
+  background-color: rgba(22, 101, 52, 0.9) !important; /* green-800 with opacity */
+  color: white !important;
+}
+
 /* Hide scrollbar but allow scrolling */
 .hide-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
@@ -33,4 +54,22 @@ button:hover,
 /* Additional styling for offers page */
 .mb-20 {
   margin-bottom: 5rem !important;
+}
+
+/* Fix the space for bottom navigation to ensure footer is visible */
+.content-with-bottom-nav {
+  padding-bottom: 4rem;
+}
+
+/* Speed up auto-scroll */
+.auto-scroll {
+  animation-duration: 15s;  /* Faster scrolling */
+}
+
+/* Improve product image size on mobile */
+@media (max-width: 640px) {
+  .product-image {
+    height: 120px;
+    object-fit: contain;
+  }
 }

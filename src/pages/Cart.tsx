@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { ShoppingCart, Trash, Plus, Minus, CreditCard, MapPin, Phone } from "lucide-react";
+import { ShoppingCart, Trash, Plus, Minus, CreditCard, MapPin, Phone, DollarSign } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import OrderDatabase from "@/models/OrderDatabase";
@@ -33,7 +33,7 @@ const orderSchema = z.object({
   state: z.string().min(2, { message: "Please enter your state/province" }),
   zip: z.string().min(3, { message: "Please enter your zip/postal code" }),
   country: z.string().min(2, { message: "Please enter your country" }),
-  paymentMethod: z.enum(["creditCard", "paypal", "bankTransfer"], { 
+  paymentMethod: z.enum(["creditCard", "paypal", "bankTransfer", "cashOnDelivery"], { 
     message: "Please select a payment method" 
   }),
   cardNumber: z.string().optional(),
@@ -63,7 +63,7 @@ const Cart = () => {
       state: "",
       zip: "",
       country: "",
-      paymentMethod: "creditCard",
+      paymentMethod: "cashOnDelivery", // Default to cash on delivery
       notes: ""
     }
   });
@@ -193,7 +193,8 @@ const Cart = () => {
       // Create payment info
       const paymentInfo: PaymentInfo = {
         method: data.paymentMethod === "creditCard" ? "CREDIT_CARD" : 
-               data.paymentMethod === "paypal" ? "WALLET" : "CASH"
+               data.paymentMethod === "paypal" ? "WALLET" : 
+               data.paymentMethod === "cashOnDelivery" ? "CASH" : "BANK_TRANSFER"
       };
       
       // Add card details if paying with credit card
@@ -249,7 +250,7 @@ const Cart = () => {
         <div className="flex flex-col items-center justify-center py-12">
           <h1 className="text-2xl font-bold mb-4">Please Login to View Cart</h1>
           <p className="text-gray-600 mb-6">You need to be logged in to access your shopping cart.</p>
-          <Button onClick={() => navigate("/login")} className="bg-green-800 hover:bg-green-900 transition-all">Login</Button>
+          <Button onClick={() => navigate("/login")} className="bg-green-800 hover:bg-green-900 interactive-button">Login</Button>
         </div>
       </Layout>
     );
@@ -273,7 +274,7 @@ const Cart = () => {
                   toast.success("Cart has been cleared");
                 }
               }}
-              className="bg-white text-green-900 hover:bg-gray-100"
+              className="bg-white text-green-900 interactive-button"
               >
                 Clear Cart
               </Button>
@@ -286,7 +287,7 @@ const Cart = () => {
                 <p className="text-xl text-gray-500 mb-6">Your cart is empty</p>
                 <Button 
                   onClick={() => navigate("/")} 
-                  className="bg-green-800 hover:bg-green-900 transition-all animate-pulse"
+                  className="bg-green-800 hover:bg-green-900 transition-all animate-pulse interactive-button"
                 >
                   Browse Products
                 </Button>
@@ -312,7 +313,7 @@ const Cart = () => {
                             <img
                               src={item.product.imageUrl}
                               alt={item.product.name}
-                              className="h-16 w-16 object-cover rounded-md transition-all duration-300 hover:scale-110"
+                              className="h-16 w-16 object-contain rounded-md transition-all duration-300 hover:scale-110 product-image"
                             />
                           </TableCell>
                           <TableCell className="font-medium">
@@ -324,7 +325,7 @@ const Cart = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 w-8 p-0 border-green-300 hover:bg-green-100"
+                                className="h-8 w-8 p-0 border-green-300 interactive-button"
                                 onClick={() => handleDecreaseQuantity(item.product.id)}
                               >
                                 <Minus className="h-3 w-3" />
@@ -333,7 +334,7 @@ const Cart = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-8 w-8 p-0 border-green-300 hover:bg-green-100"
+                                className="h-8 w-8 p-0 border-green-300 interactive-button"
                                 onClick={() => handleIncreaseQuantity(item.product.id)}
                               >
                                 <Plus className="h-3 w-3" />
@@ -365,7 +366,7 @@ const Cart = () => {
                   </div>
                   <Button 
                     onClick={handleCheckout} 
-                    className="w-full md:w-auto bg-green-800 hover:bg-green-900 transition-all transform hover:scale-105 active:scale-95"
+                    className="w-full md:w-auto bg-green-800 hover:bg-green-900 transition-all transform hover:scale-105 active:scale-95 interactive-button"
                   >
                     Proceed to Checkout
                   </Button>
@@ -378,10 +379,10 @@ const Cart = () => {
 
       {/* Checkout Order Form Modal */}
       <Dialog open={isCheckoutModalOpen} onOpenChange={setIsCheckoutModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-50 dark:bg-gray-900 border-green-800">
           <DialogHeader>
-            <DialogTitle className="text-xl text-center text-green-800">Complete Your Order</DialogTitle>
-            <DialogDescription className="text-center">
+            <DialogTitle className="text-xl text-center text-green-800 dark:text-green-400">Complete Your Order</DialogTitle>
+            <DialogDescription className="text-center dark:text-gray-300">
               Please provide your delivery and payment details
             </DialogDescription>
           </DialogHeader>
@@ -391,16 +392,16 @@ const Cart = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Personal Information */}
                 <div className="space-y-3 col-span-2">
-                  <h3 className="text-lg font-medium border-b pb-2">Personal Information</h3>
+                  <h3 className="text-lg font-medium border-b pb-2 dark:text-green-400">Personal Information</h3>
                   
                   <FormField
                     control={form.control}
                     name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Full Name</FormLabel>
+                        <FormLabel className="dark:text-gray-300">Full Name</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="John Doe" className="transition-all hover:border-green-300" />
+                          <Input {...field} placeholder="John Doe" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -413,9 +414,9 @@ const Cart = () => {
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel className="dark:text-gray-300">Email</FormLabel>
                           <FormControl>
-                            <Input {...field} type="email" placeholder="you@example.com" className="transition-all hover:border-green-300" />
+                            <Input {...field} type="email" placeholder="you@example.com" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -427,9 +428,9 @@ const Cart = () => {
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
+                          <FormLabel className="dark:text-gray-300">Phone Number</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="+1 (234) 567-8900" className="transition-all hover:border-green-300" />
+                            <Input {...field} placeholder="+1 (234) 567-8900" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -440,7 +441,7 @@ const Cart = () => {
                 
                 {/* Shipping Address */}
                 <div className="space-y-3 col-span-2">
-                  <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                  <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2 dark:text-green-400">
                     <MapPin className="h-5 w-5 text-green-600" />
                     Shipping Address
                   </h3>
@@ -450,9 +451,9 @@ const Cart = () => {
                     name="street"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Street Address</FormLabel>
+                        <FormLabel className="dark:text-gray-300">Street Address</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="123 Main St, Apt 4B" className="transition-all hover:border-green-300" />
+                          <Input {...field} placeholder="123 Main St, Apt 4B" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -465,9 +466,9 @@ const Cart = () => {
                       name="city"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>City</FormLabel>
+                          <FormLabel className="dark:text-gray-300">City</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="New York" className="transition-all hover:border-green-300" />
+                            <Input {...field} placeholder="New York" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -479,9 +480,9 @@ const Cart = () => {
                       name="state"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>State/Province</FormLabel>
+                          <FormLabel className="dark:text-gray-300">State/Province</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="NY" className="transition-all hover:border-green-300" />
+                            <Input {...field} placeholder="NY" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -495,9 +496,9 @@ const Cart = () => {
                       name="zip"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Zip/Postal Code</FormLabel>
+                          <FormLabel className="dark:text-gray-300">Zip/Postal Code</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="10001" className="transition-all hover:border-green-300" />
+                            <Input {...field} placeholder="10001" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -509,9 +510,9 @@ const Cart = () => {
                       name="country"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Country</FormLabel>
+                          <FormLabel className="dark:text-gray-300">Country</FormLabel>
                           <FormControl>
-                            <Input {...field} placeholder="United States" className="transition-all hover:border-green-300" />
+                            <Input {...field} placeholder="United States" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -522,7 +523,7 @@ const Cart = () => {
                 
                 {/* Payment Details */}
                 <div className="space-y-3 col-span-2">
-                  <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2">
+                  <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2 dark:text-green-400">
                     <CreditCard className="h-5 w-5 text-green-600" />
                     Payment Details
                   </h3>
@@ -532,12 +533,13 @@ const Cart = () => {
                     name="paymentMethod"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Payment Method</FormLabel>
+                        <FormLabel className="dark:text-gray-300">Payment Method</FormLabel>
                         <FormControl>
                           <select 
                             {...field} 
-                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 transition-all hover:border-green-300"
+                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 transition-all hover:border-green-300 bg-white dark:bg-gray-800 dark:text-gray-300"
                           >
+                            <option value="cashOnDelivery">Cash on Delivery</option>
                             <option value="creditCard">Credit Card</option>
                             <option value="paypal">PayPal</option>
                             <option value="bankTransfer">Bank Transfer</option>
@@ -548,6 +550,17 @@ const Cart = () => {
                     )}
                   />
                   
+                  {/* Cash on Delivery Message */}
+                  {form.watch("paymentMethod") === "cashOnDelivery" && (
+                    <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-md border border-green-200 dark:border-green-800 text-sm text-green-800 dark:text-green-300">
+                      <div className="flex items-center gap-2 mb-2">
+                        <DollarSign className="h-4 w-4" />
+                        <span className="font-medium">Cash on Delivery</span>
+                      </div>
+                      <p>You'll pay in cash when your order is delivered. Please have the exact amount ready.</p>
+                    </div>
+                  )}
+                  
                   {/* Credit Card Details (conditionally shown) */}
                   {form.watch("paymentMethod") === "creditCard" && (
                     <div className="space-y-3 animate-fade-in">
@@ -556,12 +569,12 @@ const Cart = () => {
                         name="cardNumber"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Card Number</FormLabel>
+                            <FormLabel className="dark:text-gray-300">Card Number</FormLabel>
                             <FormControl>
                               <Input 
                                 {...field} 
                                 placeholder="1234 5678 9012 3456" 
-                                className="transition-all hover:border-green-300"
+                                className="transition-all hover:border-green-300 bg-white dark:bg-gray-800"
                               />
                             </FormControl>
                             <FormMessage />
@@ -575,12 +588,12 @@ const Cart = () => {
                           name="cardExpiry"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Expiry Date</FormLabel>
+                              <FormLabel className="dark:text-gray-300">Expiry Date</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field} 
                                   placeholder="MM/YY" 
-                                  className="transition-all hover:border-green-300"
+                                  className="transition-all hover:border-green-300 bg-white dark:bg-gray-800"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -593,12 +606,12 @@ const Cart = () => {
                           name="cardCVV"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>CVV</FormLabel>
+                              <FormLabel className="dark:text-gray-300">CVV</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field} 
                                   placeholder="123" 
-                                  className="transition-all hover:border-green-300"
+                                  className="transition-all hover:border-green-300 bg-white dark:bg-gray-800"
                                 />
                               </FormControl>
                               <FormMessage />
@@ -617,12 +630,12 @@ const Cart = () => {
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Order Notes (Optional)</FormLabel>
+                        <FormLabel className="dark:text-gray-300">Order Notes (Optional)</FormLabel>
                         <FormControl>
                           <Textarea 
                             {...field} 
                             placeholder="Any special instructions for delivery or order preparation" 
-                            className="min-h-20 transition-all hover:border-green-300"
+                            className="min-h-20 transition-all hover:border-green-300 bg-white dark:bg-gray-800"
                           />
                         </FormControl>
                         <FormMessage />
@@ -633,17 +646,17 @@ const Cart = () => {
               </div>
               
               {/* Order Summary */}
-              <div className="border rounded-lg p-4 bg-green-50">
-                <h3 className="text-lg font-medium mb-2">Order Summary</h3>
+              <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
+                <h3 className="text-lg font-medium mb-2 dark:text-green-400">Order Summary</h3>
                 <div className="space-y-1">
                   {cartItems.map(item => (
-                    <div key={item.product.id} className="flex justify-between text-sm py-1">
+                    <div key={item.product.id} className="flex justify-between text-sm py-1 dark:text-gray-300">
                       <span>{item.product.name} x {item.quantity}</span>
                       <span>{(item.product.price * item.quantity).toFixed(2)} EGP</span>
                     </div>
                   ))}
                   
-                  <div className="border-t pt-2 mt-2 flex justify-between font-bold">
+                  <div className="border-t pt-2 mt-2 flex justify-between font-bold dark:text-white">
                     <span>Total Amount</span>
                     <span>{totalPrice.toFixed(2)} EGP</span>
                   </div>
@@ -655,14 +668,14 @@ const Cart = () => {
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsCheckoutModalOpen(false)}
-                  className="transition-all hover:bg-gray-100"
+                  className="transition-all hover:bg-transparent dark:border-gray-700 dark:text-gray-300"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={isProcessing}
-                  className="bg-green-800 hover:bg-green-900 transition-transform hover:scale-105 active:scale-95"
+                  className="bg-green-800 hover:bg-green-900 transition-transform hover:scale-105 active:scale-95 interactive-button"
                 >
                   {isProcessing ? "Processing..." : "Complete Purchase"}
                 </Button>
