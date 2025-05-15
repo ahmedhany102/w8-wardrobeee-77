@@ -10,7 +10,7 @@ import CartDatabase from '@/models/CartDatabase';
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart?: () => void;
+  onAddToCart?: (product: Product) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
@@ -25,7 +25,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
       
       if (success) {
         toast.success(`${product.name} added to cart!`);
-        if (onAddToCart) onAddToCart();
+        if (onAddToCart) onAddToCart(product);
       }
     } catch (error) {
       console.error("Error adding to cart:", error);

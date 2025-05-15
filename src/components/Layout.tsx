@@ -26,8 +26,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </main>
       
-      {!isAdminPage && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-green-900 to-black z-50 border-t border-green-800 py-2">
+      {user && !isAdminPage && (
+        <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-green-900 to-black z-40 border-t border-green-800 py-2">
           <div className="container mx-auto flex justify-around items-center">
             <NavItem to="/" icon={<Home size={20} />} label="Home" />
             {!isAdmin && <NavItem to="/cart" icon={<ShoppingCart size={20} />} label="Cart" />}
@@ -39,9 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
       )}
       
-      <div className="mt-auto">
-        <Footer />
-      </div>
+      <Footer />
     </div>
   );
 };

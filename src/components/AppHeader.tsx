@@ -4,11 +4,11 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import MainNavigation from './MainNavigation';
 import { Button } from './ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AppHeader = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -33,7 +33,7 @@ const AppHeader = () => {
               {user ? (
                 <div className="flex items-center gap-3">
                   <div className="text-sm text-gray-300">
-                    {user.name}
+                    {user.name} {isAdmin && "(Admin)"}
                   </div>
                   <Button 
                     variant="outline" 
@@ -53,11 +53,10 @@ const AppHeader = () => {
                   <Link to="/login" className="text-sm text-white hover:text-green-300 mr-2">
                     Login
                   </Link>
-                  {!isAdminPage && (
-                    <Link to="/admin-login" className="text-sm text-white hover:text-green-300">
-                      Admin
-                    </Link>
-                  )}
+                  <Link to="/admin-login" className="flex items-center text-sm text-white hover:text-green-300">
+                    <Shield className="h-3.5 w-3.5 mr-1" />
+                    Admin
+                  </Link>
                 </div>
               )}
             </div>
