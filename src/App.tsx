@@ -13,8 +13,6 @@ import Contact from './pages/Contact';
 import Cart from './pages/Cart';
 import NotFound from './pages/NotFound';
 import OrderTracking from './pages/OrderTracking';
-import Footer from './components/Footer';
-import AppHeader from './components/AppHeader';
 import Offers from './pages/Offers';
 
 import { ThemeProvider } from 'next-themes';
@@ -26,10 +24,12 @@ import './autoScroll.css';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// Create a client
 const queryClient = new QueryClient();
 
 function App() {
   return (
+    // Ensure QueryClientProvider wraps the entire app
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" attribute="class">
         <AuthProvider>
@@ -64,10 +64,9 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
+            <SonnerToaster position="top-right" richColors closeButton />
+            <Toaster />
           </Router>
-
-          <SonnerToaster position="top-right" richColors closeButton />
-          <Toaster />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
