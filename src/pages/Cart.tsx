@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -11,7 +10,7 @@ import { Trash, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import CartDatabase, { CartItem } from '@/models/CartDatabase';
-import { OrderDatabase } from '@/models/OrderDatabase';
+import OrderDatabase from '@/models/OrderDatabase';
 
 type PaymentMethod = "CASH" | "CREDIT_CARD" | "WALLET" | "BANK_TRANSFER";
 

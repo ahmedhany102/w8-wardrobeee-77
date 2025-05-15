@@ -35,3 +35,7 @@ export interface OrderItem {
   totalPrice: number;
   imageUrl?: string;
 }
+
+// Adding these interfaces that are referenced in other files
+export type CustomerInfo = Order['customerInfo'];
+export type PaymentInfo = Order['paymentInfo'];

@@ -1,5 +1,5 @@
 
-import { Order, OrderItem, CustomerInfo } from './Order';
+import { Order, OrderItem } from './Order';
 
 // Mock database for orders
 class OrderDatabase {
@@ -38,6 +38,12 @@ class OrderDatabase {
     return newOrder;
   }
 
+  // Create order (alias for saveOrder for compatibility)
+  public async createOrder(order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    const newOrder = await this.saveOrder(order);
+    return newOrder.id;
+  }
+
   // Cancel order by ID
   public async cancelOrder(orderId: string): Promise<Order | null> {
     return this.updateOrderStatus(orderId, "CANCELLED");
@@ -50,10 +56,10 @@ class OrderDatabase {
     );
   }
 
-  // Get orders by customer ID
-  public async getOrdersByCustomerId(customerId: string): Promise<Order[]> {
+  // Get orders by customer email
+  public async getOrdersByCustomerEmail(email: string): Promise<Order[]> {
     return [...this.orders]
-      .filter(order => order.customerId === customerId)
+      .filter(order => order.customerInfo.email === email)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
@@ -149,7 +155,9 @@ class OrderDatabase {
     console.log(`Phone: ${order.customerInfo.phone}`);
     console.log(`Total amount: ${order.totalAmount.toFixed(2)} EGP`);
     console.log(`Items: ${order.items.length}`);
-    console.log(`Payment method: ${order.paymentInfo.method}`);
+    if (order.paymentInfo) {
+      console.log(`Payment method: ${order.paymentInfo.method}`);
+    }
     
     // In a real application, this would send an actual email to the admin
     console.log("Email notification sent to admin and customer with full order details");
