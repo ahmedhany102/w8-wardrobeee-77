@@ -80,9 +80,6 @@ const AdminLogin = () => {
   React.useEffect(() => {
     if (user && isAdmin) {
       navigate("/admin");
-    } else if (user && !isAdmin) {
-      toast.error("You don't have admin privileges");
-      navigate("/");
     }
   }, [user, isAdmin, navigate]);
 
@@ -102,30 +99,16 @@ const AdminLogin = () => {
 
     setIsSubmitting(true);
     
-    // Check if attempting to login with the admin email
-    if (data.email !== ADMIN_EMAIL) {
-      handleFailedAttempt();
-      toast.error("Invalid admin credentials");
-      setIsSubmitting(false);
-      return;
-    }
-    
     try {
       // Use the dedicated admin login function
       const success = await adminLogin(data.email, data.password);
       
       if (success) {
-        if (isAdmin) {
-          // Reset attempts on successful login
-          setAttempts(0);
-          localStorage.setItem("adminLoginAttempts", "0");
-          toast.success("Admin login successful!");
-          navigate("/admin");
-        } else {
-          handleFailedAttempt();
-          toast.error("You don't have admin privileges");
-          navigate("/");
-        }
+        // Reset attempts on successful login
+        setAttempts(0);
+        localStorage.setItem("adminLoginAttempts", "0");
+        toast.success("Admin login successful!");
+        navigate("/admin");
       } else {
         handleFailedAttempt();
       }

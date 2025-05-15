@@ -124,16 +124,6 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
       // For demo: Implement a basic CSRF protection mock
       const csrfToken = `csrf-${Math.random().toString(36).substring(2)}`;
       sessionStorage.setItem('csrfToken', csrfToken);
-      
-      // Check for any suspicious patterns (mock implementation)
-      const userAgent = navigator.userAgent;
-      const knownBots = ['bot', 'spider', 'crawl'];
-      const isSuspiciousAgent = knownBots.some(bot => userAgent.toLowerCase().includes(bot));
-      
-      if (isSuspiciousAgent) {
-        toast.error("Suspicious access pattern detected");
-        setIsAuthenticated(false);
-      }
     }
   }, [adminOnly, location.pathname]);
 
@@ -144,14 +134,14 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
   if (loading) {
     // Loading state with improved animation
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-white to-purple-50">
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-white to-green-50 dark:from-gray-900 dark:to-gray-800">
         <div className="text-center">
           <div className="relative h-20 w-20 mx-auto">
-            <div className="absolute inset-0 border-t-4 border-b-4 border-purple-600 rounded-full animate-spin"></div>
-            <div className="absolute inset-2 border-t-4 border-b-4 border-purple-400 rounded-full animate-spin animation-delay-150" style={{ animationDirection: 'reverse' }}></div>
-            <div className="absolute inset-4 border-t-4 border-b-4 border-purple-300 rounded-full animate-spin animation-delay-300"></div>
+            <div className="absolute inset-0 border-t-4 border-b-4 border-green-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-2 border-t-4 border-b-4 border-green-400 rounded-full animate-spin animation-delay-150" style={{ animationDirection: 'reverse' }}></div>
+            <div className="absolute inset-4 border-t-4 border-b-4 border-green-300 rounded-full animate-spin animation-delay-300"></div>
           </div>
-          <p className="mt-4 text-purple-800 font-medium animate-pulse">Verifying your credentials...</p>
+          <p className="mt-4 text-green-800 dark:text-green-300 font-medium animate-pulse">Verifying your credentials...</p>
         </div>
       </div>
     );

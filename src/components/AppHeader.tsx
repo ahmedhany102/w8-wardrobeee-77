@@ -32,9 +32,15 @@ const AppHeader = () => {
       <div className="container px-4 py-2 mx-auto">
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center">
-            <Link to="/" className="text-xl font-bold text-white">
-              W8
-            </Link>
+            {isAdminPage ? (
+              <Link to="/admin" className="text-xl font-bold text-white flex items-center">
+                <Shield className="mr-2" /> Admin Panel
+              </Link>
+            ) : (
+              <Link to="/" className="text-xl font-bold text-white">
+                W8
+              </Link>
+            )}
             <div className="flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-3">
@@ -68,7 +74,7 @@ const AppHeader = () => {
             </div>
           </div>
           
-          <MainNavigation />
+          {!isAdminPage && <MainNavigation />}
         </div>
       </div>
     </header>
