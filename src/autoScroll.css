@@ -1,7 +1,7 @@
 
 /* Auto-scrolling carousel styles */
 .auto-scroll {
-  animation: autoScroll 30s linear infinite;
+  animation: autoScroll 15s linear infinite;
 }
 
 @keyframes autoScroll {
@@ -13,14 +13,14 @@
   }
 }
 
-/* Fix for white hover issues */
+/* Fix for white hover issues - global fixes */
 button:hover, 
 .hover\:bg-white:hover,
 .hover\:bg-gray-100:hover {
   background-color: transparent !important;
 }
 
-/* Fix for hover issues in admin panel */
+/* Fix for hover issues in admin panel and all components */
 .bg-white, 
 .hover\:bg-white:hover, 
 .hover\:bg-gray-100:hover,
@@ -28,17 +28,37 @@ button:hover,
 [type="button"]:hover,
 .btn:hover,
 button.bg-white:hover,
-.bg-white button:hover {
-  background-color: transparent !important;
+.bg-white button:hover,
+.bg-gray-50:hover,
+.bg-gray-100:hover {
+  background-color: rgba(22, 101, 52, 0.05) !important;
   color: inherit !important;
 }
 
 /* For buttons that need a visible hover state */
 .btn-primary:hover, 
 button.btn-action:hover,
-.interactive-button:hover {
-  background-color: rgba(22, 101, 52, 0.9) !important; /* green-800 with opacity */
+.interactive-button:hover,
+.bg-green-800:hover {
+  background-color: rgba(22, 101, 52, 0.9) !important;
   color: white !important;
+}
+
+/* Make table cells and admin panel elements readable */
+.TableCell,
+.TableRow,
+td,
+th,
+.admin-data * {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* Fix for table rows in admin panel */
+.admin-table tr:hover td,
+table tr:hover td {
+  background-color: rgba(22, 101, 52, 0.05) !important;
+  color: inherit !important;
 }
 
 /* Hide scrollbar but allow scrolling */
@@ -69,7 +89,17 @@ button.btn-action:hover,
 /* Improve product image size on mobile */
 @media (max-width: 640px) {
   .product-image {
-    height: 120px;
-    object-fit: contain;
+    max-height: 120px !important;
+    object-fit: contain !important;
+    width: auto !important;
+  }
+  
+  .product-card {
+    max-width: 160px !important;
+    margin: 0 auto !important;
+  }
+  
+  .product-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
   }
 }

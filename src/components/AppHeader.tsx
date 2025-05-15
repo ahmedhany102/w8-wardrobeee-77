@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import MainNavigation from './MainNavigation';
 import { Button } from './ui/button';
@@ -10,6 +10,10 @@ import { toast } from 'sonner';
 const AppHeader = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if currently on an admin page
+  const isAdminPage = location.pathname.includes('/admin');
 
   const handleLogout = () => {
     logout();
@@ -42,8 +46,18 @@ const AppHeader = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="text-sm text-gray-300">
-                  Welcome, Guest
+                <div className="flex items-center gap-2">
+                  <div className="text-sm text-gray-300 mr-2">
+                    Welcome, Guest
+                  </div>
+                  <Link to="/login" className="text-sm text-white hover:text-green-300 mr-2">
+                    Login
+                  </Link>
+                  {!isAdminPage && (
+                    <Link to="/admin-login" className="text-sm text-white hover:text-green-300">
+                      Admin
+                    </Link>
+                  )}
                 </div>
               )}
             </div>

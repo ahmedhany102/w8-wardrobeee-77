@@ -1,48 +1,22 @@
 
 import React from 'react';
-import { Instagram, Linkedin, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="py-4 px-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 mt-10">
-      <div className="container mx-auto">
+    <footer className="bg-gray-900 text-white py-4 mt-auto">
+      <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
-          <div className="flex flex-col items-center md:items-start text-center md:text-left">
-            <p className="text-gray-600 dark:text-gray-400 text-xs">© 2025 W8 Company</p>
+          <div className="text-center md:text-left mb-2 md:mb-0">
+            <p className="text-sm">&copy; {new Date().getFullYear()} W8. All rights reserved.</p>
           </div>
-          <div className="flex items-center space-x-4 mt-2 md:mt-0">
-            <a 
-              href="tel:01501640040" 
-              className="text-gray-600 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 transition-colors flex items-center"
-              aria-label="Phone"
-            >
-              <span className="text-xs">01501640040</span>
-            </a>
-            <a 
-              href="mailto:ahmedseifeldin97@gmail.com" 
-              className="text-gray-600 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 transition-colors flex items-center"
-              aria-label="Email"
-            >
-              <Mail className="w-3 h-3" />
-            </a>
-            <a 
-              href="https://www.instagram.com/_.w_8._/" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-600 hover:text-pink-600 dark:text-gray-400 dark:hover:text-pink-400 transition-colors"
-              aria-label="Instagram"
-            >
-              <Instagram className="w-3 h-3" />
-            </a>
-            <a 
-              href="https://www.linkedin.com/in/ahmed-hany-436342257/" 
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-600 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-              aria-label="LinkedIn"
-            >
-              <Linkedin className="w-3 h-3" />
-            </a>
+          <div className="flex flex-wrap justify-center md:justify-end gap-4 text-sm">
+            <Link to="/contact" className="text-gray-300 hover:text-white transition">
+              Contact Us
+            </Link>
+            <Link to="/offers" className="text-gray-300 hover:text-white transition">
+              Offers
+            </Link>
           </div>
         </div>
       </div>

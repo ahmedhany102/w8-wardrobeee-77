@@ -1,104 +1,92 @@
 
 import React from 'react';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Product, ProductCategory } from '@/models/Product';
+import { Card, CardContent, CardFooter } from './ui/card';
+import { Button } from './ui/button';
+import { Product } from '@/models/Product';
+import { useNavigate } from 'react-router-dom';
+import { ShoppingCart } from 'lucide-react';
+import { toast } from 'sonner';
+import CartDatabase from '@/models/CartDatabase';
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product) => void;
+  onAddToCart?: () => void;
 }
 
-const getCategoryLabel = (category: ProductCategory) => {
-  switch (category) {
-    case ProductCategory.FOOD:
-      return 'Food';
-    case ProductCategory.TECHNOLOGY:
-      return 'Technology';
-    case ProductCategory.CLOTHING:
-      return 'Clothing';
-    case ProductCategory.SHOES:
-      return 'Shoes';
-    default:
-      return 'Other';
-  }
-};
-
-const getCategoryColor = (category: ProductCategory) => {
-  switch (category) {
-    case ProductCategory.FOOD:
-      return 'bg-amber-500 text-black';
-    case ProductCategory.TECHNOLOGY:
-      return 'bg-blue-500 text-white';
-    case ProductCategory.CLOTHING:
-      return 'bg-purple-500 text-white';
-    case ProductCategory.SHOES:
-      return 'bg-pink-500 text-white';
-    default:
-      return 'bg-gray-500 text-white';
-  }
-};
-
-// Helper function to get appropriate image URL based on product category
-const getProductImage = (product: Product) => {
-  // Default fallback image
-  let imageUrl = product.imageUrl;
-  
-  // Provide category-specific fallback images
-  if (!imageUrl || imageUrl.includes('unsplash') || imageUrl.includes('placeholder')) {
-    switch (product.category) {
-      case ProductCategory.FOOD:
-        return 'https://images.unsplash.com/photo-1563379926898-05f4575a45d8?w=800';
-      case ProductCategory.TECHNOLOGY:
-        return 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=800';
-      case ProductCategory.CLOTHING:
-        return 'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=800';
-      case ProductCategory.SHOES:
-        return 'https://images.unsplash.com/photo-1518049362265-d5b2a6b00b37?w=800';
-      default:
-        return imageUrl;
-    }
-  }
-  
-  return imageUrl;
-};
-
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
+  const navigate = useNavigate();
+  
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click event
+    
+    try {
+      const cartDb = CartDatabase.getInstance();
+      const success = await cartDb.addToCart(product, 1);
+      
+      if (success) {
+        toast.success(`${product.name} added to cart!`);
+        if (onAddToCart) onAddToCart();
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("Failed to add item to cart");
+    }
+  };
+  
+  const handleClick = () => {
+    navigate(`/product/${product.id}`);
+  };
+  
+  // Calculate discount percentage if the product has an offerPrice
+  const hasDiscount = product.offerPrice !== undefined && product.offerPrice < product.price;
+  const discountPercentage = hasDiscount 
+    ? Math.round(((product.price - (product.offerPrice || 0)) / product.price) * 100) 
+    : 0;
+
   return (
-    <Card className="flex flex-col h-full overflow-hidden border-green-800 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 bg-gradient-to-b from-gray-100 to-gray-50 dark:from-gray-900 dark:to-black hover:bg-gradient-to-b hover:from-gray-50 hover:to-white dark:hover:from-gray-800 dark:hover:to-gray-900">
-      <div className="relative overflow-hidden h-48">
-        <img 
-          src={getProductImage(product)} 
+    <Card 
+      className="product-card h-full cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg border-green-100 hover:border-green-300 max-w-xs mx-auto"
+      onClick={handleClick}
+    >
+      <div className="relative h-44 sm:h-48 overflow-hidden bg-gray-50">
+        {hasDiscount && (
+          <div className="absolute top-0 left-0 bg-red-500 text-white text-xs font-bold px-2 py-1 z-10">
+            {discountPercentage}% OFF
+          </div>
+        )}
+        <img
+          src={product.imageUrl}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+          className="product-image w-full h-full object-contain p-2"
           onError={(e) => {
-            e.currentTarget.src = getProductImage({...product, imageUrl: ''});
+            e.currentTarget.src = 'https://via.placeholder.com/200?text=Product Image';
           }}
         />
-        <span className={`absolute top-2 right-2 ${getCategoryColor(product.category)} text-xs px-2 py-1 rounded-full`}>
-          {getCategoryLabel(product.category)}
-        </span>
       </div>
       
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <h3 className="product-title leading-tight line-clamp-2 tracking-normal dark:text-white">{product.name}</h3>
-          <Badge variant="success" className="ml-2 whitespace-nowrap">
-            {product.price.toFixed(2)} EGP
-          </Badge>
+      <CardContent className="p-4">
+        <h3 className="font-medium text-base line-clamp-1">{product.name}</h3>
+        <p className="text-gray-500 text-xs line-clamp-2 h-8 mt-1">{product.description}</p>
+        
+        <div className="mt-2 flex items-center">
+          {hasDiscount ? (
+            <>
+              <span className="font-semibold text-red-600">{product.offerPrice} EGP</span>
+              <span className="text-gray-400 text-xs line-through ml-2">{product.price} EGP</span>
+            </>
+          ) : (
+            <span className="font-semibold">{product.price} EGP</span>
+          )}
         </div>
-      </CardHeader>
-      
-      <CardContent className="text-sm text-gray-600 dark:text-gray-300 flex-grow">
-        <p className="line-clamp-2 tracking-normal">{product.description}</p>
       </CardContent>
       
-      <CardFooter>
+      <CardFooter className="p-3 pt-0">
         <Button 
-          onClick={() => onAddToCart(product)} 
-          className="w-full bg-green-800 hover:bg-green-700 text-white transition-all active:scale-95"
+          variant="default" 
+          className="w-full bg-green-800 hover:bg-green-900 text-xs h-8"
+          onClick={handleAddToCart}
         >
+          <ShoppingCart className="mr-1 h-3.5 w-3.5" />
           Add to Cart
         </Button>
       </CardFooter>

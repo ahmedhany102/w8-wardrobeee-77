@@ -1,689 +1,743 @@
 
-import React, { useState, useEffect } from "react";
-import Layout from "@/components/Layout";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
-import { ShoppingCart, Trash, Plus, Minus, CreditCard, MapPin, Phone, DollarSign } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import OrderDatabase from "@/models/OrderDatabase";
-import { Order, CustomerInfo, OrderItem, PaymentInfo } from "@/models/Order";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Product } from "@/models/Product";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '@/components/Layout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Trash, Plus, Minus, ShoppingCart } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import CartDatabase, { CartItem } from '@/models/CartDatabase';
+import { OrderDatabase } from '@/models/OrderDatabase';
 
-interface CartItem {
-  product: Product;
-  quantity: number;
-}
-
-const orderSchema = z.object({
-  name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-  email: z.string().email({ message: "Please enter a valid email" }),
-  phone: z.string().min(5, { message: "Please enter a valid phone number" }),
-  street: z.string().min(5, { message: "Please enter your street address" }),
-  city: z.string().min(2, { message: "Please enter your city" }),
-  state: z.string().min(2, { message: "Please enter your state/province" }),
-  zip: z.string().min(3, { message: "Please enter your zip/postal code" }),
-  country: z.string().min(2, { message: "Please enter your country" }),
-  paymentMethod: z.enum(["creditCard", "paypal", "bankTransfer", "cashOnDelivery"], { 
-    message: "Please select a payment method" 
-  }),
-  cardNumber: z.string().optional(),
-  cardExpiry: z.string().optional(),
-  cardCVV: z.string().optional(),
-  notes: z.string().optional()
-});
-
-type OrderFormValues = z.infer<typeof orderSchema>;
+type PaymentMethod = "CASH" | "CREDIT_CARD" | "WALLET" | "BANK_TRANSFER";
 
 const Cart = () => {
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'shipping' | 'payment'>('cart');
+  const [shippingInfo, setShippingInfo] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    street: '',
+    city: '',
+    zipCode: '',
+    notes: ''
+  });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [cardDetails, setCardDetails] = useState({
+    cardNumber: '',
+    cardName: '',
+    expiry: '',
+    cvv: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const orderDb = OrderDatabase.getInstance();
-
-  const form = useForm<OrderFormValues>({
-    resolver: zodResolver(orderSchema),
-    defaultValues: {
-      name: "",
-      email: user?.email || "",
-      phone: "",
-      street: "",
-      city: "",
-      state: "",
-      zip: "",
-      country: "",
-      paymentMethod: "cashOnDelivery", // Default to cash on delivery
-      notes: ""
-    }
-  });
-
+  
+  // Fetch cart items on component mount
   useEffect(() => {
-    // Load cart from localStorage
-    const cartJSON = localStorage.getItem('cart');
-    if (cartJSON) {
-      try {
-        const parsedCart = JSON.parse(cartJSON);
-        setCartItems(parsedCart);
-      } catch (error) {
-        console.error("Error parsing cart data:", error);
-        setCartItems([]);
-      }
+    loadCartItems();
+    
+    // Pre-fill shipping info if user is logged in
+    if (user) {
+      setShippingInfo(prev => ({
+        ...prev,
+        name: user.name || '',
+        email: user.email || ''
+      }));
     }
-    
-    // Add event listener for cart updates from other components
-    const handleCartUpdate = () => {
-      const updatedCartJSON = localStorage.getItem('cart');
-      if (updatedCartJSON) {
-        try {
-          const updatedCart = JSON.parse(updatedCartJSON);
-          setCartItems(updatedCart);
-        } catch (error) {
-          console.error("Error parsing updated cart data:", error);
-        }
-      }
-    };
-    
-    window.addEventListener('cartUpdated', handleCartUpdate);
-    
-    return () => {
-      window.removeEventListener('cartUpdated', handleCartUpdate);
-    };
-  }, []);
-
-  const updateCart = (updatedCart: CartItem[]) => {
-    setCartItems(updatedCart);
-    localStorage.setItem('cart', JSON.stringify(updatedCart));
-    // Dispatch event to update other components
-    window.dispatchEvent(new Event('cartUpdated'));
+  }, [user]);
+  
+  const loadCartItems = async () => {
+    setLoading(true);
+    try {
+      const cartDb = CartDatabase.getInstance();
+      const items = await cartDb.getCartItems();
+      setCartItems(items);
+    } catch (error) {
+      console.error("Error loading cart items:", error);
+      toast.error("Failed to load cart items");
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const handleIncreaseQuantity = (productId: string) => {
-    const updatedCart = cartItems.map(item =>
-      item.product.id === productId
-        ? { ...item, quantity: item.quantity + 1 }
-        : item
-    );
-    updateCart(updatedCart);
+  
+  const handleQuantityChange = async (itemId: string, newQuantity: number) => {
+    try {
+      const cartDb = CartDatabase.getInstance();
+      await cartDb.updateQuantity(itemId, newQuantity);
+      loadCartItems();
+    } catch (error) {
+      console.error("Error updating quantity:", error);
+      toast.error("Failed to update quantity");
+    }
   };
-
-  const handleDecreaseQuantity = (productId: string) => {
-    const updatedCart = cartItems.map(item =>
-      item.product.id === productId && item.quantity > 1
-        ? { ...item, quantity: item.quantity - 1 }
-        : item
-    ).filter(item => item.quantity > 0);
-    updateCart(updatedCart);
+  
+  const handleRemoveItem = async (itemId: string) => {
+    try {
+      const cartDb = CartDatabase.getInstance();
+      await cartDb.removeFromCart(itemId);
+      toast.success("Item removed from cart");
+      loadCartItems();
+    } catch (error) {
+      console.error("Error removing item:", error);
+      toast.error("Failed to remove item");
+    }
   };
-
-  const handleRemoveItem = (productId: string) => {
-    const updatedCart = cartItems.filter(item => item.product.id !== productId);
-    updateCart(updatedCart);
-    toast.success("Item removed from cart");
+  
+  const handleClearCart = async () => {
+    try {
+      const cartDb = CartDatabase.getInstance();
+      await cartDb.clearCart();
+      toast.success("Cart cleared");
+      loadCartItems();
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+      toast.error("Failed to clear cart");
+    }
   };
-
-  const clearCart = () => {
-    setCartItems([]);
-    localStorage.removeItem('cart');
-    window.dispatchEvent(new Event('cartUpdated'));
+  
+  const handleShippingInfoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setShippingInfo(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
-  const handleCheckout = () => {
-    if (!cartItems.length) {
+  
+  const handleCardDetailsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setCardDetails(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const validateShippingInfo = () => {
+    if (!shippingInfo.name.trim()) return "Name is required";
+    if (!shippingInfo.email.trim() || !shippingInfo.email.includes('@')) return "Valid email is required";
+    if (!shippingInfo.phone.trim()) return "Phone number is required";
+    if (!shippingInfo.street.trim()) return "Street address is required";
+    if (!shippingInfo.city.trim()) return "City is required";
+    return null;
+  };
+  
+  const validatePaymentInfo = () => {
+    if (paymentMethod === "CREDIT_CARD") {
+      if (!cardDetails.cardNumber || cardDetails.cardNumber.length < 16) return "Valid card number is required";
+      if (!cardDetails.cardName.trim()) return "Cardholder name is required";
+      if (!cardDetails.expiry.trim() || !cardDetails.expiry.includes('/')) return "Valid expiry date is required (MM/YY)";
+      if (!cardDetails.cvv.trim() || cardDetails.cvv.length < 3) return "Valid CVV is required";
+    }
+    return null;
+  };
+  
+  const handleContinueToShipping = () => {
+    if (cartItems.length === 0) {
       toast.error("Your cart is empty");
       return;
     }
     
-    if (user) {
-      // Pre-fill the form with user email if available
-      form.setValue("email", user.email);
-      form.setValue("name", user.name || "");
-    }
-    
-    setIsCheckoutModalOpen(true);
+    setCheckoutStep('shipping');
+    window.scrollTo(0, 0);
   };
-
-  const processOrder = async (data: OrderFormValues) => {
-    if (!user) {
-      toast.error("Please login to place an order");
-      navigate("/login");
+  
+  const handleContinueToPayment = () => {
+    const error = validateShippingInfo();
+    if (error) {
+      toast.error(error);
       return;
     }
-
-    setIsProcessing(true);
+    
+    setCheckoutStep('payment');
+    window.scrollTo(0, 0);
+  };
+  
+  const handleGoBack = () => {
+    if (checkoutStep === 'shipping') {
+      setCheckoutStep('cart');
+    } else if (checkoutStep === 'payment') {
+      setCheckoutStep('shipping');
+    }
+    window.scrollTo(0, 0);
+  };
+  
+  const handlePlaceOrder = async () => {
+    const shippingError = validateShippingInfo();
+    if (shippingError) {
+      toast.error(shippingError);
+      setCheckoutStep('shipping');
+      return;
+    }
+    
+    const paymentError = validatePaymentInfo();
+    if (paymentError) {
+      toast.error(paymentError);
+      return;
+    }
+    
+    setIsSubmitting(true);
     
     try {
-      // Create OrderItems from cartItems with correct properties to match the OrderItem interface
-      const orderItems: OrderItem[] = cartItems.map(item => ({
-        productId: item.product.id.toString(), // Convert to string to match OrderItem interface
-        productName: item.product.name,
-        quantity: item.quantity,
-        unitPrice: item.product.price,
-        totalPrice: item.product.price * item.quantity
-      }));
+      // Calculate total price
+      const totalAmount = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       
-      // Create customer info
-      const customerInfo: CustomerInfo = {
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        address: {
-          street: data.street,
-          city: data.city,
-          state: data.state,
-          zipCode: data.zip, // Using zipCode as per Address interface
-          country: data.country
-        }
+      // Create order in database
+      const orderDb = OrderDatabase.getInstance();
+      
+      // Build order payload
+      const orderData = {
+        customerInfo: {
+          name: shippingInfo.name,
+          email: shippingInfo.email,
+          phone: shippingInfo.phone,
+          address: {
+            street: shippingInfo.street,
+            city: shippingInfo.city,
+            zipCode: shippingInfo.zipCode
+          }
+        },
+        items: cartItems.map(item => ({
+          productId: item.productId,
+          productName: item.name,
+          quantity: item.quantity,
+          unitPrice: item.price,
+          totalPrice: item.price * item.quantity,
+          imageUrl: item.imageUrl
+        })),
+        totalAmount,
+        status: "PENDING" as const,
+        paymentStatus: paymentMethod === "CASH" ? "PENDING" : "PAID" as const, 
+        paymentInfo: {
+          method: paymentMethod,
+          ...(paymentMethod === "CREDIT_CARD" && {
+            cardLast4: cardDetails.cardNumber.slice(-4),
+            cardBrand: getCardBrand(cardDetails.cardNumber),
+            transactionId: `TXN-${Date.now()}`
+          })
+        },
+        notes: shippingInfo.notes
       };
       
-      // Calculate total amount
-      const totalAmount = orderItems.reduce((sum, item) => sum + item.totalPrice, 0);
-      const shippingCost = totalAmount > 100 ? 0 : 15; // Free shipping over $100
+      // Save order
+      const orderId = await orderDb.createOrder(orderData);
       
-      // Create payment info
-      const paymentInfo: PaymentInfo = {
-        method: data.paymentMethod === "creditCard" ? "CREDIT_CARD" : 
-               data.paymentMethod === "paypal" ? "WALLET" : 
-               data.paymentMethod === "cashOnDelivery" ? "CASH" : "BANK_TRANSFER"
-      };
-      
-      // Add card details if paying with credit card
-      if (data.paymentMethod === "creditCard" && data.cardNumber) {
-        paymentInfo.cardLast4 = data.cardNumber.slice(-4);
-        paymentInfo.cardBrand = "Visa"; // Mock card brand
-      }
-      
-      // Create order object
-      const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
-        orderNumber: `ORD-${Date.now().toString().substr(-6)}`,
-        customerId: user.id,
-        customerInfo,
-        items: orderItems,
-        totalAmount: totalAmount + shippingCost,
-        status: "PENDING", // Use enum value as defined in Order interface
-        paymentStatus: "PENDING", // Use enum value as defined in Order interface
-        paymentInfo,
-        notes: data.notes
-      };
-      
-      // Save the order
-      const savedOrder = await orderDb.saveOrder(orderData);
-      
-      // Simulate successful order
-      setTimeout(() => {
-        setIsProcessing(false);
-        setIsCheckoutModalOpen(false);
-        clearCart();
+      if (orderId) {
+        // Clear cart
+        const cartDb = CartDatabase.getInstance();
+        await cartDb.clearCart();
+        
+        // Show success message
         toast.success("Order placed successfully!");
-        navigate("/tracking");
-      }, 1500);
-      
+        
+        // Redirect to order tracking
+        navigate(`/tracking?orderId=${orderId}`);
+      } else {
+        toast.error("Failed to place order");
+      }
     } catch (error) {
-      console.error("Error processing order:", error);
-      toast.error("There was an error processing your order. Please try again.");
-      setIsProcessing(false);
+      console.error("Error placing order:", error);
+      toast.error("Failed to place order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  // Calculate total price
-  const totalPrice = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
-
-  // Check if cart is empty
-  const isCartEmpty = cartItems.length === 0;
-
-  if (!user) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center py-12">
-          <h1 className="text-2xl font-bold mb-4">Please Login to View Cart</h1>
-          <p className="text-gray-600 mb-6">You need to be logged in to access your shopping cart.</p>
-          <Button onClick={() => navigate("/login")} className="bg-green-800 hover:bg-green-900 interactive-button">Login</Button>
+  
+  // Helper function to determine card brand
+  const getCardBrand = (number: string): string => {
+    // Simple card brand detection based on first digit
+    const firstDigit = number[0];
+    if (firstDigit === '4') return 'Visa';
+    if (firstDigit === '5') return 'Mastercard';
+    if (firstDigit === '3') return 'American Express';
+    return 'Card';
+  };
+  
+  // Calculate cart totals
+  const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const shippingCost = subtotal > 0 ? 30 : 0; // Free shipping over $100
+  const total = subtotal + shippingCost;
+  
+  const renderCartItems = () => (
+    <div className="space-y-4">
+      <div className="rounded-md border overflow-hidden">
+        <Table>
+          <TableHeader className="bg-green-50">
+            <TableRow>
+              <TableHead className="w-[100px]">Product</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead className="text-right">Price</TableHead>
+              <TableHead className="text-center">Quantity</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {cartItems.length > 0 ? (
+              cartItems.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    <img 
+                      src={item.imageUrl || 'https://via.placeholder.com/60?text=Product'} 
+                      alt={item.name}
+                      className="w-14 h-14 object-cover rounded-md"
+                      onError={(e) => {
+                        e.currentTarget.src = 'https://via.placeholder.com/60?text=Product';
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="text-right">{item.price.toFixed(2)} EGP</TableCell>
+                  <TableCell>
+                    <div className="flex justify-center items-center">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 bg-transparent hover:bg-gray-100"
+                        onClick={() => handleQuantityChange(item.id, Math.max(1, item.quantity - 1))}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <span className="mx-2 w-8 text-center">{item.quantity}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 bg-transparent hover:bg-gray-100"
+                        onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {(item.price * item.quantity).toFixed(2)} EGP
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-transparent"
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  <div className="flex flex-col items-center justify-center">
+                    <ShoppingCart className="h-8 w-8 text-gray-400 mb-2" />
+                    <span className="text-gray-500">Your cart is empty</span>
+                    <Button 
+                      className="mt-4 bg-green-800 hover:bg-green-900" 
+                      onClick={() => navigate('/')}
+                    >
+                      Continue Shopping
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      
+      {cartItems.length > 0 && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            className="text-red-500 hover:text-red-700 border-red-200"
+            onClick={handleClearCart}
+          >
+            Clear Cart
+          </Button>
         </div>
-      </Layout>
-    );
-  }
-
+      )}
+    </div>
+  );
+  
+  const renderOrderSummary = () => (
+    <Card className="bg-gray-50 border-green-100">
+      <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
+        <CardTitle className="text-lg">Order Summary</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <div className="space-y-4">
+          <div className="flex justify-between">
+            <span>Subtotal</span>
+            <span className="font-medium">{subtotal.toFixed(2)} EGP</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Shipping</span>
+            <span className="font-medium">{shippingCost.toFixed(2)} EGP</span>
+          </div>
+          <div className="border-t pt-2 flex justify-between">
+            <span className="font-semibold">Total</span>
+            <span className="font-bold text-lg">{total.toFixed(2)} EGP</span>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex flex-col gap-2">
+        {checkoutStep === 'cart' && (
+          <Button 
+            className="w-full bg-green-800 hover:bg-green-900" 
+            disabled={cartItems.length === 0}
+            onClick={handleContinueToShipping}
+          >
+            Proceed to Checkout
+          </Button>
+        )}
+        
+        {checkoutStep === 'shipping' && (
+          <div className="flex gap-2 w-full">
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={handleGoBack}
+            >
+              Back to Cart
+            </Button>
+            <Button 
+              className="flex-1 bg-green-800 hover:bg-green-900"
+              onClick={handleContinueToPayment}
+            >
+              Continue to Payment
+            </Button>
+          </div>
+        )}
+        
+        {checkoutStep === 'payment' && (
+          <div className="flex gap-2 w-full">
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={handleGoBack}
+            >
+              Back
+            </Button>
+            <Button 
+              className="flex-1 bg-green-800 hover:bg-green-900"
+              onClick={handlePlaceOrder}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Processing..." : "Place Order"}
+            </Button>
+          </div>
+        )}
+      </CardFooter>
+    </Card>
+  );
+  
+  const renderShippingForm = () => (
+    <Card>
+      <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
+        <CardTitle className="text-lg">Shipping Information</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium mb-1">Full Name</label>
+            <Input
+              id="name"
+              name="name"
+              value={shippingInfo.name}
+              onChange={handleShippingInfoChange}
+              className="w-full"
+              placeholder="Enter your full name"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium mb-1">Email Address</label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={shippingInfo.email}
+              onChange={handleShippingInfoChange}
+              className="w-full"
+              placeholder="Enter your email"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium mb-1">Phone Number</label>
+            <Input
+              id="phone"
+              name="phone"
+              value={shippingInfo.phone}
+              onChange={handleShippingInfoChange}
+              className="w-full"
+              placeholder="Enter your phone number"
+            />
+          </div>
+          
+          <div className="md:col-span-2">
+            <label htmlFor="street" className="block text-sm font-medium mb-1">Street Address</label>
+            <Input
+              id="street"
+              name="street"
+              value={shippingInfo.street}
+              onChange={handleShippingInfoChange}
+              className="w-full"
+              placeholder="Enter your street address"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="city" className="block text-sm font-medium mb-1">City</label>
+            <Input
+              id="city"
+              name="city"
+              value={shippingInfo.city}
+              onChange={handleShippingInfoChange}
+              className="w-full"
+              placeholder="Enter your city"
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="zipCode" className="block text-sm font-medium mb-1">ZIP / Postal Code</label>
+            <Input
+              id="zipCode"
+              name="zipCode"
+              value={shippingInfo.zipCode}
+              onChange={handleShippingInfoChange}
+              className="w-full"
+              placeholder="Enter ZIP code"
+            />
+          </div>
+          
+          <div className="md:col-span-2">
+            <label htmlFor="notes" className="block text-sm font-medium mb-1">Order Notes (Optional)</label>
+            <Textarea
+              id="notes"
+              name="notes"
+              value={shippingInfo.notes}
+              onChange={handleShippingInfoChange}
+              className="w-full"
+              placeholder="Special instructions for delivery"
+              rows={3}
+            />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+  
+  const renderPaymentForm = () => (
+    <Card>
+      <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
+        <CardTitle className="text-lg">Payment Method</CardTitle>
+      </CardHeader>
+      <CardContent className="pt-4">
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={paymentMethod === "CASH"}
+                onChange={() => setPaymentMethod("CASH")}
+                className="form-radio h-4 w-4 text-green-800 focus:ring-green-800"
+              />
+              <span>Cash on Delivery</span>
+            </label>
+            
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={paymentMethod === "CREDIT_CARD"}
+                onChange={() => setPaymentMethod("CREDIT_CARD")}
+                className="form-radio h-4 w-4 text-green-800 focus:ring-green-800"
+              />
+              <span>Credit Card</span>
+            </label>
+            
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={paymentMethod === "WALLET"}
+                onChange={() => setPaymentMethod("WALLET")}
+                className="form-radio h-4 w-4 text-green-800 focus:ring-green-800"
+              />
+              <span>Digital Wallet</span>
+            </label>
+            
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="paymentMethod"
+                checked={paymentMethod === "BANK_TRANSFER"}
+                onChange={() => setPaymentMethod("BANK_TRANSFER")}
+                className="form-radio h-4 w-4 text-green-800 focus:ring-green-800"
+              />
+              <span>Bank Transfer</span>
+            </label>
+          </div>
+          
+          {paymentMethod === "CREDIT_CARD" && (
+            <div className="mt-4 border-t pt-4 space-y-4">
+              <div>
+                <label htmlFor="cardNumber" className="block text-sm font-medium mb-1">Card Number</label>
+                <Input
+                  id="cardNumber"
+                  name="cardNumber"
+                  value={cardDetails.cardNumber}
+                  onChange={handleCardDetailsChange}
+                  className="w-full"
+                  placeholder="1234 5678 9012 3456"
+                  maxLength={16}
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="cardName" className="block text-sm font-medium mb-1">Cardholder Name</label>
+                <Input
+                  id="cardName"
+                  name="cardName"
+                  value={cardDetails.cardName}
+                  onChange={handleCardDetailsChange}
+                  className="w-full"
+                  placeholder="John Doe"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="expiry" className="block text-sm font-medium mb-1">Expiry Date</label>
+                  <Input
+                    id="expiry"
+                    name="expiry"
+                    value={cardDetails.expiry}
+                    onChange={handleCardDetailsChange}
+                    className="w-full"
+                    placeholder="MM/YY"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="cvv" className="block text-sm font-medium mb-1">CVV</label>
+                  <Input
+                    id="cvv"
+                    name="cvv"
+                    value={cardDetails.cvv}
+                    onChange={handleCardDetailsChange}
+                    className="w-full"
+                    placeholder="123"
+                    maxLength={4}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {paymentMethod === "BANK_TRANSFER" && (
+            <div className="mt-4 border-t pt-4">
+              <div className="bg-green-50 p-3 rounded-md">
+                <p className="text-sm">Bank Transfer Instructions:</p>
+                <p className="text-sm mt-2">Please transfer the total amount to our bank account:</p>
+                <p className="text-sm font-medium mt-1">Bank: W8 National Bank</p>
+                <p className="text-sm font-medium">Account: 123456789</p>
+                <p className="text-sm font-medium">IBAN: EG123456789</p>
+                <p className="text-sm mt-2">Your order will be processed once payment is received.</p>
+              </div>
+            </div>
+          )}
+          
+          {paymentMethod === "WALLET" && (
+            <div className="mt-4 border-t pt-4">
+              <div className="bg-green-50 p-3 rounded-md">
+                <p className="text-sm">Available Digital Wallet Options:</p>
+                <ul className="list-disc list-inside text-sm mt-2">
+                  <li>Fawry Pay</li>
+                  <li>Vodafone Cash</li>
+                  <li>Orange Money</li>
+                  <li>Etisalat Cash</li>
+                </ul>
+                <p className="text-sm mt-2">You'll receive payment instructions after placing your order.</p>
+              </div>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+  
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto">
-        <Card className="transition-all duration-300 hover:shadow-lg">
-          <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
-            <CardTitle className="text-2xl">
-              <span className="flex items-center gap-2">
-                <ShoppingCart className="h-6 w-6" />
-                Shopping Cart
-              </span>
-            </CardTitle>
-            {!isCartEmpty && (
-              <Button variant="secondary" onClick={() => {
-                if (confirm("Are you sure you want to clear your cart?")) {
-                  clearCart();
-                  toast.success("Cart has been cleared");
-                }
-              }}
-              className="bg-white text-green-900 interactive-button"
-              >
-                Clear Cart
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent className="p-6">
-            {isCartEmpty ? (
-              <div className="flex flex-col items-center py-12">
-                <ShoppingCart className="h-16 w-16 text-gray-300 mb-4" />
-                <p className="text-xl text-gray-500 mb-6">Your cart is empty</p>
-                <Button 
-                  onClick={() => navigate("/")} 
-                  className="bg-green-800 hover:bg-green-900 transition-all animate-pulse interactive-button"
-                >
-                  Browse Products
-                </Button>
+      <div>
+        <h1 className="text-2xl font-bold mb-6">
+          {checkoutStep === 'cart' && 'Shopping Cart'}
+          {checkoutStep === 'shipping' && 'Checkout - Shipping'}
+          {checkoutStep === 'payment' && 'Checkout - Payment'}
+        </h1>
+        
+        <div className="mb-6">
+          <div className="flex justify-center">
+            <div className="flex items-center">
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${checkoutStep === 'cart' ? 'bg-green-800 text-white' : 'bg-gray-200'}`}>
+                1
               </div>
-            ) : (
-              <>
-                <div className="rounded-md border overflow-hidden transition-all duration-300 hover:shadow-md">
-                  <Table>
-                    <TableHeader className="bg-green-100">
-                      <TableRow>
-                        <TableHead className="w-[100px]">Image</TableHead>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead>Quantity</TableHead>
-                        <TableHead>Total</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cartItems.map((item) => (
-                        <TableRow key={item.product.id} className="hover:bg-green-50 transition-colors">
-                          <TableCell>
-                            <img
-                              src={item.product.imageUrl}
-                              alt={item.product.name}
-                              className="h-16 w-16 object-contain rounded-md transition-all duration-300 hover:scale-110 product-image"
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium">
-                            {item.product.name}
-                          </TableCell>
-                          <TableCell>{item.product.price.toFixed(2)} EGP</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0 border-green-300 interactive-button"
-                                onClick={() => handleDecreaseQuantity(item.product.id)}
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="w-8 text-center font-medium">{item.quantity}</span>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 w-8 p-0 border-green-300 interactive-button"
-                                onClick={() => handleIncreaseQuantity(item.product.id)}
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-semibold">
-                            {(item.product.price * item.quantity).toFixed(2)} EGP
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
-                              onClick={() => handleRemoveItem(item.product.id)}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                
-                <div className="mt-8 flex flex-col md:flex-row justify-between items-center">
-                  <div className="text-2xl font-semibold mb-4 md:mb-0 text-green-800">
-                    Total: {totalPrice.toFixed(2)} EGP
-                  </div>
-                  <Button 
-                    onClick={handleCheckout} 
-                    className="w-full md:w-auto bg-green-800 hover:bg-green-900 transition-all transform hover:scale-105 active:scale-95 interactive-button"
-                  >
-                    Proceed to Checkout
-                  </Button>
-                </div>
-              </>
+              <div className={`w-16 h-1 ${checkoutStep !== 'cart' ? 'bg-green-800' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${checkoutStep === 'shipping' ? 'bg-green-800 text-white' : checkoutStep === 'payment' ? 'bg-green-800 text-white' : 'bg-gray-200'}`}>
+                2
+              </div>
+              <div className={`w-16 h-1 ${checkoutStep === 'payment' ? 'bg-green-800' : 'bg-gray-200'}`}></div>
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${checkoutStep === 'payment' ? 'bg-green-800 text-white' : 'bg-gray-200'}`}>
+                3
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-center mt-2">
+            <div className="flex text-sm">
+              <span className="w-8 text-center"></span>
+              <span className="w-32 text-center">Cart</span>
+              <span className="w-32 text-center">Shipping</span>
+              <span className="w-8 text-center"></span>
+              <span className="w-32 text-center">Payment</span>
+            </div>
+          </div>
+        </div>
+        
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-800"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className={`md:col-span-2 ${checkoutStep !== 'cart' ? 'hidden md:block' : ''}`}>
+              {renderCartItems()}
+            </div>
+            
+            {checkoutStep === 'shipping' && (
+              <div className="md:col-span-2">
+                {renderShippingForm()}
+              </div>
             )}
-          </CardContent>
-        </Card>
+            
+            {checkoutStep === 'payment' && (
+              <div className="md:col-span-2">
+                {renderPaymentForm()}
+              </div>
+            )}
+            
+            <div className="md:col-span-1">
+              {renderOrderSummary()}
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Checkout Order Form Modal */}
-      <Dialog open={isCheckoutModalOpen} onOpenChange={setIsCheckoutModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-50 dark:bg-gray-900 border-green-800">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-center text-green-800 dark:text-green-400">Complete Your Order</DialogTitle>
-            <DialogDescription className="text-center dark:text-gray-300">
-              Please provide your delivery and payment details
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(processOrder)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Personal Information */}
-                <div className="space-y-3 col-span-2">
-                  <h3 className="text-lg font-medium border-b pb-2 dark:text-green-400">Personal Information</h3>
-                  
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="dark:text-gray-300">Full Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="John Doe" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="dark:text-gray-300">Email</FormLabel>
-                          <FormControl>
-                            <Input {...field} type="email" placeholder="you@example.com" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="dark:text-gray-300">Phone Number</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="+1 (234) 567-8900" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                
-                {/* Shipping Address */}
-                <div className="space-y-3 col-span-2">
-                  <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2 dark:text-green-400">
-                    <MapPin className="h-5 w-5 text-green-600" />
-                    Shipping Address
-                  </h3>
-                  
-                  <FormField
-                    control={form.control}
-                    name="street"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="dark:text-gray-300">Street Address</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="123 Main St, Apt 4B" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="dark:text-gray-300">City</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="New York" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="dark:text-gray-300">State/Province</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="NY" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField
-                      control={form.control}
-                      name="zip"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="dark:text-gray-300">Zip/Postal Code</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="10001" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="country"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="dark:text-gray-300">Country</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="United States" className="transition-all hover:border-green-300 bg-white dark:bg-gray-800" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                
-                {/* Payment Details */}
-                <div className="space-y-3 col-span-2">
-                  <h3 className="text-lg font-medium border-b pb-2 flex items-center gap-2 dark:text-green-400">
-                    <CreditCard className="h-5 w-5 text-green-600" />
-                    Payment Details
-                  </h3>
-                  
-                  <FormField
-                    control={form.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="dark:text-gray-300">Payment Method</FormLabel>
-                        <FormControl>
-                          <select 
-                            {...field} 
-                            className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 transition-all hover:border-green-300 bg-white dark:bg-gray-800 dark:text-gray-300"
-                          >
-                            <option value="cashOnDelivery">Cash on Delivery</option>
-                            <option value="creditCard">Credit Card</option>
-                            <option value="paypal">PayPal</option>
-                            <option value="bankTransfer">Bank Transfer</option>
-                          </select>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  {/* Cash on Delivery Message */}
-                  {form.watch("paymentMethod") === "cashOnDelivery" && (
-                    <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-md border border-green-200 dark:border-green-800 text-sm text-green-800 dark:text-green-300">
-                      <div className="flex items-center gap-2 mb-2">
-                        <DollarSign className="h-4 w-4" />
-                        <span className="font-medium">Cash on Delivery</span>
-                      </div>
-                      <p>You'll pay in cash when your order is delivered. Please have the exact amount ready.</p>
-                    </div>
-                  )}
-                  
-                  {/* Credit Card Details (conditionally shown) */}
-                  {form.watch("paymentMethod") === "creditCard" && (
-                    <div className="space-y-3 animate-fade-in">
-                      <FormField
-                        control={form.control}
-                        name="cardNumber"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="dark:text-gray-300">Card Number</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                placeholder="1234 5678 9012 3456" 
-                                className="transition-all hover:border-green-300 bg-white dark:bg-gray-800"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="grid grid-cols-2 gap-3">
-                        <FormField
-                          control={form.control}
-                          name="cardExpiry"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="dark:text-gray-300">Expiry Date</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  placeholder="MM/YY" 
-                                  className="transition-all hover:border-green-300 bg-white dark:bg-gray-800"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={form.control}
-                          name="cardCVV"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="dark:text-gray-300">CVV</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  {...field} 
-                                  placeholder="123" 
-                                  className="transition-all hover:border-green-300 bg-white dark:bg-gray-800"
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Additional Notes */}
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="dark:text-gray-300">Order Notes (Optional)</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            {...field} 
-                            placeholder="Any special instructions for delivery or order preparation" 
-                            className="min-h-20 transition-all hover:border-green-300 bg-white dark:bg-gray-800"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-              
-              {/* Order Summary */}
-              <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-900/20 dark:border-green-800">
-                <h3 className="text-lg font-medium mb-2 dark:text-green-400">Order Summary</h3>
-                <div className="space-y-1">
-                  {cartItems.map(item => (
-                    <div key={item.product.id} className="flex justify-between text-sm py-1 dark:text-gray-300">
-                      <span>{item.product.name} x {item.quantity}</span>
-                      <span>{(item.product.price * item.quantity).toFixed(2)} EGP</span>
-                    </div>
-                  ))}
-                  
-                  <div className="border-t pt-2 mt-2 flex justify-between font-bold dark:text-white">
-                    <span>Total Amount</span>
-                    <span>{totalPrice.toFixed(2)} EGP</span>
-                  </div>
-                </div>
-              </div>
-              
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setIsCheckoutModalOpen(false)}
-                  className="transition-all hover:bg-transparent dark:border-gray-700 dark:text-gray-300"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isProcessing}
-                  className="bg-green-800 hover:bg-green-900 transition-transform hover:scale-105 active:scale-95 interactive-button"
-                >
-                  {isProcessing ? "Processing..." : "Complete Purchase"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 };
