@@ -180,7 +180,7 @@ const OrdersPanel = () => {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900">
           <DialogHeader>
             <DialogTitle className="text-xl text-green-800">Order Details</DialogTitle>
             <DialogDescription>
@@ -191,24 +191,24 @@ const OrdersPanel = () => {
           {selectedOrder && (
             <div className="space-y-6 py-4">
               {/* Customer Information */}
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-800 border-b border-green-200 pb-2 mb-2">Customer Information</h3>
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                <h3 className="font-semibold text-green-800 dark:text-green-300 border-b border-green-200 dark:border-green-700 pb-2 mb-2">Customer Information</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Name</p>
-                    <p>{selectedOrder.customerInfo.name}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</p>
+                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customerInfo.name}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Email</p>
-                    <p>{selectedOrder.customerInfo.email}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
+                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customerInfo.email}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Phone</p>
-                    <p>{selectedOrder.customerInfo.phone}</p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
+                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customerInfo.phone}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Address</p>
-                    <p>
+                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</p>
+                    <p className="text-gray-900 dark:text-gray-100">
                       {selectedOrder.customerInfo.address.street}, {selectedOrder.customerInfo.address.city}, {selectedOrder.customerInfo.address.zipCode}
                     </p>
                   </div>
@@ -217,10 +217,10 @@ const OrdersPanel = () => {
               
               {/* Order Items */}
               <div>
-                <h3 className="font-semibold text-green-800 border-b border-green-200 pb-2 mb-4">Order Items</h3>
+                <h3 className="font-semibold text-green-800 dark:text-green-300 border-b border-green-200 dark:border-green-700 pb-2 mb-4">Order Items</h3>
                 <div className="rounded-md border overflow-hidden">
                   <Table>
-                    <TableHeader className="bg-green-100">
+                    <TableHeader className="bg-green-100 dark:bg-green-900/30">
                       <TableRow>
                         <TableHead>Product</TableHead>
                         <TableHead className="text-right">Quantity</TableHead>
@@ -231,17 +231,17 @@ const OrdersPanel = () => {
                     <TableBody>
                       {selectedOrder.items.map((item, index) => (
                         <TableRow key={index}>
-                          <TableCell>{item.productName}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right">{item.unitPrice.toFixed(2)} EGP</TableCell>
-                          <TableCell className="text-right">{item.totalPrice.toFixed(2)} EGP</TableCell>
+                          <TableCell className="text-gray-900 dark:text-gray-100">{item.productName}</TableCell>
+                          <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.quantity}</TableCell>
+                          <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.unitPrice.toFixed(2)} EGP</TableCell>
+                          <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.totalPrice.toFixed(2)} EGP</TableCell>
                         </TableRow>
                       ))}
-                      <TableRow className="bg-green-50">
-                        <TableCell colSpan={3} className="text-right font-semibold">
+                      <TableRow className="bg-green-50 dark:bg-green-900/20">
+                        <TableCell colSpan={3} className="text-right font-semibold text-gray-900 dark:text-gray-100">
                           Total Amount:
                         </TableCell>
-                        <TableCell className="text-right font-bold">
+                        <TableCell className="text-right font-bold text-gray-900 dark:text-gray-100">
                           {selectedOrder.totalAmount.toFixed(2)} EGP
                         </TableCell>
                       </TableRow>
@@ -252,21 +252,21 @@ const OrdersPanel = () => {
               
               {/* Payment Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-800 border-b border-green-200 pb-2 mb-2">Payment Information</h3>
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-800 dark:text-green-300 border-b border-green-200 dark:border-green-700 pb-2 mb-2">Payment Information</h3>
                   <div className="space-y-2">
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Payment Method</p>
-                      <p>{selectedOrder.paymentInfo?.method}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Payment Method</p>
+                      <p className="text-gray-900 dark:text-gray-100">{selectedOrder.paymentInfo?.method}</p>
                     </div>
                     {selectedOrder.paymentInfo?.cardLast4 && (
                       <div>
-                        <p className="text-sm font-medium text-gray-500">Card Details</p>
-                        <p>{selectedOrder.paymentInfo.cardBrand} ending in {selectedOrder.paymentInfo.cardLast4}</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Card Details</p>
+                        <p className="text-gray-900 dark:text-gray-100">{selectedOrder.paymentInfo.cardBrand} ending in {selectedOrder.paymentInfo.cardLast4}</p>
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Payment Status</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Payment Status</p>
                       <div className="flex items-center justify-between mt-2">
                         <Badge variant={getPaymentStatusBadgeVariant(selectedOrder.paymentStatus)}>
                           {selectedOrder.paymentStatus}
@@ -277,7 +277,7 @@ const OrdersPanel = () => {
                             handlePaymentStatusChange(selectedOrder.id, value);
                           }}
                         >
-                          <SelectTrigger className="w-36">
+                          <SelectTrigger className="w-36 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">
                             <SelectValue placeholder="Update status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -293,11 +293,11 @@ const OrdersPanel = () => {
                 </div>
                 
                 {/* Order Status */}
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-800 border-b border-green-200 pb-2 mb-2">Order Status</h3>
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-800 dark:text-green-300 border-b border-green-200 dark:border-green-700 pb-2 mb-2">Order Status</h3>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Current Status</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Current Status</p>
                       <div className="flex items-center justify-between mt-2">
                         <Badge variant={getStatusBadgeVariant(selectedOrder.status)}>
                           {selectedOrder.status}
@@ -308,7 +308,7 @@ const OrdersPanel = () => {
                             handleStatusChange(selectedOrder.id, value);
                           }}
                         >
-                          <SelectTrigger className="w-36">
+                          <SelectTrigger className="w-36 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800">
                             <SelectValue placeholder="Update status" />
                           </SelectTrigger>
                           <SelectContent>
@@ -323,13 +323,13 @@ const OrdersPanel = () => {
                     </div>
                     
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Order Date</p>
-                      <p>{new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Order Date</p>
+                      <p className="text-gray-900 dark:text-gray-100">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
                     </div>
                     
                     <div>
-                      <p className="text-sm font-medium text-gray-500">Last Updated</p>
-                      <p>{new Date(selectedOrder.updatedAt).toLocaleString()}</p>
+                      <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</p>
+                      <p className="text-gray-900 dark:text-gray-100">{new Date(selectedOrder.updatedAt).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>
@@ -337,9 +337,9 @@ const OrdersPanel = () => {
               
               {/* Additional Notes */}
               {selectedOrder.notes && (
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <h3 className="font-semibold text-green-800 border-b border-yellow-200 pb-2 mb-2">Customer Notes</h3>
-                  <p className="italic">{selectedOrder.notes}</p>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-800 dark:text-green-300 border-b border-yellow-200 dark:border-yellow-800 pb-2 mb-2">Customer Notes</h3>
+                  <p className="italic text-gray-900 dark:text-gray-100">{selectedOrder.notes}</p>
                 </div>
               )}
             </div>

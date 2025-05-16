@@ -8,18 +8,29 @@ interface SearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
   className?: string;
+  initialValue?: string;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   onSearch, 
   placeholder = "Search products...",
-  className = "w-full max-w-sm mb-6 mx-auto" 
+  className = "w-full max-w-sm mb-6 mx-auto",
+  initialValue = ""
 }) => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialValue);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     onSearch(query);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newQuery = e.target.value;
+    setQuery(newQuery);
+    
+    // Optional: Auto search after a short delay (better UX)
+    // If you want instant search, uncomment this
+    // setTimeout(() => onSearch(newQuery), 300);
   };
 
   return (
@@ -31,7 +42,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         <Input
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={handleChange}
           placeholder={placeholder}
           className="pl-10 pr-4 py-2 w-full border-green-300 focus:border-green-500 focus:ring-green-500 bg-white dark:bg-gray-800 dark:border-green-900 dark:text-gray-100"
         />

@@ -10,6 +10,7 @@ import { Product, ProductCategory, default as ProductDatabase } from '@/models/P
 import { Badge } from '@/components/ui/badge';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { toast } from 'sonner';
+import SearchBar from '@/components/SearchBar';
 
 const CategoryButton = ({ category, active, onClick }: { category: string, active: boolean, onClick: () => void }) => (
   <Button 
@@ -35,10 +36,27 @@ const Index = () => {
   const [categories, setCategories] = useState<string[]>(['All']);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     fetchProducts();
+    
+    // Listen for product updates (from offers management)
+    const handleProductsUpdated = () => {
+      fetchProducts();
+    };
+    
+    window.addEventListener('productsUpdated', handleProductsUpdated);
+    
+    return () => {
+      window.removeEventListener('productsUpdated', handleProductsUpdated);
+    };
   }, []);
+
+  useEffect(() => {
+    filterProducts();
+  }, [selectedCategory, searchQuery, products]);
 
   const fetchProducts = async () => {
     setIsLoading(true);
@@ -50,6 +68,9 @@ const Index = () => {
       // Extract unique categories
       const uniqueCategories = ['All', ...new Set(allProducts.map(p => p.category))];
       setCategories(uniqueCategories);
+      
+      // Initialize filtered products
+      filterProducts(allProducts, selectedCategory, searchQuery);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
@@ -58,22 +79,49 @@ const Index = () => {
     }
   };
 
+  const filterProducts = (
+    productList = products, 
+    category = selectedCategory, 
+    query = searchQuery
+  ) => {
+    let filtered = productList;
+
+    // Filter by category
+    if (category !== 'All') {
+      filtered = filtered.filter(product => product.category === category);
+    }
+
+    // Filter by search query
+    if (query) {
+      const lowercaseQuery = query.toLowerCase();
+      filtered = filtered.filter(product => 
+        product.name.toLowerCase().includes(lowercaseQuery) ||
+        product.description.toLowerCase().includes(lowercaseQuery)
+      );
+    }
+
+    setFilteredProducts(filtered);
+  };
+
   const handleAddToCart = (product: Product) => {
     toast.success(`${product.name} added to cart`);
   };
 
-  const filteredProducts = selectedCategory === 'All' 
-    ? products 
-    : products.filter(product => product.category === selectedCategory);
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
 
-  // Get featured products (first 3 products for each category)
-  const getFeaturedProducts = (category: string) => {
-    if (category === 'All') {
-      return products.slice(0, 6);
-    }
-    return products
-      .filter(product => product.category === category)
-      .slice(0, 6);
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  // Get featured products (first 6 products, prioritizing those with offers)
+  const getFeaturedProducts = () => {
+    const withOffers = filteredProducts.filter(p => p.offerPrice !== undefined);
+    const withoutOffers = filteredProducts.filter(p => p.offerPrice === undefined);
+    
+    // Prioritize products with offers, then add regular products to fill up to 6 spots
+    return [...withOffers, ...withoutOffers].slice(0, 6);
   };
 
   return (
@@ -114,6 +162,11 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Search Bar */}
+        <section className="mb-8">
+          <SearchBar onSearch={handleSearch} className="max-w-md mx-auto" />
+        </section>
+
         {/* Categories Carousel */}
         <section className="mb-8 overflow-hidden">
           <h2 className="text-2xl font-bold text-green-500 mb-4">Categories</h2>
@@ -123,7 +176,7 @@ const Index = () => {
                 key={category} 
                 category={`${categoryIcons[category] || '🔍'} ${category}`}
                 active={selectedCategory === category}
-                onClick={() => setSelectedCategory(category)}
+                onClick={() => handleCategoryChange(category)}
               />
             ))}
           </div>
@@ -142,10 +195,14 @@ const Index = () => {
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
             </div>
+          ) : getFeaturedProducts().length === 0 ? (
+            <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
+              <p className="text-gray-500">No featured products found</p>
+            </div>
           ) : (
             <Carousel className="w-full">
               <CarouselContent>
-                {getFeaturedProducts(selectedCategory).map((product) => (
+                {getFeaturedProducts().map((product) => (
                   <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
                     <div className="p-1">
                       <ProductCard product={product} onAddToCart={handleAddToCart} />
@@ -164,7 +221,8 @@ const Index = () => {
         {/* Products Grid */}
         <section id="products" className="py-8">
           <h2 className="text-2xl font-bold text-green-500 mb-6">
-            {selectedCategory === 'All' ? 'All Products' : selectedCategory}
+            {searchQuery ? `Search Results for "${searchQuery}"` : 
+             selectedCategory === 'All' ? 'All Products' : selectedCategory}
           </h2>
           
           {isLoading ? (
@@ -174,6 +232,15 @@ const Index = () => {
           ) : filteredProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12">
               <p className="text-xl text-gray-500 mb-4">No products found</p>
+              {searchQuery && (
+                <Button 
+                  onClick={() => setSearchQuery('')}
+                  variant="outline"
+                  className="border-green-500 text-green-700"
+                >
+                  Clear Search
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

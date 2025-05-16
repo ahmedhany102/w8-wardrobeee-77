@@ -74,7 +74,7 @@ const AppHeader = () => {
             </div>
           </div>
           
-          {!isAdminPage && <MainNavigation />}
+          {!isAdminPage && <MainNavigation showProtectedRoutes={!!user} />}
         </div>
       </div>
     </header>
