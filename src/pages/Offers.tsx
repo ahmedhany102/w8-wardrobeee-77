@@ -2,82 +2,75 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
-import { Product, default as ProductDatabase } from '@/models/Product';
+import { Product } from '@/models/Product';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
+
+interface Offer {
+  id: string;
+  title: string;
+  description: string;
+  discountPercentage: number;
+  startDate: string;
+  endDate: string;
+  applicableProducts: string[];
+  active: boolean;
+  category?: string;
+}
 
 const Offers = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const { user } = useAuth();
-  const carouselIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const carouselRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    fetchDiscountedProducts();
-    
-    return () => {
-      if (carouselIntervalRef.current) {
-        clearInterval(carouselIntervalRef.current);
-      }
-    };
+    fetchOffersAndProducts();
   }, []);
   
-  useEffect(() => {
-    // Auto-sliding functionality
-    if (products.length > 0) {
-      startAutoSlide();
-    }
-    
-    return () => {
-      if (carouselIntervalRef.current) {
-        clearInterval(carouselIntervalRef.current);
-      }
-    };
-  }, [products]);
-
-  const startAutoSlide = () => {
-    // Clear any existing interval
-    if (carouselIntervalRef.current) {
-      clearInterval(carouselIntervalRef.current);
-    }
-    
-    // Set up an interval to scroll the carousel
-    carouselIntervalRef.current = setInterval(() => {
-      if (carouselRef.current) {
-        const scrollAmount = carouselRef.current.scrollWidth / products.length;
-        carouselRef.current.scrollBy({
-          left: scrollAmount,
-          behavior: 'smooth'
-        });
-        
-        // Reset to beginning if reached the end
-        if (carouselRef.current.scrollLeft + carouselRef.current.clientWidth >= carouselRef.current.scrollWidth - 10) {
-          carouselRef.current.scrollTo({
-            left: 0,
-            behavior: 'smooth'
-          });
-        }
-      }
-    }, 3000); // Scroll every 3 seconds
-  };
-
-  const fetchDiscountedProducts = async () => {
+  const fetchOffersAndProducts = async () => {
     setIsLoading(true);
     try {
-      const productDb = ProductDatabase.getInstance();
-      const allProducts = await productDb.getAllProducts();
+      // Fetch offers
+      const storedOffers = localStorage.getItem('offers');
+      let activeOffers: Offer[] = [];
       
-      // Filter for products with a discount (in a real app, you'd have a discount field)
-      // For demo purposes, we'll consider every third product as "on sale"
-      const discountedProducts = allProducts.filter((_, index) => index % 3 === 0);
-      setProducts(discountedProducts);
+      if (storedOffers) {
+        const parsedOffers = JSON.parse(storedOffers);
+        // Filter only active offers
+        activeOffers = parsedOffers.filter((offer: Offer) => 
+          offer.active && new Date(offer.endDate) >= new Date()
+        );
+        setOffers(activeOffers);
+        
+        // Get unique categories
+        const uniqueCategories = Array.from(
+          new Set(activeOffers.map((offer: Offer) => offer.category || 'Other'))
+        );
+        setCategories(uniqueCategories);
+      }
+      
+      // Fetch products
+      const storedProducts = localStorage.getItem('products');
+      if (storedProducts) {
+        const allProducts = JSON.parse(storedProducts);
+        
+        // Get products that have active offers
+        const productsWithOffers = allProducts.filter((product: Product) => 
+          product.offerPrice !== undefined
+        );
+        
+        setProducts(productsWithOffers);
+      }
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching offers and products:', error);
       toast.error('Failed to load offers');
     } finally {
       setIsLoading(false);
@@ -111,12 +104,36 @@ const Offers = () => {
     
     toast.success(`${product.name} added to cart`);
   };
+  
+  const getProductsForCategory = (category: string) => {
+    if (category === "all") {
+      return products;
+    }
+    
+    // Find offers for this category
+    const categoryOffers = offers.filter(offer => 
+      offer.category === category
+    );
+    
+    // Get product IDs from these offers
+    const productIds = categoryOffers.flatMap(offer => offer.applicableProducts);
+    
+    // Return matching products
+    return products.filter(product => productIds.includes(product.id));
+  };
+  
+  const displayedProducts = getProductsForCategory(selectedCategory);
+  
+  const formatDiscountPercentage = (originalPrice: number, offerPrice?: number) => {
+    if (!offerPrice) return 0;
+    return Math.round(((originalPrice - offerPrice) / originalPrice) * 100);
+  };
 
   return (
     <Layout>
       <div className="container mx-auto px-4 mb-20">
         <div className="mb-8 relative overflow-hidden rounded-lg">
-          <AspectRatio ratio={16/6} className="bg-gradient-to-r from-red-600 to-orange-600">
+          <AspectRatio ratio={16/6} className="bg-gradient-to-r from-orange-600 to-amber-500">
             <div className="absolute inset-0 flex flex-col justify-center items-center text-white p-4">
               <h1 className="text-3xl font-bold mb-2">Hot Deals & Offers!</h1>
               <p className="text-lg text-center max-w-md">Limited time discounts on our best products</p>
@@ -126,7 +143,7 @@ const Offers = () => {
 
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-800"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-orange-600"></div>
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-12">
@@ -134,23 +151,20 @@ const Offers = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Auto-sliding offers section */}
+            {/* Featured offers carousel */}
             <div>
               <div className="flex items-center mb-4">
-                <Badge className="bg-red-500 text-white mr-2">HOT</Badge>
+                <Badge className="bg-orange-500 text-white mr-2">HOT</Badge>
                 <h2 className="text-xl font-bold">Limited Time Offers</h2>
               </div>
               
               <div className="relative">
                 <div className="overflow-x-auto hide-scrollbar pb-6" ref={carouselRef}>
-                  <div className="flex gap-4 w-max">
-                    {products.map((product) => (
+                  <div className="flex gap-4 w-max animate-slide">
+                    {products.slice(0, 8).map((product) => (
                       <div key={product.id} className="min-w-[280px]">
                         <ProductCard 
-                          product={{
-                            ...product,
-                            price: Math.floor(product.price * 0.8) // Simulate 20% off
-                          }} 
+                          product={product}
                           onAddToCart={handleAddToCart} 
                         />
                       </div>
@@ -159,53 +173,58 @@ const Offers = () => {
                 </div>
               </div>
             </div>
-            
-            {/* Second offers section - also auto-sliding */}
-            {products.length > 4 && (
-              <div>
-                <div className="flex items-center mb-4">
-                  <Badge className="bg-amber-500 text-white mr-2">CLEARANCE</Badge>
-                  <h2 className="text-xl font-bold">Clearance Sale</h2>
-                </div>
+
+            {/* Categories tabs */}
+            <div className="mt-10">
+              <h2 className="text-2xl font-bold mb-6">Browse Offers by Category</h2>
+              
+              <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+                <TabsList className="mb-6 overflow-x-auto flex w-full justify-start pb-2 px-1">
+                  <TabsTrigger value="all" className="flex-none">
+                    All Offers
+                  </TabsTrigger>
+                  {categories.map((category) => (
+                    <TabsTrigger key={category} value={category} className="flex-none">
+                      {category}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
                 
-                <Carousel className="w-full">
-                  <CarouselContent className="auto-scroll">
-                    {products.map((product) => (
-                      <CarouselItem key={product.id} className="md:basis-1/2 lg:basis-1/3">
-                        <div className="p-1">
-                          <ProductCard 
-                            product={{
-                              ...product,
-                              price: Math.floor(product.price * 0.7) // Simulate 30% off
-                            }} 
-                            onAddToCart={handleAddToCart} 
-                          />
-                        </div>
-                      </CarouselItem>
+                <TabsContent value={selectedCategory} className="pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {displayedProducts.map((product) => (
+                      <ProductCard 
+                        key={product.id} 
+                        product={product} 
+                        onAddToCart={handleAddToCart}
+                      />
                     ))}
-                  </CarouselContent>
-                </Carousel>
-              </div>
-            )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
         )}
         
-        {/* Add a section that shows all offers */}
-        <div className="mt-12 pt-8 border-t border-gray-800">
-          <h2 className="text-2xl font-bold mb-6">All Current Offers</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={{
-                  ...product,
-                  price: Math.floor(product.price * 0.75) // Simulate 25% off
-                }} 
-                onAddToCart={handleAddToCart} 
-              />
-            ))}
+        {/* All offers section */}
+        {products.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <h2 className="text-2xl font-bold mb-6">All Current Offers</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <div key={product.id} className="group relative">
+                  <ProductCard 
+                    product={product} 
+                    onAddToCart={handleAddToCart} 
+                  />
+                  <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                    {formatDiscountPercentage(product.price, product.offerPrice)}% OFF
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Layout>
   );

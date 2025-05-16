@@ -1,105 +1,68 @@
 
-/* Auto-scrolling carousel styles */
-.auto-scroll {
-  animation: autoScroll 15s linear infinite;
-}
-
-@keyframes autoScroll {
+@keyframes slide {
   0% {
     transform: translateX(0);
   }
   100% {
-    transform: translateX(calc(-100% + 100vw));
+    transform: translateX(calc(-280px * 4));
   }
 }
 
-/* Fix for white hover issues - global fixes */
-button:hover, 
-.hover\:bg-white:hover,
-.hover\:bg-gray-100:hover {
-  background-color: transparent !important;
+.animate-slide {
+  animation: slide 30s linear infinite;
 }
 
-/* Fix for hover issues in admin panel and all components */
-.bg-white, 
-.hover\:bg-white:hover, 
-.hover\:bg-gray-100:hover,
-[type="submit"]:hover,
-[type="button"]:hover,
-.btn:hover,
-button.bg-white:hover,
-.bg-white button:hover,
-.bg-gray-50:hover,
-.bg-gray-100:hover {
-  background-color: rgba(22, 101, 52, 0.05) !important;
-  color: inherit !important;
-}
-
-/* For buttons that need a visible hover state */
-.btn-primary:hover, 
-button.btn-action:hover,
-.interactive-button:hover,
-.bg-green-800:hover {
-  background-color: rgba(22, 101, 52, 0.9) !important;
-  color: white !important;
-}
-
-/* Make table cells and admin panel elements readable */
-.TableCell,
-.TableRow,
-td,
-th,
-.admin-data * {
-  background-color: transparent !important;
-  color: inherit !important;
-}
-
-/* Fix for table rows in admin panel */
-.admin-table tr:hover td,
-table tr:hover td {
-  background-color: rgba(22, 101, 52, 0.05) !important;
-  color: inherit !important;
-}
-
-/* Hide scrollbar but allow scrolling */
-.hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+.animate-slide:hover {
+  animation-play-state: paused;
 }
 
 .hide-scrollbar::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
 }
 
-/* Additional styling for offers page */
-.mb-20 {
-  margin-bottom: 5rem !important;
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Fix the space for bottom navigation to ensure footer is visible */
-.content-with-bottom-nav {
-  padding-bottom: 4rem;
-}
-
-/* Speed up auto-scroll */
-.auto-scroll {
-  animation-duration: 15s;  /* Faster scrolling */
-}
-
-/* Improve product image size on mobile */
-@media (max-width: 640px) {
-  .product-image {
-    max-height: 120px !important;
-    object-fit: contain !important;
-    width: auto !important;
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  
-  .product-card {
-    max-width: 160px !important;
-    margin: 0 auto !important;
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
-  
-  .product-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
-  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+/* Theme colors overrides */
+:root {
+  --primary: 24 70% 50%;
+  --primary-foreground: 0 0% 100%;
+  --background: 0 0% 100%;
+  --card: 0 0% 100%;
+}
+
+/* Tab styling for offers */
+.tabs-list-offers {
+  background: linear-gradient(to right, #f97316, #f59e0b);
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+.tab-trigger-offers {
+  border-radius: 9999px;
+  color: white;
+  padding: 6px 12px;
+  transition: all 0.2s ease;
+}
+
+.tab-trigger-offers[data-state="active"] {
+  background-color: white;
+  color: #f97316;
 }

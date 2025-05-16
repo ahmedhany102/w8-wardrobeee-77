@@ -1,92 +1,61 @@
 
 import React from 'react';
-import { Card, CardContent, CardFooter } from './ui/card';
-import { Button } from './ui/button';
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Product } from '@/models/Product';
-import { useNavigate } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
-import { toast } from 'sonner';
-import CartDatabase from '@/models/CartDatabase';
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart?: (product: Product) => void;
+  onAddToCart: (product: Product) => void;
+  className?: string;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
-  const navigate = useNavigate();
-  
-  const handleAddToCart = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card click event
-    
-    try {
-      const cartDb = CartDatabase.getInstance();
-      const success = await cartDb.addToCart(product, 1);
-      
-      if (success) {
-        toast.success(`${product.name} added to cart!`);
-        if (onAddToCart) onAddToCart(product);
-      }
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      toast.error("Failed to add item to cart");
-    }
-  };
-  
-  const handleClick = () => {
-    navigate(`/product/${product.id}`);
-  };
-  
-  // Calculate discount percentage if the product has an offerPrice
-  const hasDiscount = product.offerPrice !== undefined && product.offerPrice < product.price;
-  const discountPercentage = hasDiscount 
-    ? Math.round(((product.price - (product.offerPrice || 0)) / product.price) * 100) 
-    : 0;
-
+const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps) => {
   return (
-    <Card 
-      className="product-card h-full cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg border-green-100 hover:border-green-300 max-w-xs mx-auto"
-      onClick={handleClick}
-    >
-      <div className="aspect-square relative overflow-hidden bg-gray-50">
-        {hasDiscount && (
-          <div className="absolute top-0 left-0 bg-red-500 text-white text-xs font-bold px-2 py-1 z-10">
-            {discountPercentage}% OFF
-          </div>
-        )}
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="w-full h-full object-contain p-2"
-          onError={(e) => {
-            e.currentTarget.src = 'https://via.placeholder.com/200?text=Product Image';
-          }}
-        />
-      </div>
-      
+    <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className}`}>
+      <CardHeader className="p-0">
+        <div className="relative">
+          <AspectRatio ratio={4/3} className="bg-gray-100">
+            <img 
+              src={product.image || '/placeholder.svg'} 
+              alt={product.name}
+              className="object-cover w-full h-full"
+              loading="lazy"
+              onError={(e) => {
+                // If the image fails to load, set a placeholder
+                (e.target as HTMLImageElement).src = '/placeholder.svg';
+              }}
+            />
+          </AspectRatio>
+          
+          {product.offerPrice && (
+            <div className="absolute top-0 right-0 bg-red-500 text-white px-3 py-1 rounded-bl-lg font-medium text-sm">
+              Sale
+            </div>
+          )}
+        </div>
+      </CardHeader>
       <CardContent className="p-4">
-        <h3 className="font-medium text-base line-clamp-1">{product.name}</h3>
-        <p className="text-gray-500 text-xs line-clamp-2 h-8 mt-1">{product.description}</p>
+        <h3 className="font-semibold truncate">{product.name}</h3>
+        <p className="text-gray-500 text-sm truncate">{product.category}</p>
         
-        <div className="mt-2 flex items-center">
-          {hasDiscount ? (
-            <>
-              <span className="font-semibold text-red-600">{product.offerPrice} EGP</span>
-              <span className="text-gray-400 text-xs line-through ml-2">{product.price} EGP</span>
-            </>
+        <div className="mt-2">
+          {product.offerPrice ? (
+            <div className="flex items-center">
+              <span className="text-lg font-bold text-orange-600">{product.offerPrice} EGP</span>
+              <span className="ml-2 text-sm text-gray-400 line-through">{product.price} EGP</span>
+            </div>
           ) : (
-            <span className="font-semibold">{product.price} EGP</span>
+            <span className="text-lg font-bold">{product.price} EGP</span>
           )}
         </div>
       </CardContent>
-      
-      <CardFooter className="p-3 pt-0">
+      <CardFooter className="p-4 pt-0">
         <Button 
-          variant="default" 
-          className="w-full bg-green-800 hover:bg-green-900 text-xs h-8"
-          onClick={handleAddToCart}
+          onClick={() => onAddToCart(product)}
+          className="w-full bg-orange-600 hover:bg-orange-700 transition-colors"
         >
-          <ShoppingCart className="mr-1 h-3.5 w-3.5" />
           Add to Cart
         </Button>
       </CardFooter>

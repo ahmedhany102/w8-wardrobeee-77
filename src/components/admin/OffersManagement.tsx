@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Product, ProductDatabase } from "@/models/Product";
+import { Product } from "@/models/Product";
 
 interface Offer {
   id: string;
@@ -19,6 +19,7 @@ interface Offer {
   endDate: string;
   applicableProducts: string[]; // Product IDs
   active: boolean;
+  category?: string; // Added category field
 }
 
 const OffersManagement = () => {
@@ -27,6 +28,7 @@ const OffersManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
+  const [categories] = useState(['Food', 'Technology', 'Clothes', 'Home', 'Other']);
   
   // New offer form state
   const [newOffer, setNewOffer] = useState<Omit<Offer, 'id'>>({
@@ -37,6 +39,7 @@ const OffersManagement = () => {
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
     applicableProducts: [],
     active: true,
+    category: "Other",
   });
   
   useEffect(() => {
@@ -63,9 +66,11 @@ const OffersManagement = () => {
   
   const loadProducts = async () => {
     try {
-      const productDb = ProductDatabase.getInstance();
-      const allProducts = await productDb.getAllProducts();
-      setProducts(allProducts);
+      const storedProducts = localStorage.getItem('products');
+      if (storedProducts) {
+        const parsedProducts = JSON.parse(storedProducts);
+        setProducts(parsedProducts);
+      }
     } catch (error) {
       console.error("Error loading products:", error);
       toast.error("Failed to load products");
@@ -82,6 +87,7 @@ const OffersManagement = () => {
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       applicableProducts: [],
       active: true,
+      category: "Other",
     });
     setIsDialogOpen(true);
   };
@@ -96,6 +102,7 @@ const OffersManagement = () => {
       endDate: offer.endDate,
       applicableProducts: [...offer.applicableProducts],
       active: offer.active,
+      category: offer.category || "Other",
     });
     setIsDialogOpen(true);
   };
@@ -112,7 +119,7 @@ const OffersManagement = () => {
   const handleSelectChange = (name: string, value: string) => {
     setNewOffer(prev => ({
       ...prev,
-      [name]: name === 'active' ? (value === "active") : value
+      [name]: name === 'active' ? value === "active" : value
     }));
   };
   
@@ -180,17 +187,24 @@ const OffersManagement = () => {
   
   const applyDiscountToProducts = async (offer: Omit<Offer, 'id'>) => {
     try {
-      const productDb = ProductDatabase.getInstance();
-      const productsToUpdate = products.filter(p => 
+      const storedProducts = localStorage.getItem('products');
+      if (!storedProducts) return;
+
+      const allProducts = JSON.parse(storedProducts);
+      const productsToUpdate = allProducts.filter((p: Product) => 
         offer.applicableProducts.includes(p.id)
       );
       
-      for (const product of productsToUpdate) {
-        const discountedPrice = Math.round(product.price * (1 - offer.discountPercentage / 100));
-        await productDb.updateProduct(product.id, {
-          offerPrice: discountedPrice
-        });
-      }
+      const updatedProducts = allProducts.map((product: Product) => {
+        if (offer.applicableProducts.includes(product.id)) {
+          const discountedPrice = Math.round(product.price * (1 - offer.discountPercentage / 100));
+          return {
+            ...product,
+            offerPrice: discountedPrice
+          };
+        }
+        return product;
+      });
       
       // Remove discount from products no longer in offer
       if (editingOffer) {
@@ -199,14 +213,18 @@ const OffersManagement = () => {
           !offer.applicableProducts.includes(p.id)
         );
         
-        for (const product of productsToRemoveDiscount) {
-          await productDb.updateProduct(product.id, {
-            offerPrice: undefined
-          });
-        }
+        productsToRemoveDiscount.forEach(product => {
+          const index = updatedProducts.findIndex((p: Product) => p.id === product.id);
+          if (index !== -1) {
+            updatedProducts[index] = {
+              ...updatedProducts[index],
+              offerPrice: undefined
+            };
+          }
+        });
       }
       
-      // Reload products to reflect changes
+      localStorage.setItem('products', JSON.stringify(updatedProducts));
       await loadProducts();
     } catch (error) {
       console.error("Error applying discount to products:", error);
@@ -227,16 +245,22 @@ const OffersManagement = () => {
       // Update product prices based on offer status
       if (!updatedOffer.active) {
         // Deactivated offer - remove discounts
-        const productDb = ProductDatabase.getInstance();
-        const productsToUpdate = products.filter(p => 
-          offer.applicableProducts.includes(p.id)
-        );
+        const storedProducts = localStorage.getItem('products');
+        if (!storedProducts) return;
         
-        for (const product of productsToUpdate) {
-          await productDb.updateProduct(product.id, {
-            offerPrice: undefined
-          });
-        }
+        const allProducts = JSON.parse(storedProducts);
+        const updatedProducts = allProducts.map((product: Product) => {
+          if (offer.applicableProducts.includes(product.id)) {
+            return {
+              ...product,
+              offerPrice: undefined
+            };
+          }
+          return product;
+        });
+        
+        localStorage.setItem('products', JSON.stringify(updatedProducts));
+        await loadProducts();
       } else {
         // Reactivated offer - apply discounts again
         await applyDiscountToProducts(updatedOffer);
@@ -257,16 +281,22 @@ const OffersManagement = () => {
       setOffers(updatedOffers);
       
       // Remove discounts from products
-      const productDb = ProductDatabase.getInstance();
-      const productsToUpdate = products.filter(p => 
-        offer.applicableProducts.includes(p.id)
-      );
+      const storedProducts = localStorage.getItem('products');
+      if (!storedProducts) return;
       
-      for (const product of productsToUpdate) {
-        await productDb.updateProduct(product.id, {
-          offerPrice: undefined
-        });
-      }
+      const allProducts = JSON.parse(storedProducts);
+      const updatedProducts = allProducts.map((product: Product) => {
+        if (offer.applicableProducts.includes(product.id)) {
+          return {
+            ...product,
+            offerPrice: undefined
+          };
+        }
+        return product;
+      });
+      
+      localStorage.setItem('products', JSON.stringify(updatedProducts));
+      await loadProducts();
       
       toast.success("Offer deleted successfully");
     } catch (error) {
@@ -305,6 +335,7 @@ const OffersManagement = () => {
                 <TableHeader className="bg-green-100">
                   <TableRow>
                     <TableHead>Offer Title</TableHead>
+                    <TableHead>Category</TableHead>
                     <TableHead>Discount</TableHead>
                     <TableHead>Period</TableHead>
                     <TableHead>Products</TableHead>
@@ -320,6 +351,9 @@ const OffersManagement = () => {
                           <p className="font-medium">{offer.title}</p>
                           <p className="text-xs text-gray-500 truncate max-w-[200px]">{offer.description}</p>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{offer.category || 'Other'}</span>
                       </TableCell>
                       <TableCell>
                         <span className="font-semibold text-red-600">{offer.discountPercentage}% OFF</span>
@@ -421,6 +455,23 @@ const OffersManagement = () => {
                 onChange={handleInputChange}
                 placeholder="Special discount for summer products"
               />
+            </div>
+
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select 
+                value={newOffer.category} 
+                onValueChange={(value) => handleSelectChange('category', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
