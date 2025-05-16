@@ -7,8 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Product } from "@/models/Product";
-import ProductDatabase from "@/models/ProductDatabase";
+import { Product, ProductDatabase } from "@/models/Product";
 
 interface Offer {
   id: string;
@@ -179,15 +178,14 @@ const OffersManagement = () => {
   
   const applyDiscountToProducts = async (offer: Omit<Offer, 'id'>) => {
     try {
-      const productDb = new ProductDatabase();
+      const productDb = ProductDatabase.getInstance();
       const productsToUpdate = products.filter(p => 
         offer.applicableProducts.includes(p.id)
       );
       
       for (const product of productsToUpdate) {
         const discountedPrice = Math.round(product.price * (1 - offer.discountPercentage / 100));
-        await productDb.updateProduct({
-          ...product,
+        await productDb.updateProduct(product.id, {
           offerPrice: discountedPrice
         });
       }
@@ -200,8 +198,7 @@ const OffersManagement = () => {
         );
         
         for (const product of productsToRemoveDiscount) {
-          await productDb.updateProduct({
-            ...product,
+          await productDb.updateProduct(product.id, {
             offerPrice: undefined
           });
         }
@@ -228,14 +225,13 @@ const OffersManagement = () => {
       // Update product prices based on offer status
       if (!updatedOffer.active) {
         // Deactivated offer - remove discounts
-        const productDb = new ProductDatabase();
+        const productDb = ProductDatabase.getInstance();
         const productsToUpdate = products.filter(p => 
           offer.applicableProducts.includes(p.id)
         );
         
         for (const product of productsToUpdate) {
-          await productDb.updateProduct({
-            ...product,
+          await productDb.updateProduct(product.id, {
             offerPrice: undefined
           });
         }
@@ -259,14 +255,13 @@ const OffersManagement = () => {
       setOffers(updatedOffers);
       
       // Remove discounts from products
-      const productDb = new ProductDatabase();
+      const productDb = ProductDatabase.getInstance();
       const productsToUpdate = products.filter(p => 
         offer.applicableProducts.includes(p.id)
       );
       
       for (const product of productsToUpdate) {
-        await productDb.updateProduct({
-          ...product,
+        await productDb.updateProduct(product.id, {
           offerPrice: undefined
         });
       }
