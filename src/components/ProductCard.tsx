@@ -48,7 +48,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
       className="product-card h-full cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg border-green-100 hover:border-green-300 max-w-xs mx-auto"
       onClick={handleClick}
     >
-      <div className="relative h-44 overflow-hidden bg-gray-50 flex items-center justify-center p-3">
+      <div className="aspect-square relative overflow-hidden bg-gray-50">
         {hasDiscount && (
           <div className="absolute top-0 left-0 bg-red-500 text-white text-xs font-bold px-2 py-1 z-10">
             {discountPercentage}% OFF
@@ -57,7 +57,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
         <img
           src={product.imageUrl}
           alt={product.name}
-          className="w-full h-full object-contain"
+          className="w-full h-full object-contain p-2"
           onError={(e) => {
             e.currentTarget.src = 'https://via.placeholder.com/200?text=Product Image';
           }}

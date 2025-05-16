@@ -5,9 +5,18 @@ import { ShoppingCart, Package, User, Heart, Home, Tag, Search } from 'lucide-re
 
 interface MainNavigationProps {
   showProtectedRoutes?: boolean;
+  position?: 'top' | 'bottom';
 }
 
-const MainNavigation: React.FC<MainNavigationProps> = ({ showProtectedRoutes = true }) => {
+const MainNavigation: React.FC<MainNavigationProps> = ({ 
+  showProtectedRoutes = true,
+  position = 'bottom' 
+}) => {
+  // Don't render if position is top
+  if (position === 'top') {
+    return null;
+  }
+
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) => {
     return `flex flex-col items-center text-xs py-1 px-3 rounded-md transition-colors ${
       isActive

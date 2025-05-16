@@ -2,7 +2,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import MainNavigation from './MainNavigation';
 import { Button } from './ui/button';
 import { LogOut, Shield } from 'lucide-react';
 import { toast } from 'sonner';
@@ -73,8 +72,6 @@ const AppHeader = () => {
               )}
             </div>
           </div>
-          
-          {!isAdminPage && <MainNavigation showProtectedRoutes={!!user} />}
         </div>
       </div>
     </header>

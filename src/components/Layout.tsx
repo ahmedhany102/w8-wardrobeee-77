@@ -29,14 +29,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       
       {/* Only show bottom navigation for logged in users and not on admin pages */}
       {user && !isAdminPage && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-green-900 to-black z-40 border-t border-green-800 py-2">
+        <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-green-900 to-black z-40 border-t border-green-800 py-1">
           <div className="container mx-auto flex justify-around items-center">
-            <NavItem to="/" icon={<Home size={20} />} label="Home" />
-            {!isAdmin && <NavItem to="/cart" icon={<ShoppingCart size={20} />} label="Cart" />}
-            {!isAdmin && <NavItem to="/orders" icon={<Package2 size={20} />} label="Orders" />}
-            {!isAdmin && <NavItem to="/offers" icon={<Tag size={20} />} label="Offers" />}
-            {!isAdmin && <NavItem to="/tracking" icon={<Truck size={20} />} label="Track" />}
-            <NavItem to="/profile" icon={<User size={20} />} label="Profile" />
+            <NavItem to="/" icon={<Home size={18} />} label="Home" />
+            {!isAdmin && <NavItem to="/cart" icon={<ShoppingCart size={18} />} label="Cart" />}
+            {!isAdmin && <NavItem to="/orders" icon={<Package2 size={18} />} label="Orders" />}
+            {!isAdmin && <NavItem to="/offers" icon={<Tag size={18} />} label="Offers" />}
+            {!isAdmin && <NavItem to="/tracking" icon={<Truck size={18} />} label="Track" />}
+            <NavItem to="/profile" icon={<User size={18} />} label="Profile" />
           </div>
         </nav>
       )}
@@ -59,14 +59,14 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon, label }) => {
   return (
     <Link 
       to={to}
-      className={`flex flex-col items-center justify-center px-3 py-1 rounded-lg transition-colors ${
+      className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-colors ${
         isActive 
           ? 'text-green-300' 
           : 'text-gray-300 hover:text-green-100'
       }`}
     >
       {icon}
-      <span className="text-xs mt-1">{label}</span>
+      <span className="text-xs mt-0.5">{label}</span>
     </Link>
   );
 };

@@ -183,8 +183,8 @@ const OrdersPanel = () => {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900">
           <DialogHeader>
             <DialogTitle className="text-xl text-green-800">Order Details</DialogTitle>
-            <DialogDescription>
-              Order #{selectedOrder?.orderNumber} - {new Date(selectedOrder?.createdAt || "").toLocaleDateString()}
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
+              Order #{selectedOrder?.orderNumber} - {selectedOrder ? new Date(selectedOrder.createdAt).toLocaleDateString() : ''}
             </DialogDescription>
           </DialogHeader>
           
@@ -257,7 +257,7 @@ const OrdersPanel = () => {
                   <div className="space-y-2">
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Payment Method</p>
-                      <p className="text-gray-900 dark:text-gray-100">{selectedOrder.paymentInfo?.method}</p>
+                      <p className="text-gray-900 dark:text-gray-100">{selectedOrder.paymentInfo?.method || 'N/A'}</p>
                     </div>
                     {selectedOrder.paymentInfo?.cardLast4 && (
                       <div>

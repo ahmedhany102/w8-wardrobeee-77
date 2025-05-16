@@ -1,287 +1,282 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from 'sonner';
-import { Product, ProductCategory, default as ProductDatabase } from '@/models/Product';
-import { Badge } from '@/components/ui/badge';
-import { Trash, Edit, Plus } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Product } from "@/models/Product";
+import ProductDatabase from "@/models/ProductDatabase";
 
 interface Offer {
   id: string;
-  name: string;
+  title: string;
   description: string;
   discountPercentage: number;
-  products: string[]; // product IDs
-  active: boolean;
   startDate: string;
   endDate: string;
-  createdAt: string;
+  applicableProducts: string[]; // Product IDs
+  active: boolean;
 }
 
 const OffersManagement = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [products, setProducts] = useState<Product[]>([]);
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
   
-  const [formData, setFormData] = useState<Omit<Offer, 'id' | 'createdAt'>>({
-    name: '',
-    description: '',
+  // New offer form state
+  const [newOffer, setNewOffer] = useState<Omit<Offer, 'id'>>({
+    title: "",
+    description: "",
     discountPercentage: 10,
-    products: [],
-    active: true,
     startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+    applicableProducts: [],
+    active: true,
   });
-
+  
   useEffect(() => {
-    fetchData();
+    loadOffers();
+    loadProducts();
   }, []);
-
-  const fetchData = async () => {
+  
+  const loadOffers = () => {
     setIsLoading(true);
-    try {
-      // 1. Fetch products
-      const productDb = ProductDatabase.getInstance();
-      const allProducts = await productDb.getAllProducts();
-      setProducts(allProducts);
-      
-      // 2. Fetch offers
-      const savedOffers = localStorage.getItem('offers');
-      if (savedOffers) {
-        setOffers(JSON.parse(savedOffers));
-      } else {
+    const storedOffers = localStorage.getItem('offers');
+    if (storedOffers) {
+      try {
+        const parsedOffers = JSON.parse(storedOffers);
+        setOffers(parsedOffers);
+      } catch (error) {
+        console.error("Error parsing offers:", error);
         setOffers([]);
       }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
-    } finally {
-      setIsLoading(false);
+    } else {
+      setOffers([]);
     }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    
-    let processedValue: any = value;
-    if (name === 'discountPercentage') {
-      processedValue = Number(value);
-    } else if (name === 'active') {
-      processedValue = value === 'true';
-    }
-    
-    setFormData({
-      ...formData,
-      [name]: processedValue
-    });
-  };
-
-  const handleProductSelection = (productId: string) => {
-    setFormData(prev => {
-      const isSelected = prev.products.includes(productId);
-      
-      if (isSelected) {
-        // Remove product
-        return {
-          ...prev,
-          products: prev.products.filter(id => id !== productId)
-        };
-      } else {
-        // Add product
-        return {
-          ...prev,
-          products: [...prev.products, productId]
-        };
-      }
-    });
-  };
-
-  const handleAddOffer = () => {
-    // Validate form
-    if (!formData.name.trim() || formData.products.length === 0) {
-      toast.error('Please fill in all required fields and select at least one product.');
-      return;
-    }
-    
-    // Create new offer
-    const newOffer: Offer = {
-      ...formData,
-      id: `offer-${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
-    
-    // Add to state and localStorage
-    const updatedOffers = [...offers, newOffer];
-    setOffers(updatedOffers);
-    localStorage.setItem('offers', JSON.stringify(updatedOffers));
-    
-    // Apply discounts to products
-    applyDiscountToProducts(newOffer);
-    
-    // Close dialog and show success message
-    setIsAddDialogOpen(false);
-    resetForm();
-    toast.success('Offer added successfully!');
-  };
-
-  const handleUpdateOffer = () => {
-    if (!editingOffer) return;
-    
-    // Validate form
-    if (!formData.name.trim() || formData.products.length === 0) {
-      toast.error('Please fill in all required fields and select at least one product.');
-      return;
-    }
-    
-    // Update offer
-    const updatedOffer: Offer = {
-      ...formData,
-      id: editingOffer.id,
-      createdAt: editingOffer.createdAt
-    };
-    
-    // Update state and localStorage
-    const updatedOffers = offers.map(offer => 
-      offer.id === updatedOffer.id ? updatedOffer : offer
-    );
-    
-    setOffers(updatedOffers);
-    localStorage.setItem('offers', JSON.stringify(updatedOffers));
-    
-    // Apply updated discounts to products
-    applyDiscountToProducts(updatedOffer);
-    
-    // Close dialog and show success message
-    setIsEditDialogOpen(false);
-    setEditingOffer(null);
-    resetForm();
-    toast.success('Offer updated successfully!');
-  };
-
-  const handleDeleteOffer = (offerId: string) => {
-    // Get the offer being deleted
-    const offerToDelete = offers.find(o => o.id === offerId);
-    
-    if (!offerToDelete) return;
-    
-    // Remove discounts from associated products
-    removeDiscountFromProducts(offerToDelete);
-    
-    // Remove from offers list
-    const updatedOffers = offers.filter(offer => offer.id !== offerId);
-    setOffers(updatedOffers);
-    localStorage.setItem('offers', JSON.stringify(updatedOffers));
-    
-    toast.success('Offer deleted successfully!');
-  };
-
-  const applyDiscountToProducts = (offer: Offer) => {
-    const productDb = ProductDatabase.getInstance();
-    const discountedProducts: Product[] = [];
-    
-    // Get all products
-    productDb.getAllProducts().then(allProducts => {
-      // Find products that are part of this offer
-      offer.products.forEach(productId => {
-        const product = allProducts.find(p => p.id === productId);
-        if (product) {
-          const discountAmount = (product.price * offer.discountPercentage) / 100;
-          const offerPrice = product.price - discountAmount;
-          
-          // Update product with offer price
-          const updatedProduct = {
-            ...product,
-            offerPrice: Math.round(offerPrice * 100) / 100
-          };
-          
-          discountedProducts.push(updatedProduct);
-        }
-      });
-      
-      // Update products in database
-      if (discountedProducts.length > 0) {
-        productDb.updateProducts(discountedProducts).then(() => {
-          console.log(`Applied discounts to ${discountedProducts.length} products`);
-          
-          // Force refresh of product data in UI
-          window.dispatchEvent(new CustomEvent('productsUpdated'));
-        });
-      }
-    });
-  };
-
-  const removeDiscountFromProducts = (offer: Offer) => {
-    const productDb = ProductDatabase.getInstance();
-    
-    // Get all products
-    productDb.getAllProducts().then(allProducts => {
-      const productsToUpdate: Product[] = [];
-      
-      // Find products that were part of this offer and remove the discount
-      offer.products.forEach(productId => {
-        const product = allProducts.find(p => p.id === productId);
-        if (product && product.offerPrice !== undefined) {
-          // Create updated product without offer price
-          const { offerPrice, ...updatedProduct } = product;
-          productsToUpdate.push(updatedProduct as Product);
-        }
-      });
-      
-      // Update products in database
-      if (productsToUpdate.length > 0) {
-        productDb.updateProducts(productsToUpdate).then(() => {
-          console.log(`Removed discounts from ${productsToUpdate.length} products`);
-          
-          // Force refresh of product data in UI
-          window.dispatchEvent(new CustomEvent('productsUpdated'));
-        });
-      }
-    });
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      discountPercentage: 10,
-      products: [],
-      active: true,
-      startDate: new Date().toISOString().split('T')[0],
-      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    });
-  };
-
-  const handleEditClick = (offer: Offer) => {
-    setEditingOffer(offer);
-    setFormData({
-      name: offer.name,
-      description: offer.description,
-      discountPercentage: offer.discountPercentage,
-      products: [...offer.products],
-      active: offer.active,
-      startDate: offer.startDate,
-      endDate: offer.endDate,
-    });
-    setIsEditDialogOpen(true);
-  };
-
-  const getProductName = (productId: string): string => {
-    const product = products.find(p => p.id === productId);
-    return product ? product.name : 'Unknown Product';
+    setIsLoading(false);
   };
   
-  const getProductsByCategory = (category: string) => {
-    return products.filter(p => p.category === category);
+  const loadProducts = async () => {
+    try {
+      const productDb = new ProductDatabase();
+      const allProducts = await productDb.getAllProducts();
+      setProducts(allProducts);
+    } catch (error) {
+      console.error("Error loading products:", error);
+      toast.error("Failed to load products");
+    }
+  };
+  
+  const handleCreateOffer = () => {
+    setEditingOffer(null);
+    setNewOffer({
+      title: "",
+      description: "",
+      discountPercentage: 10,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      applicableProducts: [],
+      active: true,
+    });
+    setIsDialogOpen(true);
+  };
+  
+  const handleEditOffer = (offer: Offer) => {
+    setEditingOffer(offer);
+    setNewOffer({
+      title: offer.title,
+      description: offer.description,
+      discountPercentage: offer.discountPercentage,
+      startDate: offer.startDate,
+      endDate: offer.endDate,
+      applicableProducts: [...offer.applicableProducts],
+      active: offer.active,
+    });
+    setIsDialogOpen(true);
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewOffer(prev => ({
+      ...prev,
+      [name]: name === 'discountPercentage' ? Number(value) : value
+    }));
+  };
+  
+  const handleSelectChange = (name: string, value: string) => {
+    setNewOffer(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleProductSelectionChange = (productId: string, checked: boolean) => {
+    setNewOffer(prev => ({
+      ...prev,
+      applicableProducts: checked 
+        ? [...prev.applicableProducts, productId]
+        : prev.applicableProducts.filter(id => id !== productId)
+    }));
+  };
+  
+  const handleSubmit = async () => {
+    try {
+      // Validate form
+      if (!newOffer.title || !newOffer.description) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+      
+      if (newOffer.discountPercentage <= 0 || newOffer.discountPercentage > 100) {
+        toast.error("Discount percentage must be between 1 and 100");
+        return;
+      }
+      
+      if (new Date(newOffer.endDate) <= new Date(newOffer.startDate)) {
+        toast.error("End date must be after start date");
+        return;
+      }
+      
+      if (newOffer.applicableProducts.length === 0) {
+        toast.error("Please select at least one product");
+        return;
+      }
+
+      let updatedOffers = [];
+      
+      if (editingOffer) {
+        // Update existing offer
+        updatedOffers = offers.map(offer => 
+          offer.id === editingOffer.id ? { ...newOffer, id: editingOffer.id } : offer
+        );
+        toast.success("Offer updated successfully");
+      } else {
+        // Create new offer
+        const newId = `offer-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const offerToAdd = { ...newOffer, id: newId };
+        updatedOffers = [...offers, offerToAdd];
+        toast.success("Offer created successfully");
+      }
+      
+      // Save offers to localStorage
+      localStorage.setItem('offers', JSON.stringify(updatedOffers));
+      setOffers(updatedOffers);
+      
+      // Apply discount to products
+      await applyDiscountToProducts(newOffer);
+      
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error saving offer:", error);
+      toast.error("Failed to save offer");
+    }
+  };
+  
+  const applyDiscountToProducts = async (offer: Omit<Offer, 'id'>) => {
+    try {
+      const productDb = new ProductDatabase();
+      const productsToUpdate = products.filter(p => 
+        offer.applicableProducts.includes(p.id)
+      );
+      
+      for (const product of productsToUpdate) {
+        const discountedPrice = Math.round(product.price * (1 - offer.discountPercentage / 100));
+        await productDb.updateProduct({
+          ...product,
+          offerPrice: discountedPrice
+        });
+      }
+      
+      // Remove discount from products no longer in offer
+      if (editingOffer) {
+        const productsToRemoveDiscount = products.filter(p => 
+          editingOffer.applicableProducts.includes(p.id) && 
+          !offer.applicableProducts.includes(p.id)
+        );
+        
+        for (const product of productsToRemoveDiscount) {
+          await productDb.updateProduct({
+            ...product,
+            offerPrice: undefined
+          });
+        }
+      }
+      
+      // Reload products to reflect changes
+      await loadProducts();
+    } catch (error) {
+      console.error("Error applying discount to products:", error);
+      toast.error("Failed to apply discount to products");
+    }
+  };
+  
+  const handleToggleOfferStatus = async (offer: Offer) => {
+    try {
+      const updatedOffer = { ...offer, active: !offer.active };
+      const updatedOffers = offers.map(o => 
+        o.id === offer.id ? updatedOffer : o
+      );
+      
+      localStorage.setItem('offers', JSON.stringify(updatedOffers));
+      setOffers(updatedOffers);
+      
+      // Update product prices based on offer status
+      if (!updatedOffer.active) {
+        // Deactivated offer - remove discounts
+        const productDb = new ProductDatabase();
+        const productsToUpdate = products.filter(p => 
+          offer.applicableProducts.includes(p.id)
+        );
+        
+        for (const product of productsToUpdate) {
+          await productDb.updateProduct({
+            ...product,
+            offerPrice: undefined
+          });
+        }
+      } else {
+        // Reactivated offer - apply discounts again
+        await applyDiscountToProducts(updatedOffer);
+      }
+      
+      toast.success(`Offer ${updatedOffer.active ? 'activated' : 'deactivated'} successfully`);
+    } catch (error) {
+      console.error("Error toggling offer status:", error);
+      toast.error("Failed to update offer status");
+    }
+  };
+  
+  const handleDeleteOffer = async (offer: Offer) => {
+    try {
+      // Remove offer
+      const updatedOffers = offers.filter(o => o.id !== offer.id);
+      localStorage.setItem('offers', JSON.stringify(updatedOffers));
+      setOffers(updatedOffers);
+      
+      // Remove discounts from products
+      const productDb = new ProductDatabase();
+      const productsToUpdate = products.filter(p => 
+        offer.applicableProducts.includes(p.id)
+      );
+      
+      for (const product of productsToUpdate) {
+        await productDb.updateProduct({
+          ...product,
+          offerPrice: undefined
+        });
+      }
+      
+      toast.success("Offer deleted successfully");
+    } catch (error) {
+      console.error("Error deleting offer:", error);
+      toast.error("Failed to delete offer");
+    }
   };
 
   return (
@@ -289,14 +284,13 @@ const OffersManagement = () => {
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-green-800">Offers Management</h2>
         <Button 
-          onClick={() => setIsAddDialogOpen(true)}
+          onClick={handleCreateOffer} 
           className="bg-green-700 hover:bg-green-800 text-white"
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add New Offer
+          Create New Offer
         </Button>
       </div>
-      
+
       {isLoading ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-800 mx-auto"></div>
@@ -308,361 +302,205 @@ const OffersManagement = () => {
           <p className="text-sm text-gray-400 mt-1">Create your first offer to attract more customers</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-md border">
-          <Table>
-            <TableHeader className="bg-green-100">
-              <TableRow>
-                <TableHead>Offer Name</TableHead>
-                <TableHead>Discount</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {offers.map((offer) => (
-                <TableRow key={offer.id} className="hover:bg-green-50 transition-colors">
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{offer.name}</p>
-                      <p className="text-sm text-gray-500">{offer.description}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                      {offer.discountPercentage}% OFF
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      <Badge variant="secondary" className="bg-gray-100">
-                        {offer.products.length} products
-                      </Badge>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>Start: {new Date(offer.startDate).toLocaleDateString()}</div>
-                      <div>End: {new Date(offer.endDate).toLocaleDateString()}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {offer.active ? (
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
-                        Active
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-600">
-                        Inactive
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditClick(offer)}
-                        className="border-green-500 hover:bg-green-50 text-green-700"
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteOffer(offer.id)}
-                        className="border-red-500 hover:bg-red-50 text-red-700"
-                      >
-                        <Trash className="h-4 w-4 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        <Card className="mb-6">
+          <CardContent className="p-0">
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader className="bg-green-100">
+                  <TableRow>
+                    <TableHead>Offer Title</TableHead>
+                    <TableHead>Discount</TableHead>
+                    <TableHead>Period</TableHead>
+                    <TableHead>Products</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {offers.map((offer) => (
+                    <TableRow key={offer.id} className="hover:bg-green-50 transition-colors">
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{offer.title}</p>
+                          <p className="text-xs text-gray-500 truncate max-w-[200px]">{offer.description}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="font-semibold text-red-600">{offer.discountPercentage}% OFF</span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <p>{new Date(offer.startDate).toLocaleDateString()}</p>
+                          <p className="text-gray-500">to</p>
+                          <p>{new Date(offer.endDate).toLocaleDateString()}</p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">{offer.applicableProducts.length} products</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className={`inline-block px-2 py-1 rounded-full text-xs ${
+                          offer.active 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {offer.active ? 'Active' : 'Inactive'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleOfferStatus(offer)}
+                            className="text-xs"
+                          >
+                            {offer.active ? 'Deactivate' : 'Activate'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditOffer(offer)}
+                            className="text-xs"
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteOffer(offer)}
+                            className="text-xs text-red-500 hover:text-red-700"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       )}
-      
-      {/* Add Offer Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl text-green-800">Add New Offer</DialogTitle>
+            <DialogTitle>{editingOffer ? 'Edit Offer' : 'Create New Offer'}</DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-1 gap-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Offer Name*</Label>
-                <Input 
-                  id="name" 
-                  name="name" 
-                  value={formData.name} 
-                  onChange={handleInputChange} 
-                  placeholder="Summer Sale" 
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="title">Offer Title</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={newOffer.title}
+                  onChange={handleInputChange}
+                  placeholder="Summer Sale"
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="discountPercentage">Discount Percentage*</Label>
-                <Input 
-                  id="discountPercentage" 
-                  name="discountPercentage" 
-                  type="number" 
-                  min="1" 
-                  max="99" 
-                  value={formData.discountPercentage}
+              <div>
+                <Label htmlFor="discountPercentage">Discount Percentage (%)</Label>
+                <Input
+                  id="discountPercentage"
+                  name="discountPercentage"
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={newOffer.discountPercentage}
                   onChange={handleInputChange}
                 />
               </div>
             </div>
             
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="description">Description</Label>
-              <Input 
-                id="description" 
-                name="description" 
-                value={formData.description} 
-                onChange={handleInputChange} 
-                placeholder="Special summer promotion with great discounts!" 
+              <Input
+                id="description"
+                name="description"
+                value={newOffer.description}
+                onChange={handleInputChange}
+                placeholder="Special discount for summer products"
               />
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
                 <Label htmlFor="startDate">Start Date</Label>
-                <Input 
-                  id="startDate" 
-                  name="startDate" 
-                  type="date" 
-                  value={formData.startDate} 
-                  onChange={handleInputChange} 
+                <Input
+                  id="startDate"
+                  name="startDate"
+                  type="date"
+                  value={newOffer.startDate}
+                  onChange={handleInputChange}
                 />
               </div>
-              
-              <div className="space-y-2">
+              <div>
                 <Label htmlFor="endDate">End Date</Label>
-                <Input 
-                  id="endDate" 
-                  name="endDate" 
-                  type="date" 
-                  value={formData.endDate} 
-                  onChange={handleInputChange} 
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="active">Status</Label>
-              <Select name="active" value={formData.active.toString()} onValueChange={(value) => {
-                setFormData({...formData, active: value === 'true'});
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="true">Active</SelectItem>
-                  <SelectItem value="false">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label className="block mb-2">Select Products* ({formData.products.length} selected)</Label>
-              
-              <div className="border rounded-md p-4 max-h-60 overflow-y-auto">
-                {/* Products by Category */}
-                {Object.values(ProductCategory).map(category => (
-                  <div key={category} className="mb-4">
-                    <h3 className="font-medium text-green-800 mb-2">{category}</h3>
-                    <div className="space-y-2 pl-2">
-                      {getProductsByCategory(category).length === 0 ? (
-                        <p className="text-sm text-gray-500">No products in this category</p>
-                      ) : (
-                        getProductsByCategory(category).map(product => (
-                          <div key={product.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`product-${product.id}`}
-                              checked={formData.products.includes(product.id)}
-                              onCheckedChange={() => handleProductSelection(product.id)}
-                            />
-                            <Label 
-                              htmlFor={`product-${product.id}`}
-                              className="text-sm cursor-pointer"
-                            >
-                              {product.name} - {product.price} EGP
-                            </Label>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => {
-                setIsAddDialogOpen(false);
-                resetForm();
-              }}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleAddOffer}
-              className="bg-green-700 hover:bg-green-800"
-            >
-              Add Offer
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit Offer Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-green-800">Edit Offer</DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 gap-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-name">Offer Name*</Label>
-                <Input 
-                  id="edit-name" 
-                  name="name" 
-                  value={formData.name} 
-                  onChange={handleInputChange} 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-discountPercentage">Discount Percentage*</Label>
-                <Input 
-                  id="edit-discountPercentage" 
-                  name="discountPercentage" 
-                  type="number" 
-                  min="1" 
-                  max="99" 
-                  value={formData.discountPercentage}
+                <Input
+                  id="endDate"
+                  name="endDate"
+                  type="date"
+                  value={newOffer.endDate}
                   onChange={handleInputChange}
                 />
               </div>
             </div>
             
-            {/* Remaining form fields are the same as Add form */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-description">Description</Label>
-              <Input 
-                id="edit-description" 
-                name="description" 
-                value={formData.description} 
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-startDate">Start Date</Label>
-                <Input 
-                  id="edit-startDate" 
-                  name="startDate" 
-                  type="date" 
-                  value={formData.startDate} 
-                  onChange={handleInputChange} 
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-endDate">End Date</Label>
-                <Input 
-                  id="edit-endDate" 
-                  name="endDate" 
-                  type="date" 
-                  value={formData.endDate} 
-                  onChange={handleInputChange} 
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="edit-active">Status</Label>
-              <Select name="active" value={formData.active.toString()} onValueChange={(value) => {
-                setFormData({...formData, active: value === 'true'});
-              }}>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select 
+                value={newOffer.active ? "active" : "inactive"} 
+                onValueChange={(value) => handleSelectChange('active', value === "active")}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="true">Active</SelectItem>
-                  <SelectItem value="false">Inactive</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            <div className="space-y-2">
-              <Label className="block mb-2">Select Products* ({formData.products.length} selected)</Label>
-              
+            <div>
+              <Label className="mb-2 block">Applicable Products</Label>
               <div className="border rounded-md p-4 max-h-60 overflow-y-auto">
-                {Object.values(ProductCategory).map(category => (
-                  <div key={category} className="mb-4">
-                    <h3 className="font-medium text-green-800 mb-2">{category}</h3>
-                    <div className="space-y-2 pl-2">
-                      {getProductsByCategory(category).length === 0 ? (
-                        <p className="text-sm text-gray-500">No products in this category</p>
-                      ) : (
-                        getProductsByCategory(category).map(product => (
-                          <div key={product.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`edit-product-${product.id}`}
-                              checked={formData.products.includes(product.id)}
-                              onCheckedChange={() => handleProductSelection(product.id)}
-                            />
-                            <Label 
-                              htmlFor={`edit-product-${product.id}`}
-                              className="text-sm cursor-pointer"
-                            >
-                              {product.name} - {product.price} EGP
-                            </Label>
-                          </div>
-                        ))
-                      )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {products.map((product) => (
+                    <div key={product.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`product-${product.id}`}
+                        checked={newOffer.applicableProducts.includes(product.id)}
+                        onChange={(e) => handleProductSelectionChange(product.id, e.target.checked)}
+                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                      />
+                      <label htmlFor={`product-${product.id}`} className="text-sm cursor-pointer">
+                        {product.name} - {product.price} EGP
+                      </label>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => {
-                setIsEditDialogOpen(false);
-                setEditingOffer(null);
-                resetForm();
-              }}
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
             >
               Cancel
             </Button>
-            <Button 
-              type="button" 
-              onClick={handleUpdateOffer}
-              className="bg-green-700 hover:bg-green-800"
+            <Button
+              className="bg-green-700 hover:bg-green-800 text-white"
+              onClick={handleSubmit}
             >
-              Update Offer
+              {editingOffer ? 'Update Offer' : 'Create Offer'}
             </Button>
           </DialogFooter>
         </DialogContent>
