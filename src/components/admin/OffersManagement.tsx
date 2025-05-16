@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -107,10 +108,11 @@ const OffersManagement = () => {
     }));
   };
   
+  // Fix for the boolean value issue
   const handleSelectChange = (name: string, value: string) => {
     setNewOffer(prev => ({
       ...prev,
-      [name]: name === 'active' ? value === "active" : value
+      [name]: name === 'active' ? (value === "active") : value
     }));
   };
   
@@ -448,7 +450,7 @@ const OffersManagement = () => {
               <Label htmlFor="status">Status</Label>
               <Select 
                 value={newOffer.active ? "active" : "inactive"} 
-                onValueChange={(value) => handleSelectChange('active', value === "active")}
+                onValueChange={(value) => handleSelectChange('active', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
