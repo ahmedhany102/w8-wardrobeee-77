@@ -32,7 +32,7 @@ const OrderTracking = () => {
     setIsLoading(true);
     try {
       const orderDb = OrderDatabase.getInstance();
-      const userOrders = await orderDb.getUserOrders(user.email);
+      const userOrders = await orderDb.getOrdersByCustomerEmail(user.email);
       
       // Sort orders by date (newest first)
       const sortedOrders = userOrders.sort((a, b) => 

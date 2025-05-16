@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -64,7 +63,7 @@ const OffersManagement = () => {
   
   const loadProducts = async () => {
     try {
-      const productDb = new ProductDatabase();
+      const productDb = ProductDatabase.getInstance();
       const allProducts = await productDb.getAllProducts();
       setProducts(allProducts);
     } catch (error) {
@@ -112,7 +111,7 @@ const OffersManagement = () => {
   const handleSelectChange = (name: string, value: string) => {
     setNewOffer(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'active' ? value === "active" : value
     }));
   };
   
