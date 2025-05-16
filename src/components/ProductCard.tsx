@@ -18,7 +18,7 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
         <div className="relative">
           <AspectRatio ratio={4/3} className="bg-gray-100">
             <img 
-              src={product.image || '/placeholder.svg'} 
+              src={product.imageUrl || '/placeholder.svg'} 
               alt={product.name}
               className="object-cover w-full h-full"
               loading="lazy"
@@ -30,7 +30,7 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
           </AspectRatio>
           
           {product.offerPrice && (
-            <div className="absolute top-0 right-0 bg-red-500 text-white px-3 py-1 rounded-bl-lg font-medium text-sm">
+            <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 rounded-bl-lg font-medium text-sm">
               Sale
             </div>
           )}
@@ -43,7 +43,7 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
         <div className="mt-2">
           {product.offerPrice ? (
             <div className="flex items-center">
-              <span className="text-lg font-bold text-orange-600">{product.offerPrice} EGP</span>
+              <span className="text-lg font-bold text-green-600">{product.offerPrice} EGP</span>
               <span className="ml-2 text-sm text-gray-400 line-through">{product.price} EGP</span>
             </div>
           ) : (
@@ -54,7 +54,7 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
       <CardFooter className="p-4 pt-0">
         <Button 
           onClick={() => onAddToCart(product)}
-          className="w-full bg-orange-600 hover:bg-orange-700 transition-colors"
+          className="w-full bg-green-600 hover:bg-green-700 transition-colors"
         >
           Add to Cart
         </Button>
