@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Product, ProductCategory, default as ProductDatabase } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,8 @@ const ProductManagement = () => {
     category: ProductCategory.FOOD,
     imageUrl: "",
     stock: 0,
+    hasDiscount: false,
+    discount: 0,
   });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   
@@ -65,6 +66,8 @@ const ProductManagement = () => {
         category: formData.category || ProductCategory.FOOD,
         imageUrl: formData.imageUrl || "https://images.unsplash.com/photo-1575936123452-b67c3203c357?w=800",
         stock: formData.stock || 0,
+        hasDiscount: formData.hasDiscount || false,
+        discount: formData.hasDiscount ? formData.discount : 0,
       });
       
       toast.success("Product added successfully");
@@ -89,6 +92,8 @@ const ProductManagement = () => {
         category: formData.category,
         imageUrl: formData.imageUrl,
         stock: formData.stock,
+        hasDiscount: formData.hasDiscount,
+        discount: formData.hasDiscount ? formData.discount : 0,
       });
       
       toast.success("Product updated successfully");
@@ -126,16 +131,19 @@ const ProductManagement = () => {
       category: ProductCategory.FOOD,
       imageUrl: "",
       stock: 0,
+      hasDiscount: false,
+      discount: 0,
     });
     setSelectedProductId(null);
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
+    const { name, value, checked } = e.target;
     
-    // Handle numeric values
-    if (name === "price" || name === "stock") {
+    if (name === "price" || name === "stock" || name === "discount") {
       setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
+    } else if (name === "hasDiscount") {
+      setFormData(prev => ({ ...prev, hasDiscount: checked, discount: checked ? prev.discount : 0 }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -150,6 +158,8 @@ const ProductManagement = () => {
       category: product.category,
       imageUrl: product.imageUrl,
       stock: product.stock,
+      hasDiscount: product.hasDiscount,
+      discount: product.discount,
     });
     setShowEditDialog(true);
   };
@@ -420,6 +430,34 @@ const ProductManagement = () => {
                 Leave empty to use default image
               </p>
             </div>
+            <div className="mb-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="hasDiscount"
+                  checked={!!formData.hasDiscount}
+                  onChange={e => handleInputChange({
+                    ...e,
+                    target: { ...e.target, name: "hasDiscount", checked: e.target.checked }
+                  })}
+                />
+                <span>منتج عليه عرض</span>
+              </label>
+            </div>
+            {formData.hasDiscount && (
+              <div className="mb-4">
+                <Label htmlFor="discount">نسبة الخصم (%)</Label>
+                <Input
+                  id="discount"
+                  name="discount"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={formData.discount || 0}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
           </div>
           
           <DialogFooter>
@@ -532,6 +570,34 @@ const ProductManagement = () => {
                 placeholder="https://example.com/image.jpg"
               />
             </div>
+            <div className="mb-4">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="hasDiscount"
+                  checked={!!formData.hasDiscount}
+                  onChange={e => handleInputChange({
+                    ...e,
+                    target: { ...e.target, name: "hasDiscount", checked: e.target.checked }
+                  })}
+                />
+                <span>منتج عليه عرض</span>
+              </label>
+            </div>
+            {formData.hasDiscount && (
+              <div className="mb-4">
+                <Label htmlFor="discount">نسبة الخصم (%)</Label>
+                <Input
+                  id="discount"
+                  name="discount"
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={formData.discount || 0}
+                  onChange={handleInputChange}
+                />
+              </div>
+            )}
           </div>
           
           <DialogFooter>
