@@ -16,6 +16,8 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   isActive?: boolean;
+  hasDiscount?: boolean;
+  discount?: number;
 }
 
 export class ProductDatabase {
@@ -119,7 +121,9 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1626074353765-517a681e40be?q=80&w=2787&auto=format&fit=crop",
         stock: 50,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        hasDiscount: true,
+        discount: 20
       },
       {
         id: "product-2",
@@ -130,7 +134,9 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1590614338087-1a685d04aedc?w=800",
         stock: 80,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        hasDiscount: false,
+        discount: 0
       },
       {
         id: "product-3",
