@@ -138,12 +138,14 @@ const ProductManagement = () => {
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, checked } = e.target;
-    
+    const { name, value } = e.target;
+
     if (name === "price" || name === "stock" || name === "discount") {
       setFormData(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
     } else if (name === "hasDiscount") {
-      setFormData(prev => ({ ...prev, hasDiscount: checked, discount: checked ? prev.discount : 0 }));
+      if (e.target instanceof HTMLInputElement) {
+        setFormData(prev => ({ ...prev, hasDiscount: e.target.checked, discount: e.target.checked ? prev.discount : 0 }));
+      }
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
