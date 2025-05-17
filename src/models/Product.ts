@@ -18,6 +18,11 @@ export interface Product {
   isActive?: boolean;
   hasDiscount?: boolean;
   discount?: number;
+  sizes?: string[];
+  colors?: string[];
+  ingredients?: string[];
+  plateSize?: string;
+  details?: string;
 }
 
 export class ProductDatabase {
@@ -123,7 +128,10 @@ export class ProductDatabase {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         hasDiscount: true,
-        discount: 20
+        discount: 20,
+        ingredients: ["rice", "lentils", "macaroni"],
+        plateSize: "large",
+        details: "Traditional Egyptian dish"
       },
       {
         id: "product-2",
@@ -136,7 +144,10 @@ export class ProductDatabase {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         hasDiscount: false,
-        discount: 0
+        discount: 0,
+        ingredients: ["fava beans"],
+        plateSize: "medium",
+        details: "Traditional Egyptian breakfast dish"
       },
       {
         id: "product-3",
@@ -147,7 +158,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1517244683847-7456b63c5969?w=800",
         stock: 60,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        ingredients: ["jute leaves"],
+        plateSize: "large",
+        details: "Egyptian comfort food"
       },
       {
         id: "product-4",
@@ -158,7 +172,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1530016910220-51bae09bd191?w=800",
         stock: 40,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        ingredients: ["vermicelli", "cream", "nuts"],
+        plateSize: "small",
+        details: "Sweet Middle Eastern pastry"
       },
       {
         id: "product-21",
@@ -169,7 +186,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1519676867240-f03562e64548?w=800",
         stock: 45,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        ingredients: ["filo", "nuts", "honey"],
+        plateSize: "large",
+        details: "Sweet pastry made of layers of filo filled with chopped nuts and sweetened with honey"
       },
       {
         id: "product-22",
@@ -180,7 +200,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1529006557810-274b9b2fc783?w=800",
         stock: 55,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        ingredients: ["meat", "vegetables", "tahini"],
+        plateSize: "large",
+        details: "Grilled meat with vegetables and tahini sauce served with bread and pickles"
       },
       
       // Technology Category
@@ -261,7 +284,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800",
         stock: 100,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["M", "L", "XL"],
+        colors: ["white", "black"],
+        details: "Premium t-shirt made from famous Egyptian cotton, known for its quality and comfort."
       },
       {
         id: "product-10",
@@ -272,7 +298,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800",
         stock: 70,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["S", "M", "L"],
+        colors: ["white", "blue"],
+        details: "Light and elegant summer dress made from Egyptian linen in natural colors."
       },
       {
         id: "product-11",
@@ -283,7 +312,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=800",
         stock: 50,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["M", "L"],
+        colors: ["black", "brown"],
+        details: "Warm and waterproof winter jacket with modern design for cold weather."
       },
       {
         id: "product-12",
@@ -294,7 +326,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1542272604-7eec264c27ff?w=800",
         stock: 85,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["30", "32", "34"],
+        colors: ["blue", "black"],
+        details: "Premium denim jeans with modern fit and sustainable production."
       },
       {
         id: "product-25",
@@ -305,7 +340,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800",
         stock: 75,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["M", "L"],
+        colors: ["black", "gray"],
+        details: "Comfortable cotton hoodie perfect for casual wear."
       },
       {
         id: "product-26",
@@ -316,7 +354,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=800",
         stock: 65,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["M", "L"],
+        colors: ["white", "blue"],
+        details: "Classic formal shirt for business and special occasions."
       },
       
       // Shoes Category
@@ -329,7 +370,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1531310197839-ccf54634509e?w=800",
         stock: 60,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["7", "8", "9"],
+        colors: ["brown", "black"],
+        details: "Handcrafted leather sandals perfect for hot Egyptian summers."
       },
       {
         id: "product-14",
@@ -340,7 +384,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800",
         stock: 45,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["9", "10", "11"],
+        colors: ["black", "white"],
+        details: "Lightweight and comfortable running shoes for professional athletes and amateurs."
       },
       {
         id: "product-15",
@@ -351,7 +398,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1478340019060-2755a3c84d66?w=800",
         stock: 30,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["42", "43", "44"],
+        colors: ["black", "brown"],
+        details: "Elegant handcrafted leather shoes for formal occasions and business meetings."
       },
       {
         id: "product-16",
@@ -362,7 +412,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1610398752800-146f269dfcc8?w=800",
         stock: 55,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["7", "8", "9"],
+        colors: ["brown", "black"],
+        details: "Classic desert boots made from high-quality suede, perfect for casual wear."
       },
       {
         id: "product-27",
@@ -373,7 +426,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1600269452121-4f2416e55c28?w=800",
         stock: 70,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["9", "10", "11"],
+        colors: ["black", "white"],
+        details: "Modern trendy sneakers for everyday casual wear."
       },
       {
         id: "product-28",
@@ -384,7 +440,10 @@ export class ProductDatabase {
         imageUrl: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800",
         stock: 35,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        sizes: ["10", "11", "12"],
+        colors: ["black", "brown"],
+        details: "Durable waterproof hiking boots for outdoor adventures."
       }
     ];
   }
