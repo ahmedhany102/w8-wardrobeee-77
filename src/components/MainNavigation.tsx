@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { ShoppingCart, Package, User, Heart, Home, Tag, Search } from 'lucide-react';
@@ -27,6 +28,7 @@ const MainNavigation: React.FC<MainNavigationProps> = ({
   // Public routes (visible to all users)
   const publicRoutes = [
     { to: '/', text: 'Home', icon: <Home className="h-4 w-4" /> },
+    { to: '/offers', text: 'Offers', icon: <Tag className="h-4 w-4" /> },
     { to: '/contact', text: 'Contact', icon: <Search className="h-4 w-4" /> },
   ];
 

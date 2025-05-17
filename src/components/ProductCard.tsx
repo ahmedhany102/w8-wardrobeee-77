@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,12 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
               }}
             />
           </AspectRatio>
+          
+          {product.offerPrice && (
+            <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 rounded-bl-lg font-medium text-sm">
+              Sale
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="p-4">
@@ -34,7 +41,14 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
         <p className="text-gray-500 text-sm truncate">{product.category}</p>
         
         <div className="mt-2">
-          <span className="text-lg font-bold">{product.price} EGP</span>
+          {product.offerPrice ? (
+            <div className="flex items-center">
+              <span className="text-lg font-bold text-green-600">{product.offerPrice} EGP</span>
+              <span className="ml-2 text-sm text-gray-400 line-through">{product.price} EGP</span>
+            </div>
+          ) : (
+            <span className="text-lg font-bold">{product.price} EGP</span>
+          )}
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0">

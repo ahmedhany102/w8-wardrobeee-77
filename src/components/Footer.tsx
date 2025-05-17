@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Phone, Mail } from 'lucide-react';
@@ -41,6 +42,9 @@ const Footer: React.FC = () => {
             <div className="flex flex-wrap justify-center md:justify-end gap-3">
               <Link to="/contact" className="text-xs text-gray-300 hover:text-white transition">
                 Contact Us
+              </Link>
+              <Link to="/offers" className="text-xs text-gray-300 hover:text-white transition">
+                Offers
               </Link>
             </div>
             <div className="mt-2 flex justify-center md:justify-end gap-3">

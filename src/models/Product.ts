@@ -10,6 +10,7 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  offerPrice?: number; // Making this official in the type
   category: ProductCategory;
   imageUrl: string;
   stock: number;
@@ -107,6 +108,11 @@ export class ProductDatabase {
     return this.products.filter(p => p.category === category);
   }
   
+  // Get products with offers
+  public async getProductsWithOffers(): Promise<Product[]> {
+    return this.products.filter(p => p.offerPrice && p.offerPrice < p.price);
+  }
+  
   // Create mock products for initial data
   private createMockProducts(): Product[] {
     return [
@@ -115,6 +121,7 @@ export class ProductDatabase {
         name: "Egyptian Koshari",
         description: "Traditional Egyptian dish made with rice, lentils, and macaroni, topped with spiced tomato sauce and crispy onions.",
         price: 45.99,
+        offerPrice: 39.99,
         category: ProductCategory.FOOD,
         imageUrl: "https://images.unsplash.com/photo-1626074353765-517a681e40be?q=80&w=2787&auto=format&fit=crop",
         stock: 50,
