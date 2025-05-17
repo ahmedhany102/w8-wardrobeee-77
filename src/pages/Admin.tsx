@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OrdersPanel from '@/components/admin/OrdersPanel';
 import ProductManagement from '@/components/admin/ProductManagement';
-import OffersManagement from '@/components/admin/OffersManagement';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserRound } from 'lucide-react';
@@ -414,12 +412,6 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
               >
                 Products
               </TabsTrigger>
-              <TabsTrigger 
-                value="offers" 
-                className="flex-1 data-[state=active]:bg-green-200 data-[state=active]:text-green-800"
-              >
-                Offers
-              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -711,10 +703,6 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
 
           <TabsContent value="products">
             <ProductManagement />
-          </TabsContent>
-
-          <TabsContent value="offers">
-            <OffersManagement />
           </TabsContent>
         </Tabs>
       </div>
