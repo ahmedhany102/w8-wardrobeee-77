@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { RequireAuth } from './components/RequireAuth';
@@ -13,7 +12,6 @@ import Contact from './pages/Contact';
 import Cart from './pages/Cart';
 import NotFound from './pages/NotFound';
 import OrderTracking from './pages/OrderTracking';
-import Offers from './pages/Offers';
 
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/toaster';
@@ -48,7 +46,6 @@ function App() {
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/contact" element={<Contact />} />
-                <Route path="/offers" element={<Offers />} />
 
                 {/* Protected routes */}
                 <Route element={<RequireAuth adminOnly={false} />}>
@@ -64,7 +61,6 @@ function App() {
                   <Route path="/admin/products" element={<Admin activeTab="products" />} />
                   <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
                   <Route path="/admin/users" element={<Admin activeTab="users" />} />
-                  <Route path="/admin/offers" element={<Admin activeTab="offers" />} />
                 </Route>
 
                 {/* 404 */}
