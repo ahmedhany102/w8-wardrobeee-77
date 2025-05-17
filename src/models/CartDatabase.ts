@@ -1,5 +1,6 @@
-
 import { Product } from "./Product";
+
+// NOTE: هذا هو الملف الوحيد المعتمد للعربة CartDatabase. لا تكرر الملف في أماكن أخرى.
 
 export interface CartItem {
   id: string;
@@ -12,7 +13,7 @@ export interface CartItem {
 
 class CartDatabase {
   private static instance: CartDatabase;
-  private STORAGE_KEY = 'cart_items';
+  private STORAGE_KEY = 'cart';
 
   private constructor() {}
 
