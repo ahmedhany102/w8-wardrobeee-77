@@ -214,6 +214,15 @@ const ProductManagement = () => {
         >
           <Plus className="h-4 w-4 mr-2" /> Add New Product
         </Button>
+        <Button
+          onClick={() => {
+            localStorage.removeItem('products');
+            window.location.reload();
+          }}
+          className="bg-red-700 hover:bg-red-800 text-white mb-2 md:mb-0"
+        >
+          Reset Products (مسح كل المنتجات)
+        </Button>
       </div>
       
       <Card className="border-green-100">
