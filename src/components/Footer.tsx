@@ -98,7 +98,7 @@ const Footer: React.FC = () => {
       </footer>
       {/* Spacer to prevent footer from being covered by bottom nav */}
       {user && !isAdmin && (
-        <div className="block md:hidden" style={{ height: 64 }}></div>
+        <div style={{ height: 100 }}></div>
       )}
     </>
   );
