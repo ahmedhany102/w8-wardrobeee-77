@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { toast } from 'sonner';
 import SearchBar from '@/components/SearchBar';
+import CartDatabase from '@/models/CartDatabase';
 
 const CategoryButton = ({ category, active, onClick }: { category: string, active: boolean, onClick: () => void }) => (
   <Button 
@@ -102,32 +103,15 @@ const Index = () => {
     setFilteredProducts(filtered);
   };
 
-  const handleAddToCart = (product: Product) => {
-    // Add to cart functionality
-    const userCart = localStorage.getItem('userCart') || '[]';
-    let cart = JSON.parse(userCart);
-    
-    // Check if product already exists in cart
-    const existingProductIndex = cart.findIndex((item: any) => item.id === product.id);
-    
-    if (existingProductIndex >= 0) {
-      // Increase quantity if product already in cart
-      cart[existingProductIndex].quantity += 1;
+  const handleAddToCart = async (product: Product) => {
+    const cartDb = CartDatabase.getInstance();
+    const success = await cartDb.addToCart(product, 1);
+    if (success) {
+      window.dispatchEvent(new Event('cartUpdated'));
+      toast.success(`${product.name} added to cart`);
     } else {
-      // Add new product with quantity 1
-      cart.push({
-        ...product,
-        quantity: 1
-      });
+      toast.error('Failed to add item to cart');
     }
-    
-    // Save cart back to localStorage
-    localStorage.setItem('userCart', JSON.stringify(cart));
-    
-    // Dispatch event to update cart count
-    window.dispatchEvent(new Event('cartUpdated'));
-    
-    toast.success(`${product.name} added to cart`);
   };
 
   const handleSearch = (query: string) => {
