@@ -35,11 +35,6 @@ const ProductManagement = () => {
     stock: 0,
     hasDiscount: false,
     discount: 0,
-    sizes: [],
-    colors: [],
-    ingredients: [],
-    plateSize: "",
-    details: "",
   });
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   
@@ -73,11 +68,6 @@ const ProductManagement = () => {
         stock: formData.stock || 0,
         hasDiscount: formData.hasDiscount || false,
         discount: formData.hasDiscount ? formData.discount : 0,
-        sizes: formData.sizes || [],
-        colors: formData.colors || [],
-        ingredients: formData.ingredients || [],
-        plateSize: formData.plateSize || "",
-        details: formData.details || "",
       });
       
       toast.success("Product added successfully");
@@ -104,11 +94,6 @@ const ProductManagement = () => {
         stock: formData.stock,
         hasDiscount: formData.hasDiscount,
         discount: formData.hasDiscount ? formData.discount : 0,
-        sizes: formData.sizes,
-        colors: formData.colors,
-        ingredients: formData.ingredients,
-        plateSize: formData.plateSize,
-        details: formData.details,
       });
       
       toast.success("Product updated successfully");
@@ -148,11 +133,6 @@ const ProductManagement = () => {
       stock: 0,
       hasDiscount: false,
       discount: 0,
-      sizes: [],
-      colors: [],
-      ingredients: [],
-      plateSize: "",
-      details: "",
     });
     setSelectedProductId(null);
   };
@@ -166,8 +146,6 @@ const ProductManagement = () => {
       if (e.target instanceof HTMLInputElement) {
         setFormData(prev => ({ ...prev, hasDiscount: e.target.checked, discount: e.target.checked ? prev.discount : 0 }));
       }
-    } else if (name === "sizes" || name === "colors" || name === "ingredients") {
-      setFormData(prev => ({ ...prev, [name]: value.split(",").map(s => s.trim()).filter(Boolean) }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
@@ -184,11 +162,6 @@ const ProductManagement = () => {
       stock: product.stock,
       hasDiscount: product.hasDiscount,
       discount: product.discount,
-      sizes: product.sizes || [],
-      colors: product.colors || [],
-      ingredients: product.ingredients || [],
-      plateSize: product.plateSize || "",
-      details: product.details || "",
     });
     setShowEditDialog(true);
   };
@@ -496,69 +469,6 @@ const ProductManagement = () => {
                 />
               </div>
             )}
-            {(formData.category === ProductCategory.CLOTHING || formData.category === ProductCategory.SHOES) && (
-              <>
-                <div>
-                  <Label htmlFor="sizes">المقاسات المتوفرة (افصل بينهم بفاصلة ,)</Label>
-                  <Input
-                    id="sizes"
-                    name="sizes"
-                    value={formData.sizes?.join(", ") || ""}
-                    onChange={handleInputChange}
-                    className="mt-1"
-                    placeholder="مثال: S, M, L, XL"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="colors">الألوان المتوفرة (افصل بينهم بفاصلة ,)</Label>
-                  <Input
-                    id="colors"
-                    name="colors"
-                    value={formData.colors?.join(", ") || ""}
-                    onChange={handleInputChange}
-                    className="mt-1"
-                    placeholder="مثال: أحمر, أزرق, أسود"
-                  />
-                </div>
-              </>
-            )}
-            {formData.category === ProductCategory.FOOD && (
-              <>
-                <div>
-                  <Label htmlFor="ingredients">المكونات (افصل بينهم بفاصلة ,)</Label>
-                  <Input
-                    id="ingredients"
-                    name="ingredients"
-                    value={formData.ingredients?.join(", ") || ""}
-                    onChange={handleInputChange}
-                    className="mt-1"
-                    placeholder="مثال: أرز, عدس, مكرونة"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="plateSize">حجم الطبق</Label>
-                  <Input
-                    id="plateSize"
-                    name="plateSize"
-                    value={formData.plateSize || ""}
-                    onChange={handleInputChange}
-                    className="mt-1"
-                    placeholder="مثال: صغير، وسط، كبير"
-                  />
-                </div>
-              </>
-            )}
-            <div>
-              <Label htmlFor="details">تفاصيل إضافية</Label>
-              <Input
-                id="details"
-                name="details"
-                value={formData.details || ""}
-                onChange={handleInputChange}
-                className="mt-1"
-                placeholder="أي تفاصيل أخرى عن المنتج"
-              />
-            </div>
           </div>
           
           <DialogFooter>
@@ -699,69 +609,6 @@ const ProductManagement = () => {
                 />
               </div>
             )}
-            {(formData.category === ProductCategory.CLOTHING || formData.category === ProductCategory.SHOES) && (
-              <>
-                <div>
-                  <Label htmlFor="sizes">المقاسات المتوفرة (افصل بينهم بفاصلة ,)</Label>
-                  <Input
-                    id="sizes"
-                    name="sizes"
-                    value={formData.sizes?.join(", ") || ""}
-                    onChange={handleInputChange}
-                    className="mt-1"
-                    placeholder="مثال: S, M, L, XL"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="colors">الألوان المتوفرة (افصل بينهم بفاصلة ,)</Label>
-                  <Input
-                    id="colors"
-                    name="colors"
-                    value={formData.colors?.join(", ") || ""}
-                    onChange={handleInputChange}
-                    className="mt-1"
-                    placeholder="مثال: أحمر, أزرق, أسود"
-                  />
-                </div>
-              </>
-            )}
-            {formData.category === ProductCategory.FOOD && (
-              <>
-                <div>
-                  <Label htmlFor="ingredients">المكونات (افصل بينهم بفاصلة ,)</Label>
-                  <Input
-                    id="ingredients"
-                    name="ingredients"
-                    value={formData.ingredients?.join(", ") || ""}
-                    onChange={handleInputChange}
-                    className="mt-1"
-                    placeholder="مثال: أرز, عدس, مكرونة"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="plateSize">حجم الطبق</Label>
-                  <Input
-                    id="plateSize"
-                    name="plateSize"
-                    value={formData.plateSize || ""}
-                    onChange={handleInputChange}
-                    className="mt-1"
-                    placeholder="مثال: صغير، وسط، كبير"
-                  />
-                </div>
-              </>
-            )}
-            <div>
-              <Label htmlFor="details">تفاصيل إضافية</Label>
-              <Input
-                id="details"
-                name="details"
-                value={formData.details || ""}
-                onChange={handleInputChange}
-                className="mt-1"
-                placeholder="أي تفاصيل أخرى عن المنتج"
-              />
-            </div>
           </div>
           
           <DialogFooter>
