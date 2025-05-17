@@ -209,9 +209,6 @@ const Index = () => {
         <section id="featured" className="mb-12">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-green-500">Featured Products</h2>
-            <Link to="/offers" className="text-sm font-medium text-green-400">
-              See All Offers →
-            </Link>
           </div>
           
           {isLoading ? (
