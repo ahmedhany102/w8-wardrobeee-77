@@ -16,8 +16,8 @@ interface OrderFormProps {
     price: number;
     quantity: number;
     imageUrl?: string;
-    color?: string; // أضف color
-    size?: string;  // أضف size
+    color?: string;
+    size?: string;
   }[];
   total: number;
   onOrderComplete?: () => void;
@@ -66,8 +66,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         unitPrice: item.price,
         totalPrice: item.price * item.quantity,
         imageUrl: item.imageUrl,
-        color: item.color || '-', // مرر اللون أو علامة "-"
-        size: item.size || '-',   // مرر المقاس أو علامة "-"
+        color: item.color || '-',
+        size: item.size || '-',
       }));
 
       // Create order object
