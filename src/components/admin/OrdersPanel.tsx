@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -223,6 +222,8 @@ const OrdersPanel = () => {
                     <TableHeader className="bg-green-100 dark:bg-green-900/30">
                       <TableRow>
                         <TableHead>Product</TableHead>
+                        <TableHead>Color</TableHead>
+                        <TableHead>Size</TableHead>
                         <TableHead className="text-right">Quantity</TableHead>
                         <TableHead className="text-right">Unit Price</TableHead>
                         <TableHead className="text-right">Total</TableHead>
@@ -232,13 +233,15 @@ const OrdersPanel = () => {
                       {selectedOrder.items.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell className="text-gray-900 dark:text-gray-100">{item.productName}</TableCell>
+                          <TableCell className="text-gray-900 dark:text-gray-100">{item.color || '-'}</TableCell>
+                          <TableCell className="text-gray-900 dark:text-gray-100">{item.size || '-'}</TableCell>
                           <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.quantity}</TableCell>
                           <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.unitPrice.toFixed(2)} EGP</TableCell>
                           <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.totalPrice.toFixed(2)} EGP</TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-green-50 dark:bg-green-900/20">
-                        <TableCell colSpan={3} className="text-right font-semibold text-gray-900 dark:text-gray-100">
+                        <TableCell colSpan={5} className="text-right font-semibold text-gray-900 dark:text-gray-100">
                           Total Amount:
                         </TableCell>
                         <TableCell className="text-right font-bold text-gray-900 dark:text-gray-100">
