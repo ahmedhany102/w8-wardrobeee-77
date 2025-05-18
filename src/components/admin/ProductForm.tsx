@@ -45,20 +45,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   };
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form className="space-y-6 w-full max-w-2xl mx-auto" onSubmit={handleSubmit}>
       {error && <div className="bg-red-100 text-red-700 p-2 rounded">{error}</div>}
-      <div>
-        <label className="block font-bold mb-1">اسم المنتج *</label>
-        <input
-          type="text"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          className="border rounded px-3 py-2 w-full"
-          required
-        />
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-        <div>
+        <div className="flex flex-col w-full">
+          <label className="block font-bold mb-1">اسم المنتج *</label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+            required
+          />
+        </div>
+        <div className="flex flex-col w-full">
           <label className="block font-bold mb-1">القسم *</label>
           <select
             value={category}
@@ -69,7 +69,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
             {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
           </select>
         </div>
-        <div>
+        <div className="flex flex-col w-full">
           <label className="block font-bold mb-1">النوع *</label>
           <input
             type="text"
@@ -80,18 +80,37 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
             required
           />
         </div>
+        <div className="flex flex-col w-full">
+          <label className="block font-bold mb-1 mb-2">الألوان المتوفرة</label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { name: 'أحمر', code: '#ff0000' },
+              { name: 'أزرق', code: '#0074D9' },
+              { name: 'أسود', code: '#111111' },
+              { name: 'أبيض', code: '#ffffff', border: true },
+              { name: 'أخضر', code: '#2ECC40' },
+              { name: 'أصفر', code: '#FFDC00' },
+              { name: 'رمادي', code: '#AAAAAA' },
+              { name: 'وردي', code: '#FF69B4' },
+              { name: 'بنفسجي', code: '#B10DC9' },
+              { name: 'بني', code: '#8B4513' },
+            ].map(color => (
+              <button
+                type="button"
+                key={color.code}
+                className={`w-8 h-8 rounded-full border-2 flex items-center justify-center focus:outline-none ${colors.includes(color.name) ? 'ring-2 ring-green-600 border-green-600' : 'border-gray-300'} ${color.border ? 'border' : ''}`}
+                style={{ background: color.code }}
+                title={color.name}
+                onClick={() => setColors(colors.includes(color.name) ? colors.filter(c => c !== color.name) : [...colors, color.name])}
+              >
+                {colors.includes(color.name) && <span className="text-xs text-white font-bold">✓</span>}
+              </button>
+            ))}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">اضغط لاختيار لون أو أكثر</div>
+        </div>
       </div>
-      <div>
-        <label className="block font-bold mb-1">الألوان المتوفرة (افصل بينهم بفاصلة ,)</label>
-        <input
-          type="text"
-          value={colors.join(", ")}
-          onChange={e => setColors(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
-          className="border rounded px-3 py-2 w-full"
-          placeholder="مثال: أحمر, أزرق, أسود"
-        />
-      </div>
-      <div>
+      <div className="flex flex-col w-full">
         <label className="block font-bold mb-1">تفاصيل إضافية</label>
         <textarea
           value={details}
@@ -100,14 +119,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
           rows={2}
         />
       </div>
-      <div>
+      <div className="flex flex-col w-full">
         <label className="block font-bold mb-1">صور المنتج *</label>
         <ImageUploader value={images} onChange={setImages} label={undefined} />
       </div>
-      <div>
+      <div className="overflow-x-auto w-full">
         <SizeManager sizes={sizes} onChange={setSizes} />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 w-full">
         <input
           type="checkbox"
           checked={hasDiscount}
