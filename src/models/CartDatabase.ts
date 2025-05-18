@@ -1,12 +1,10 @@
 import { Product } from "./Product";
 
-// NOTE: هذا هو الملف الوحيد المعتمد للعربة CartDatabase. لا تكرر الملف في أماكن أخرى.
-
+// الشكل القديم للعربة: لا يوجد مقاس، فقط منتج وسعر وصورة
 export interface CartItem {
   id: string;
   productId: string;
   name: string;
-  size: string;
   price: number;
   quantity: number;
   imageUrl?: string;
@@ -35,13 +33,11 @@ class CartDatabase {
     }
   }
 
-  async addToCart(product: Product, size: string, quantity: number = 1): Promise<boolean> {
+  async addToCart(product: Product, quantity: number = 1): Promise<boolean> {
     try {
       const cartItems = await this.getCartItems();
-      const existingItemIndex = cartItems.findIndex(item => item.productId === product.id && item.size === size);
-      const sizeObj = (product.sizes || []).find(s => s.size === size);
-      if (!sizeObj) throw new Error('Invalid size');
-      const imageUrl = sizeObj.image || product.mainImage || (product.images && product.images[0]) || '';
+      const existingItemIndex = cartItems.findIndex(item => item.productId === product.id);
+      const imageUrl = product.mainImage || (product.images && product.images[0]) || '';
       if (existingItemIndex >= 0) {
         cartItems[existingItemIndex].quantity += quantity;
       } else {
@@ -49,15 +45,14 @@ class CartDatabase {
           id: `cart-${Date.now()}`,
           productId: product.id,
           name: product.name,
-          size: sizeObj.size,
-          price: sizeObj.price,
+          price: product.sizes && product.sizes[0] ? product.sizes[0].price : 0,
           quantity: quantity,
           imageUrl: imageUrl
         };
         cartItems.push(newItem);
       }
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cartItems));
-      console.log("Product added to cart:", product.name, "size:", size, "qty:", quantity);
+      console.log("Product added to cart:", product.name, "qty:", quantity);
       return true;
     } catch (error) {
       console.error("Error adding to cart:", error);
@@ -70,10 +65,8 @@ class CartDatabase {
       if (quantity <= 0) {
         return this.removeFromCart(itemId);
       }
-      
       const cartItems = await this.getCartItems();
       const itemIndex = cartItems.findIndex(item => item.id === itemId);
-      
       if (itemIndex >= 0) {
         cartItems[itemIndex].quantity = quantity;
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cartItems));
