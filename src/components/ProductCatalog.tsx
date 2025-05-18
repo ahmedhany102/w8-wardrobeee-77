@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Product, default as ProductDatabase } from '@/models/Product';
+import { Product, ProductCategory, default as ProductDatabase } from '@/models/Product';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -242,22 +243,28 @@ const ProductCatalog: React.FC = () => {
               All
             </TabsTrigger>
             <TabsTrigger 
-              value="رجالي" 
+              value={ProductCategory.FOOD} 
               className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
             >
-              رجالي
+              Food
             </TabsTrigger>
             <TabsTrigger 
-              value="حريمي" 
+              value={ProductCategory.TECHNOLOGY} 
               className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
             >
-              حريمي
+              Technology
             </TabsTrigger>
             <TabsTrigger 
-              value="أطفال" 
+              value={ProductCategory.CLOTHING} 
               className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
             >
-              أطفال
+              Clothing
+            </TabsTrigger>
+            <TabsTrigger 
+              value={ProductCategory.SHOES} 
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
+            >
+              Shoes
             </TabsTrigger>
           </TabsList>
         </div>
