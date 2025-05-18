@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -17,6 +16,8 @@ interface OrderFormProps {
     price: number;
     quantity: number;
     imageUrl?: string;
+    color?: string; // أضف color
+    size?: string;  // أضف size
   }[];
   total: number;
   onOrderComplete?: () => void;
@@ -57,14 +58,16 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         return;
       }
 
-      // Convert cart items to order items
+      // Convert cart items to order items (مع تمرير اللون والمقاس)
       const orderItems: OrderItem[] = cartItems.map(item => ({
         productId: item.productId,
         productName: item.name,
         quantity: item.quantity,
         unitPrice: item.price,
         totalPrice: item.price * item.quantity,
-        imageUrl: item.imageUrl
+        imageUrl: item.imageUrl,
+        color: item.color || '-', // مرر اللون أو علامة "-"
+        size: item.size || '-',   // مرر المقاس أو علامة "-"
       }));
 
       // Create order object
