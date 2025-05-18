@@ -144,10 +144,10 @@ const Index = () => {
                   <Button asChild className="bg-green-700 hover:bg-green-800 text-white px-8 py-3 rounded-md text-lg transition-transform hover:scale-105 active:scale-95">
                     <Link to="/login">Login</Link>
                   </Button>
-                  <Button asChild variant="outline" className="bg-transparent border-2 border-green-400 text-white hover:bg-green-800 px-8 py-3 rounded-md text-lg transition-transform hover:scale-105 active:scale-95">
+                  <Button asChild className="bg-transparent border-2 border-green-400 text-white hover:bg-green-800 px-8 py-3 rounded-md text-lg transition-transform hover:scale-105 active:scale-95">
                     <Link to="/signup">Sign Up</Link>
                   </Button>
-                  <Button asChild variant="outline" className="bg-transparent border-2 border-green-400 text-white hover:bg-green-800 px-8 py-3 rounded-md text-lg transition-transform hover:scale-105 active:scale-95">
+                  <Button asChild className="bg-transparent border-2 border-green-400 text-white hover:bg-green-800 px-8 py-3 rounded-md text-lg transition-transform hover:scale-105 active:scale-95">
                     <Link to="/admin-login">
                       <Shield className="h-5 w-5 mr-2" />
                       <span>Admin Login</span>
@@ -231,24 +231,22 @@ const Index = () => {
             <div className="flex flex-col items-center justify-center py-12">
               <p className="text-xl text-gray-500 mb-4">No products found</p>
               {searchQuery && (
-                <Button 
-                  onClick={() => setSearchQuery('')}
-                  variant="outline"
-                  className="border-green-500 text-green-700"
-                >
+                <Button onClick={() => setSearchQuery('')} className="border-green-500 text-green-700">
                   Clear Search
                 </Button>
               )}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredProducts.map((product) => (
-                <ProductCard 
-                  key={product.id} 
-                  product={product} 
-                  onAddToCart={handleAddToCart} 
-                />
-              ))}
+              {filteredProducts.filter(Boolean).map((product) =>
+                product ? (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                  />
+                ) : null
+              )}
             </div>
           )}
         </section>
