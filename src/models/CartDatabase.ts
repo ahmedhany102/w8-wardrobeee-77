@@ -6,6 +6,7 @@ export interface CartItem {
   id: string;
   productId: string;
   name: string;
+  size: string;
   price: number;
   quantity: number;
   imageUrl?: string;
@@ -34,29 +35,29 @@ class CartDatabase {
     }
   }
 
-  async addToCart(product: Product, quantity: number = 1): Promise<boolean> {
+  async addToCart(product: Product, size: string, quantity: number = 1): Promise<boolean> {
     try {
       const cartItems = await this.getCartItems();
-      const existingItemIndex = cartItems.findIndex(item => item.productId === product.id);
-      
+      const existingItemIndex = cartItems.findIndex(item => item.productId === product.id && item.size === size);
+      const sizeObj = (product.sizes || []).find(s => s.size === size);
+      if (!sizeObj) throw new Error('Invalid size');
+      const imageUrl = sizeObj.image || product.mainImage || (product.images && product.images[0]) || '';
       if (existingItemIndex >= 0) {
-        // Update existing item
         cartItems[existingItemIndex].quantity += quantity;
       } else {
-        // Add new item
         const newItem: CartItem = {
           id: `cart-${Date.now()}`,
           productId: product.id,
           name: product.name,
-          price: product.price,
+          size: sizeObj.size,
+          price: sizeObj.price,
           quantity: quantity,
-          imageUrl: product.imageUrl
+          imageUrl: imageUrl
         };
         cartItems.push(newItem);
       }
-      
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cartItems));
-      console.log("Product added to cart:", product.name, "qty:", quantity);
+      console.log("Product added to cart:", product.name, "size:", size, "qty:", quantity);
       return true;
     } catch (error) {
       console.error("Error adding to cart:", error);
