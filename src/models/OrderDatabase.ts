@@ -1,4 +1,3 @@
-
 import { Order, OrderItem } from './Order';
 
 // Mock database for orders
@@ -149,18 +148,7 @@ class OrderDatabase {
 
   // Send email notification
   private sendOrderNotification(order: Order): void {
-    console.log(`New order received: ${order.orderNumber}`);
-    console.log(`Customer: ${order.customerInfo.name} (${order.customerInfo.email})`);
-    console.log(`Address: ${order.customerInfo.address.street}, ${order.customerInfo.address.city}, ${order.customerInfo.address.zipCode}`);
-    console.log(`Phone: ${order.customerInfo.phone}`);
-    console.log(`Total amount: ${order.totalAmount.toFixed(2)} EGP`);
-    console.log(`Items: ${order.items.length}`);
-    if (order.paymentInfo) {
-      console.log(`Payment method: ${order.paymentInfo.method}`);
-    }
-    
     // In a real application, this would send an actual email to the admin
-    console.log("Email notification sent to admin and customer with full order details");
   }
 }
 
