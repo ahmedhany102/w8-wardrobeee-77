@@ -304,11 +304,7 @@ const Cart = () => {
                   </CardHeader>
                   <CardContent className="p-4">
                     <OrderForm 
-                      cartItems={cartItems.map(item => ({
-                        ...item,
-                        color: item.color || '',
-                        size: item.size || ''
-                      }))}
+                      cartItems={cartItems}
                       total={total}
                       onOrderComplete={handleOrderComplete}
                     />
