@@ -99,7 +99,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
 
       // Show success message
       toast.success('Order placed successfully!');
-      console.log('Order created:', newOrder);
 
       // Clear cart if order placement was successful
       if (onOrderComplete) {
