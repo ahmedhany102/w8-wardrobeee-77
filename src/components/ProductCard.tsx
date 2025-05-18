@@ -96,12 +96,17 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={() => setShowDetails(false)}>
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full relative" onClick={e => e.stopPropagation()}>
             <button className="absolute top-2 left-2 text-red-600 font-bold" onClick={() => setShowDetails(false)}>×</button>
-            <h2 className="text-xl font-bold mb-2">{product.name}</h2>
-            <img src={mainImage} alt={product.name} className="w-32 h-32 object-cover rounded mb-2 mx-auto" />
+            <h2 className="text-xl font-bold mb-2">{product?.name || "منتج بدون اسم"}</h2>
+            <img
+              src={mainImage && mainImage !== "" ? mainImage : "/placeholder.svg"}
+              alt={product?.name || "منتج"}
+              className="w-32 h-32 object-cover rounded mb-2 mx-auto"
+              onError={e => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
+            />
             <div className="mb-2">
-              <span className="font-semibold">القسم:</span> {product.category} - {product.type}
+              <span className="font-semibold">القسم:</span> {product?.category || "-"} - {product?.type || "-"}
             </div>
-            {product.colors && product.colors.length > 0 && (
+            {product?.colors && product.colors.length > 0 ? (
               <div className="mb-2">
                 <span className="font-semibold">الألوان المتوفرة:</span>
                 <div className="flex gap-2 mt-1">
@@ -110,8 +115,10 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
                   ))}
                 </div>
               </div>
+            ) : (
+              <div className="mb-2 text-gray-400">لا توجد ألوان متوفرة</div>
             )}
-            {product.sizes && product.sizes.length > 0 && (
+            {product?.sizes && product.sizes.length > 0 ? (
               <div className="mb-2">
                 <span className="font-semibold">المقاسات المتوفرة:</span>
                 <table className="w-full text-sm mt-2 border">
@@ -129,18 +136,26 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
                         <td className="p-1 border">{size.size}</td>
                         <td className="p-1 border">{size.price} EGP</td>
                         <td className="p-1 border">{size.stock}</td>
-                        <td className="p-1 border">{size.image ? <img src={size.image} alt="size" className="w-10 h-10 object-cover rounded" /> : 'بدون صورة'}</td>
+                        <td className="p-1 border">
+                          {size.image
+                            ? <img src={size.image} alt="size" className="w-10 h-10 object-cover rounded" onError={e => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }} />
+                            : 'بدون صورة'}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
+            ) : (
+              <div className="mb-2 text-gray-400">لا توجد مقاسات متوفرة</div>
             )}
-            {product.details && (
+            {product?.details ? (
               <div className="mb-2">
                 <span className="font-semibold">تفاصيل إضافية:</span>
                 <p className="text-gray-700 mt-1">{product.details}</p>
               </div>
+            ) : (
+              <div className="mb-2 text-gray-400">لا توجد تفاصيل إضافية</div>
             )}
           </div>
         </div>
