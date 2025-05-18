@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
@@ -195,7 +196,6 @@ const Cart = () => {
                               )}
                               <div>
                                 <h3 className="font-medium">{item.name}</h3>
-                                <p className="text-gray-500 text-sm">المقاس: {item.size}</p>
                                 <p className="text-gray-500 text-sm">{item.price.toFixed(2)} EGP</p>
                               </div>
                             </div>
