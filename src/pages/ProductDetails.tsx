@@ -64,7 +64,7 @@ const ProductDetails = () => {
           {/* سلايدر صور */}
           <div className="flex flex-col items-center md:w-1/2">
             <div className="relative w-full flex justify-center">
-              <img src={images[imgIdx]} alt={product.name} className="rounded-lg object-cover w-full max-h-80 border" />
+              <img src={images[imgIdx]} alt={product.name} className="rounded-lg object-contain w-full h-80 bg-white border" />
               {images.length > 1 && (
                 <div className="absolute top-1/2 left-0 right-0 flex justify-between items-center px-2">
                   <button onClick={() => setImgIdx((imgIdx - 1 + images.length) % images.length)} className="bg-gray-200 rounded-full p-1">◀</button>
