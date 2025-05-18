@@ -3,6 +3,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Product } from '@/models/Product';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   product: Product;
@@ -81,7 +82,10 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
       </CardContent>
       <CardFooter className="p-4 pt-0 flex flex-col gap-2">
         <Button 
-          onClick={() => onAddToCart(product, selectedSize, 1)}
+          onClick={() => {
+            onAddToCart(product, selectedSize, 1);
+            toast.success('تم إضافة المنتج للعربة!');
+          }}
           className="w-full bg-green-600 hover:bg-green-700 transition-colors"
           disabled={availableSizes.length === 0}
         >
