@@ -1,65 +1,95 @@
-import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState } from 'react';
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useDispatch } from 'react-redux';
-import { addToCart } from '../redux/CartSlice';
-import { toast } from 'react-toastify';
+import { Product } from '@/models/Product';
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
-const Product = ({ id, title, description, price, image, sizes, colors }) => {
-  const dispatch = useDispatch();
+interface ProductCardProps {
+  product: Product;
+  onAddToCart: (product: Product, size: string, quantity?: number) => void;
+  className?: string;
+}
 
-  const handleAddToCart = () => {
-    dispatch(addToCart({ id, title, description, price, image, sizes, colors }));
-    toast.success("تمت الإضافة للسلة");
-  };
+const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps) => {
+  if (!product || typeof product !== "object") return null;
+
+  const availableSizes = (product.sizes || []).filter(s => s && s.stock > 0);
+  const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size || '');
+  const minPrice = availableSizes.length > 0 ? Math.min(...availableSizes.map(s => s.price)) : null;
+  const mainImage =
+    (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
+    (product.images && product.images[0]) ||
+    "/placeholder.svg";
 
   return (
-    <Card className="w-full max-w-sm shadow-lg rounded-2xl p-4 border border-gray-200">
-      <img src={image} alt={title} className="w-full h-64 object-cover rounded-xl mb-4" />
-      <CardContent>
-        <h2 className="text-xl font-semibold mb-2 text-center">{title}</h2>
-        <p className="text-gray-700 text-sm mb-2 text-center">{description}</p>
-        <p className="text-lg font-bold text-center text-green-600 mb-4">{price} جنيه</p>
-
-        {sizes && sizes.length > 0 && (
-          <div className="mb-2">
-            <h3 className="text-sm font-medium text-gray-700 mb-1">المقاسات:</h3>
-            <div className="flex flex-wrap gap-2">
-              {sizes.map((size, index) => (
-                <span
-                  key={index}
-                  className="border px-2 py-1 rounded text-sm text-gray-600"
-                >
-                  {size}
-                </span>
-              ))}
+    <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className}`}>
+      <CardHeader className="p-0">
+        <div className="relative">
+          <AspectRatio ratio={4/3} className="bg-gray-100 min-h-[180px]">
+            <img 
+              src={mainImage}
+              alt={product?.name || "منتج"}
+              className="object-cover w-full h-full"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/placeholder.svg';
+              }}
+            />
+            {product.hasDiscount && product.discount && product.discount > 0 && (
+              <span className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded shadow-lg z-10 animate-bounce">
+                خصم {product.discount}%
+              </span>
+            )}
+          </AspectRatio>
+          {product.hasDiscount && product.discount && product.discount > 0 && (
+            <div className="absolute top-0 right-0 bg-red-700 text-white text-xs font-bold px-3 py-1 rounded-bl-lg z-20">
+              عرض خاص: خصم {product.discount}%
             </div>
-          </div>
-        )}
-
-        {colors && colors.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-sm font-medium text-gray-700 mb-1">الألوان:</h3>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((color, index) => (
-                <span
-                  key={index}
-                  className="w-5 h-5 rounded-full border"
-                  style={{ backgroundColor: color }}
-                ></span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="text-center">
-          <Button onClick={handleAddToCart} className="w-full bg-green-600 hover:bg-green-700 text-white">
-            أضف للسلة
-          </Button>
+          )}
         </div>
+      </CardHeader>
+      <CardContent className="p-4">
+        <h3 className="font-semibold truncate">{product?.name || "منتج بدون اسم"}</h3>
+        <p className="text-gray-500 text-sm truncate">{product?.category || "-"} - {product?.type || "-"}</p>
+        {product.details && <p className="text-xs text-gray-600 mt-1 truncate">{product.details}</p>}
+        {product.colors && product.colors.length > 0 && (
+          <div className="text-xs text-gray-500 mt-1">الألوان: {product.colors.join(', ')}</div>
+        )}
+        <div className="mt-2">
+          {minPrice !== null ? (
+            <span className="text-lg font-bold text-green-700">{minPrice} EGP</span>
+          ) : (
+            <span className="text-lg font-bold text-gray-400">غير متوفر</span>
+          )}
+        </div>
+        {availableSizes.length > 0 && (
+          <div className="mt-2">
+            <label className="block text-xs mb-1">اختر المقاس:</label>
+            <select
+              value={selectedSize}
+              onChange={e => setSelectedSize(e.target.value)}
+              className="border rounded px-2 py-1 w-full"
+            >
+              {availableSizes.map(size => (
+                <option key={size.size} value={size.size}>
+                  {size.size} - {size.price} EGP {size.stock === 0 ? '(غير متوفر)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </CardContent>
+      <CardFooter className="p-4 pt-0 flex flex-col gap-2">
+        <Button 
+          onClick={() => onAddToCart(product, selectedSize, 1)}
+          className="w-full bg-green-600 hover:bg-green-700 transition-colors"
+          disabled={availableSizes.length === 0}
+        >
+          {availableSizes.length === 0 ? 'غير متوفر' : 'أضف للعربة'}
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
 
-export default Product;
+export default ProductCard;
