@@ -195,7 +195,8 @@ const Cart = () => {
                               )}
                               <div>
                                 <h3 className="font-medium">{item.name}</h3>
-                                <p className="text-gray-500 text-sm">المقاس: {item.size}</p>
+                                {item.size && <p className="text-gray-500 text-sm">المقاس: {item.size}</p>}
+                                {item.color && <p className="text-gray-500 text-sm">اللون: {item.color}</p>}
                                 <p className="text-gray-500 text-sm">{item.price.toFixed(2)} EGP</p>
                               </div>
                             </div>
