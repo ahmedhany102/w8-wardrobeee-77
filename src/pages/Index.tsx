@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 import { Shield } from 'lucide-react';
-import { Product, ProductCategory, default as ProductDatabase } from '@/models/Product';
+import { Product, default as ProductDatabase } from '@/models/Product';
 import { Badge } from '@/components/ui/badge';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { toast } from 'sonner';
@@ -22,13 +22,7 @@ const CategoryButton = ({ category, active, onClick }: { category: string, activ
   </Button>
 );
 
-const categoryIcons: Record<string, string> = {
-  [ProductCategory.FOOD]: '🍔',
-  [ProductCategory.TECHNOLOGY]: '📱',
-  [ProductCategory.CLOTHING]: '👕',
-  [ProductCategory.SHOES]: '👟',
-  'All': '🛍️',
-};
+const categories = ['رجالي', 'حريمي', 'أطفال'];
 
 const Index = () => {
   const { user } = useAuth();
@@ -181,7 +175,7 @@ const Index = () => {
             {categories.map(category => (
               <CategoryButton 
                 key={category} 
-                category={`${categoryIcons[category] || '🔍'} ${category}`}
+                category={category}
                 active={selectedCategory === category}
                 onClick={() => handleCategoryChange(category)}
               />
