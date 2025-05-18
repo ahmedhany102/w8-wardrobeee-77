@@ -57,12 +57,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
           required
         />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block font-bold mb-1">القسم *</label>
           <select
             value={category}
-            onChange={e => setCategory(e.target.value as "رجالي" | "حريمي" | "أطفال")}
+            onChange={e => setCategory(e.target.value)}
             className="border rounded px-3 py-2 w-full"
             required
           >

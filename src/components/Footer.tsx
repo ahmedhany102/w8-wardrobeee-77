@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
   const { user, isAdmin } = useAuth ? useAuth() : { user: null, isAdmin: false };
   return (
     <>
-      <footer className="bg-gray-900 text-white py-4 mt-auto w-full flex flex-col justify-end min-h-[120px]">
+      <footer className="bg-gray-900 text-white py-4 mt-auto">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div className="text-center md:text-left">
@@ -98,7 +98,7 @@ const Footer: React.FC = () => {
       </footer>
       {/* Spacer to prevent footer from being covered by bottom nav */}
       {user && !isAdmin && (
-        <div className="pb-24" />
+        <div style={{ height: 100 }}></div>
       )}
     </>
   );
