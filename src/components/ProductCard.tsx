@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Product } from '@/models/Product';
@@ -6,23 +6,29 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (product: Product, size: string) => void;
   className?: string;
 }
 
 const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps) => {
+  // Find all sizes with stock > 0
+  const availableSizes = (product.sizes || []).filter(s => s.stock > 0);
+  const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size || '');
+  const minPrice = availableSizes.length > 0 ? Math.min(...availableSizes.map(s => s.price)) : null;
+  const selectedSizeObj = availableSizes.find(s => s.size === selectedSize);
+  const mainImage = product.mainImage || (product.images && product.images[0]) || '/placeholder.svg';
+
   return (
     <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className}`}>
       <CardHeader className="p-0">
         <div className="relative">
           <AspectRatio ratio={4/3} className="bg-gray-100 min-h-[180px]">
             <img 
-              src={product.imageUrl || '/placeholder.svg'} 
+              src={mainImage} 
               alt={product.name}
               className="object-cover w-full h-full"
               loading="lazy"
               onError={(e) => {
-                // If the image fails to load, set a placeholder
                 (e.target as HTMLImageElement).src = '/placeholder.svg';
               }}
             />
@@ -41,27 +47,42 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
       </CardHeader>
       <CardContent className="p-4">
         <h3 className="font-semibold truncate">{product.name}</h3>
-        <p className="text-gray-500 text-sm truncate">{product.category}</p>
-        
+        <p className="text-gray-500 text-sm truncate">{product.category} - {product.type}</p>
+        {product.details && <p className="text-xs text-gray-600 mt-1 truncate">{product.details}</p>}
+        {product.colors && product.colors.length > 0 && (
+          <div className="text-xs text-gray-500 mt-1">الألوان: {product.colors.join(', ')}</div>
+        )}
         <div className="mt-2">
-          {product.hasDiscount && product.discount && product.discount > 0 ? (
-            <>
-              <span className="text-lg font-bold text-red-600 mr-2">
-                {(product.price * (1 - product.discount / 100)).toFixed(2)} EGP
-              </span>
-              <span className="text-sm line-through text-gray-400 mr-2">{product.price} EGP</span>
-            </>
+          {minPrice !== null ? (
+            <span className="text-lg font-bold text-green-700">{minPrice} EGP</span>
           ) : (
-            <span className="text-lg font-bold">{product.price} EGP</span>
+            <span className="text-lg font-bold text-gray-400">غير متوفر</span>
           )}
         </div>
+        {availableSizes.length > 0 && (
+          <div className="mt-2">
+            <label className="block text-xs mb-1">اختر المقاس:</label>
+            <select
+              value={selectedSize}
+              onChange={e => setSelectedSize(e.target.value)}
+              className="border rounded px-2 py-1 w-full"
+            >
+              {availableSizes.map(size => (
+                <option key={size.size} value={size.size}>
+                  {size.size} - {size.price} EGP {size.stock === 0 ? '(غير متوفر)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Button 
-          onClick={() => onAddToCart(product)}
+          onClick={() => onAddToCart(product, selectedSize)}
           className="w-full bg-green-600 hover:bg-green-700 transition-colors"
+          disabled={availableSizes.length === 0}
         >
-          Add to Cart
+          {availableSizes.length === 0 ? 'غير متوفر' : 'أضف للعربة'}
         </Button>
       </CardFooter>
     </Card>
