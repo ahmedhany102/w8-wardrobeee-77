@@ -1,6 +1,6 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
+import UserDatabase from '@/models/UserDatabase';
 
 interface User {
   id: string;
@@ -223,9 +223,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
       
-      // In a real app, we would send this to an API endpoint
-      console.log("Registration successful:", { email, name });
-      
+      // إضافة المستخدم إلى UserDatabase
+      const userDb = UserDatabase.getInstance();
+      const hashedPassword = btoa(password); // تشفير بسيط (Base64) - يفضل استبداله لاحقًا بتشفير أقوى
+      userDb.addUser({
+        id: `user-${Date.now()}`,
+        name: name || email.split('@')[0],
+        email,
+        password: hashedPassword,
+        isAdmin: false,
+        isBlocked: false,
+        createdAt: new Date().toISOString(),
+      });
+
       // Automatically log in the user after successful registration
       await login(email, password);
       
