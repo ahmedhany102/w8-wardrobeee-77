@@ -11,12 +11,18 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps) => {
+  if (!product) return null; // حماية أساسية
+
   // Find all sizes with stock > 0
   const availableSizes = (product.sizes || []).filter(s => s.stock > 0);
   const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size || '');
   const minPrice = availableSizes.length > 0 ? Math.min(...availableSizes.map(s => s.price)) : null;
   const selectedSizeObj = availableSizes.find(s => s.size === selectedSize);
-  const mainImage = product.mainImage || (product.images && product.images[0]) || '/placeholder.svg';
+  const mainImage = product?.mainImage && product.mainImage !== "" 
+    ? product.mainImage 
+    : (product?.images && product.images[0]) 
+      ? product.images[0] 
+      : '/placeholder.svg';
   const [showDetails, setShowDetails] = useState(false);
 
   return (
@@ -25,8 +31,8 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
         <div className="relative">
           <AspectRatio ratio={4/3} className="bg-gray-100 min-h-[180px]">
             <img 
-              src={mainImage} 
-              alt={product.name}
+              src={mainImage}
+              alt={product?.name || "منتج"}
               className="object-cover w-full h-full"
               loading="lazy"
               onError={(e) => {
@@ -47,8 +53,8 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <h3 className="font-semibold truncate">{product.name}</h3>
-        <p className="text-gray-500 text-sm truncate">{product.category} - {product.type}</p>
+        <h3 className="font-semibold truncate">{product?.name || "منتج بدون اسم"}</h3>
+        <p className="text-gray-500 text-sm truncate">{product?.category || "-"} - {product?.type || "-"}</p>
         {product.details && <p className="text-xs text-gray-600 mt-1 truncate">{product.details}</p>}
         {product.colors && product.colors.length > 0 && (
           <div className="text-xs text-gray-500 mt-1">الألوان: {product.colors.join(', ')}</div>
@@ -92,13 +98,13 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
           عرض التفاصيل
         </Button>
       </CardFooter>
-      {showDetails && (
+      {showDetails && product && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60" onClick={() => setShowDetails(false)}>
           <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full relative" onClick={e => e.stopPropagation()}>
             <button className="absolute top-2 left-2 text-red-600 font-bold" onClick={() => setShowDetails(false)}>×</button>
             <h2 className="text-xl font-bold mb-2">{product?.name || "منتج بدون اسم"}</h2>
             <img
-              src={mainImage && mainImage !== "" ? mainImage : "/placeholder.svg"}
+              src={mainImage}
               alt={product?.name || "منتج"}
               className="w-32 h-32 object-cover rounded mb-2 mx-auto"
               onError={e => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
