@@ -20,8 +20,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <AppHeader />
-      <main className={`flex-1 flex flex-col w-full ${user && !isAdminPage ? 'pb-32' : ''}`}>
-        <div className="container mx-auto px-4 py-4 flex-1 flex flex-col">
+      <main className={`flex-1 w-full ${user && !isAdminPage ? 'pb-32' : ''}`}>
+        <div className="container mx-auto px-4 py-4">
           {children}
         </div>
       </main>
