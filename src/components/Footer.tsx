@@ -7,7 +7,7 @@ const Footer: React.FC = () => {
   const { user, isAdmin } = useAuth ? useAuth() : { user: null, isAdmin: false };
   return (
     <>
-      <footer className="bg-gray-900 text-white py-4 mt-auto w-full flex-shrink-0">
+      <footer className="bg-gray-900 text-white py-3 w-full fixed bottom-12 left-0 right-0 z-30">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
             <div className="text-center md:text-left">
