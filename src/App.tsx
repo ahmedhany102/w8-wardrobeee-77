@@ -1,63 +1,71 @@
-import React, { useState } from "react";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { RequireAuth } from './components/RequireAuth';
 
-function ProductCard({ product }) {
-  const [showDetails, setShowDetails] = useState(false);
+import Index from './pages/Index';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Profile from './pages/Profile';
+import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
+import Contact from './pages/Contact';
+import Cart from './pages/Cart';
+import NotFound from './pages/NotFound';
+import OrderTracking from './pages/OrderTracking';
 
+import { ThemeProvider } from 'next-themes';
+import { Toaster } from '@/components/ui/toaster';
+import { Toaster as SonnerToaster } from 'sonner';
+import { AuthProvider } from './contexts/AuthContext';
+import './App.css';
+import './autoScroll.css';
+
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+function App() {
   return (
-    <div className="product-card">
-      {/* باقي تفاصيل المنتج */}
-      <button onClick={() => setShowDetails(true)}>عرض التفاصيل</button>
-      {showDetails && (
-        <div className="modal-overlay" onClick={() => setShowDetails(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <button onClick={() => setShowDetails(false)}>إغلاق</button>
-            <h2>{product.name}</h2>
-            <img src={product.mainImage} alt={product.name} />
-            <div>
-              <h4>الألوان المتوفرة:</h4>
-              {product.colors && product.colors.map(color => (
-                <span key={color} style={{
-                  background: color,
-                  borderRadius: '50%',
-                  width: 24,
-                  height: 24,
-                  display: 'inline-block',
-                  margin: 4
-                }} />
-              ))}
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="dark" attribute="class">
+        <AuthProvider>
+          <Router>
+            <div className="flex flex-col min-h-screen w-full">
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/admin-login" element={<AdminLogin />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route element={<RequireAuth adminOnly={false} />}>
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/tracking" element={<OrderTracking />} />
+                  <Route path="/orders" element={<OrderTracking />} />
+                </Route>
+                <Route element={<RequireAuth adminOnly={true} />}>
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/products" element={<Admin activeTab="products" />} />
+                  <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
+                  <Route path="/admin/users" element={<Admin activeTab="users" />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
             </div>
-            <div>
-              <h4>المقاسات المتوفرة:</h4>
-              <table>
-                <thead>
-                  <tr>
-                    <th>المقاس</th>
-                    <th>السعر</th>
-                    <th>المخزون</th>
-                    <th>صورة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {product.sizes && product.sizes.map(size => (
-                    <tr key={size.size}>
-                      <td>{size.size}</td>
-                      <td>{size.price} EGP</td>
-                      <td>{size.stock}</td>
-                      <td>{size.image ? <img src={size.image} width={40} /> : "بدون صورة"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div>
-              <h4>تفاصيل إضافية:</h4>
-              <p>{product.details}</p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+            <SonnerToaster position="top-right" richColors closeButton />
+            <Toaster />
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
-export default ProductCard;
+export default App;
