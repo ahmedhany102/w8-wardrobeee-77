@@ -20,24 +20,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <AppHeader />
-      <main className={`flex-1 flex flex-col w-full ${user && !isAdminPage ? 'pb-16' : ''}`}>
+      <main className={`flex-1 flex flex-col w-full`}>
         <div className="container mx-auto px-4 py-4 flex-1 flex flex-col">
           {children}
         </div>
       </main>
-      
-      <Footer />
-      {user && !isAdminPage && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-green-900 to-black z-40 border-t border-green-800 py-1">
-          <div className="container mx-auto flex justify-around items-center">
-            <NavItem to="/" icon={<Home size={18} />} label="Home" />
-            {!isAdmin && <NavItem to="/cart" icon={<ShoppingCart size={18} />} label="Cart" />}
-            {!isAdmin && <NavItem to="/orders" icon={<Package2 size={18} />} label="Orders" />}
-            {!isAdmin && <NavItem to="/tracking" icon={<Truck size={18} />} label="Track" />}
-            <NavItem to="/profile" icon={<User size={18} />} label="Profile" />
-          </div>
-        </nav>
-      )}
+      <div className="w-full">
+        <Footer />
+        {user && !isAdminPage && (
+          <nav className="w-full bg-gradient-to-r from-green-900 to-black z-40 border-t border-green-800 py-1 mt-4">
+            <div className="container mx-auto flex justify-around items-center">
+              <NavItem to="/" icon={<Home size={18} />} label="Home" />
+              {!isAdmin && <NavItem to="/cart" icon={<ShoppingCart size={18} />} label="Cart" />}
+              {!isAdmin && <NavItem to="/orders" icon={<Package2 size={18} />} label="Orders" />}
+              {!isAdmin && <NavItem to="/tracking" icon={<Truck size={18} />} label="Track" />}
+              <NavItem to="/profile" icon={<User size={18} />} label="Profile" />
+            </div>
+          </nav>
+        )}
+      </div>
     </div>
   );
 };
