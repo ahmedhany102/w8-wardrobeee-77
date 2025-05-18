@@ -230,15 +230,13 @@ const Cart = () => {
                       
                       <div className="flex justify-between items-center mt-6">
                         <Button 
-                          variant="outline" 
-                          onClick={handleClearCart}
                           className="border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          onClick={handleClearCart}
                         >
                           <Trash2 size={16} className="mr-2" /> Clear Cart
                         </Button>
                         <Button 
                           onClick={handleContinueShopping}
-                          variant="outline"
                         >
                           <ArrowLeft size={16} className="mr-2" /> Continue Shopping
                         </Button>
@@ -288,9 +286,8 @@ const Cart = () => {
           <TabsContent value="checkout" className="space-y-6">
             <div className="flex items-center mb-6">
               <Button 
-                variant="ghost"
-                onClick={() => setActiveTab('cart')}
                 className="mr-4"
+                onClick={() => setActiveTab('cart')}
               >
                 <ArrowLeft size={16} className="mr-2" />
                 Back to Cart
