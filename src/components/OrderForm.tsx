@@ -1,332 +1,234 @@
 import React, { useState } from 'react';
-import Layout from '@/components/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
+import { Order, OrderItem } from '@/models/Order';
 import OrderDatabase from '@/models/OrderDatabase';
-import { Order } from '@/models/Order';
 import { useAuth } from '@/contexts/AuthContext';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const OrderTracking = () => {
+interface OrderFormProps {
+  cartItems: {
+    id: string;
+    productId: string;
+    name: string;
+    price: number;
+    quantity: number;
+    imageUrl?: string;
+    color?: string; // أضف color
+    size?: string;  // أضف size
+  }[];
+  total: number;
+  onOrderComplete?: () => void;
+}
+
+const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete }) => {
   const { user } = useAuth();
-  const [orderNumber, setOrderNumber] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [order, setOrder] = useState<Order | null>(null);
-  const [userOrders, setUserOrders] = useState<Order[]>([]);
-  const [activeTab, setActiveTab] = useState('track');
-  
-  const handleTrackOrder = async () => {
-    if (!orderNumber.trim()) {
-      toast.error("Please enter an order number");
-      return;
-    }
-    
-    setIsLoading(true);
-    setOrder(null);
-    
+  const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: '',
+    street: '',
+    city: '',
+    zipCode: '',
+    notes: '',
+    paymentMethod: 'CASH', // Default to Cash on Delivery
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
     try {
-      const orderDb = OrderDatabase.getInstance();
-      const foundOrder = await orderDb.getOrderByOrderNumber(orderNumber);
-      
-      if (foundOrder) {
-        setOrder(foundOrder);
-      } else {
-        toast.error("Order not found. Please check your order number.");
+      // Validate form
+      if (!formData.name || !formData.email || !formData.phone || !formData.street || !formData.city || !formData.zipCode) {
+        toast.error('Please fill in all required fields');
+        setIsSubmitting(false);
+        return;
       }
-    } catch (error) {
-      console.error("Error tracking order:", error);
-      toast.error("Failed to track order. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const loadUserOrders = async () => {
-    if (!user || !user.email) {
-      toast.error("Please login to view your orders");
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
+
+      // Convert cart items to order items (مع تمرير اللون والمقاس)
+      const orderItems: OrderItem[] = cartItems.map(item => ({
+        productId: item.productId,
+        productName: item.name,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        totalPrice: item.price * item.quantity,
+        imageUrl: item.imageUrl,
+        color: item.color || '-', // مرر اللون أو علامة "-"
+        size: item.size || '-',   // مرر المقاس أو علامة "-"
+      }));
+
+      // Create order object
+      const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
+        orderNumber: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
+        customerInfo: {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          address: {
+            street: formData.street,
+            city: formData.city,
+            zipCode: formData.zipCode,
+          }
+        },
+        items: orderItems,
+        totalAmount: total,
+        status: 'PENDING',
+        paymentStatus: formData.paymentMethod === 'CASH' ? 'PENDING' : 'PAID',
+        paymentInfo: {
+          method: formData.paymentMethod as Order['paymentInfo']['method'],
+        },
+        notes: formData.notes
+      };
+
+      // Save order to database
       const orderDb = OrderDatabase.getInstance();
-      const orders = await orderDb.getOrdersByCustomerEmail(user.email);
-      setUserOrders(orders);
-      
-      if (orders.length === 0) {
-        toast.info("You haven't placed any orders yet");
+      const newOrder = await orderDb.saveOrder(orderData);
+
+      // Show success message
+      toast.success('Order placed successfully!');
+      console.log('Order created:', newOrder);
+
+      // Clear cart if order placement was successful
+      if (onOrderComplete) {
+        onOrderComplete();
       }
+
     } catch (error) {
-      console.error("Error loading user orders:", error);
-      toast.error("Failed to load your orders");
+      console.error('Error creating order:', error);
+      toast.error('Failed to place order. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
-  };
-  
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    if (value === 'history' && user && userOrders.length === 0) {
-      loadUserOrders();
-    }
-  };
-  
-  // Format date to a readable string
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="text-2xl font-bold mb-6 text-center">Track Your Order</h1>
-        
-        {user ? (
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="track">Track Order</TabsTrigger>
-              <TabsTrigger value="history">Your Orders</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="track">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Enter Your Order Number</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center space-x-2">
-                    <Input
-                      placeholder="Order Number (e.g., EG-123456)"
-                      value={orderNumber}
-                      onChange={(e) => setOrderNumber(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button 
-                      onClick={handleTrackOrder} 
-                      disabled={isLoading}
-                    >
-                      {isLoading ? 'Tracking...' : 'Track'}
-                    </Button>
-                  </div>
-                  
-                  {order && (
-                    <div className="mt-8 border rounded-md p-4">
-                      <h3 className="text-xl font-semibold mb-2">Order #{order.orderNumber}</h3>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-500">Date Ordered</p>
-                          <p>{formatDate(order.createdAt)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Status</p>
-                          <p className="font-semibold">
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                              order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' : 
-                              order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {order.status}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t pt-4 mb-4">
-                        <h4 className="font-semibold mb-2">Shipping Details</h4>
-                        <p>{order.customerInfo.name}</p>
-                        <p>{order.customerInfo.address.street}</p>
-                        <p>{order.customerInfo.address.city}</p>
-                        <p>{order.customerInfo.phone}</p>
-                      </div>
-                      
-                      <div className="border-t pt-4">
-                        <h4 className="font-semibold mb-2">Order Items</h4>
-                        <div className="space-y-2">
-                          {order.items.map((item, index) => (
-                            <div key={index} className="flex justify-between">
-                              <span>
-                                {item.productName} × {item.quantity}
-                                {item.color && item.color !== '-' && ` | اللون: ${item.color}`}
-                                {item.size && item.size !== '-' && ` | المقاس: ${item.size}`}
-                              </span>
-                              <span className="font-medium">{item.totalPrice} EGP</span>
-                            </div>
-                          ))}
-                          <div className="flex justify-between border-t pt-2 font-semibold">
-                            <span>Total</span>
-                            <span>{order.totalAmount} EGP</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="history">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Your Order History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="text-center py-8">
-                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900 mx-auto"></div>
-                      <p className="mt-2">Loading your orders...</p>
-                    </div>
-                  ) : userOrders.length > 0 ? (
-                    <div className="space-y-4">
-                      {userOrders.map(order => (
-                        <div key={order.id} className="border rounded-md p-4 hover:bg-gray-50 transition-colors">
-                          <div className="flex justify-between mb-2">
-                            <h3 className="font-semibold">Order #{order.orderNumber}</h3>
-                            <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                              order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' : 
-                              order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                              'bg-blue-100 text-blue-800'
-                            }`}>
-                              {order.status}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600">{formatDate(order.createdAt)}</p>
-                          <p className="text-sm mt-1">{order.items.length} items · Total: {order.totalAmount} EGP</p>
-                          
-                          <div className="mt-2 flex justify-between items-center">
-                            <Button variant="link" size="sm" onClick={() => {
-                              setOrderNumber(order.orderNumber);
-                              setOrder(order);
-                              setActiveTab('track');
-                            }}>View Details</Button>
-                            
-                            {(order.status === 'PENDING' || order.status === 'PROCESSING') && (
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className="text-red-600 border-red-200 hover:bg-red-50"
-                                onClick={async () => {
-                                  try {
-                                    const orderDb = OrderDatabase.getInstance();
-                                    await orderDb.cancelOrder(order.id);
-                                    await loadUserOrders(); // Refresh orders
-                                    toast.success("Order cancelled successfully");
-                                  } catch (error) {
-                                    toast.error("Failed to cancel order");
-                                    console.error(error);
-                                  }
-                                }}
-                              >
-                                Cancel Order
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <p>You haven't placed any orders yet.</p>
-                      <Button 
-                        variant="outline" 
-                        className="mt-4" 
-                        onClick={() => window.location.href = '/'}
-                      >
-                        Browse Products
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Enter Your Order Number</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-2">
-                <Input
-                  placeholder="Order Number (e.g., EG-123456)"
-                  value={orderNumber}
-                  onChange={(e) => setOrderNumber(e.target.value)}
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handleTrackOrder} 
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Tracking...' : 'Track'}
-                </Button>
-              </div>
-              
-              {order && (
-                <div className="mt-8 border rounded-md p-4">
-                  <h3 className="text-xl font-semibold mb-2">Order #{order.orderNumber}</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <p className="text-sm text-gray-500">Date Ordered</p>
-                      <p>{formatDate(order.createdAt)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Status</p>
-                      <p className="font-semibold">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                          order.status === 'DELIVERED' ? 'bg-green-100 text-green-800' : 
-                          order.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
-                          'bg-blue-100 text-blue-800'
-                        }`}>
-                          {order.status}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t pt-4 mb-4">
-                    <h4 className="font-semibold mb-2">Shipping Details</h4>
-                    <p>{order.customerInfo.name}</p>
-                    <p>{order.customerInfo.address.street}</p>
-                    <p>{order.customerInfo.address.city}</p>
-                    <p>{order.customerInfo.phone}</p>
-                  </div>
-                  
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold mb-2">Order Items</h4>
-                    <div className="space-y-2">
-                      {order.items.map((item, index) => (
-                        <div key={index} className="flex justify-between">
-                          <span>
-                            {item.productName} × {item.quantity}
-                            {item.color && item.color !== '-' && ` | اللون: ${item.color}`}
-                            {item.size && item.size !== '-' && ` | المقاس: ${item.size}`}
-                          </span>
-                          <span className="font-medium">{item.totalPrice} EGP</span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between border-t pt-2 font-semibold">
-                        <span>Total</span>
-                        <span>{order.totalAmount} EGP</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="name">Full Name</Label>
+          <Input
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Your full name"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            value={formData.email}
+            onChange={handleChange}
+            placeholder="your@email.com"
+            required
+          />
+        </div>
       </div>
-    </Layout>
+
+      <div>
+        <Label htmlFor="phone">Phone Number</Label>
+        <Input
+          id="phone"
+          name="phone"
+          value={formData.phone}
+          onChange={handleChange}
+          placeholder="Your phone number"
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="street">Street Address</Label>
+        <Input
+          id="street"
+          name="street"
+          value={formData.street}
+          onChange={handleChange}
+          placeholder="Street name and number"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="city">City</Label>
+          <Input
+            id="city"
+            name="city"
+            value={formData.city}
+            onChange={handleChange}
+            placeholder="City"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="zipCode">Zip Code</Label>
+          <Input
+            id="zipCode"
+            name="zipCode"
+            value={formData.zipCode}
+            onChange={handleChange}
+            placeholder="Zip Code"
+            required
+          />
+        </div>
+      </div>
+
+      <div>
+        <Label htmlFor="paymentMethod">Payment Method</Label>
+        <select
+          id="paymentMethod"
+          name="paymentMethod"
+          value={formData.paymentMethod}
+          onChange={handleChange}
+          className="w-full p-2 border border-gray-300 rounded-md bg-white dark:bg-gray-800"
+          required
+        >
+          <option value="CASH">Cash on Delivery</option>
+          <option value="CREDIT_CARD">Credit Card</option>
+          <option value="WALLET">Mobile Wallet</option>
+          <option value="BANK_TRANSFER">Bank Transfer</option>
+        </select>
+      </div>
+
+      <div>
+        <Label htmlFor="notes">Order Notes (Optional)</Label>
+        <Textarea
+          id="notes"
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          placeholder="Any special instructions for delivery?"
+          rows={3}
+        />
+      </div>
+
+      <Button
+        type="submit"
+        className="w-full bg-green-800 hover:bg-green-900"
+        disabled={isSubmitting}
+      >
+        {isSubmitting ? 'Processing...' : 'Complete Order'}
+      </Button>
+    </form>
   );
 };
 
-export default OrderTracking;
+export default OrderForm;
