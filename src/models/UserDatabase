@@ -1,0 +1,52 @@
+import { User } from './User';
+
+class UserDatabase {
+  private static instance: UserDatabase;
+  private STORAGE_KEY = 'users';
+  private users: User[] = [];
+
+  private constructor() {
+    const saved = localStorage.getItem(this.STORAGE_KEY);
+    this.users = saved ? JSON.parse(saved) : [];
+  }
+
+  public static getInstance(): UserDatabase {
+    if (!UserDatabase.instance) {
+      UserDatabase.instance = new UserDatabase();
+    }
+    return UserDatabase.instance;
+  }
+
+  public getAllUsers(): User[] {
+    return [...this.users];
+  }
+
+  public addUser(user: User): void {
+    this.users.push(user);
+    this.save();
+  }
+
+  public deleteUser(userId: string): void {
+    this.users = this.users.filter(u => u.id !== userId);
+    this.save();
+  }
+
+  public updateUser(userId: string, updates: Partial<User>): void {
+    this.users = this.users.map(u => u.id === userId ? { ...u, ...updates } : u);
+    this.save();
+  }
+
+  public setAdmin(userId: string, isAdmin: boolean): void {
+    this.updateUser(userId, { isAdmin });
+  }
+
+  public setBlocked(userId: string, isBlocked: boolean): void {
+    this.updateUser(userId, { isBlocked });
+  }
+
+  private save() {
+    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.users));
+  }
+}
+
+export default UserDatabase; 
