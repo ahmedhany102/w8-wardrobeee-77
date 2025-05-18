@@ -111,25 +111,49 @@ const ProductCatalog: React.FC = () => {
     }
   };
 
-  const handleAddToCart = async (product: Product, size: string, quantity: number = 1) => {
+  const handleAddToCart = (product: Product) => {
     if (!user) {
+      // Save selected product in localStorage and redirect to login
       localStorage.setItem('pendingProduct', JSON.stringify(product));
       toast.info('Please login to add items to your cart');
       navigate('/login');
       return;
     }
+
+    // Don't allow admins to shop
     if (isAdmin) {
       toast.error("Admin accounts cannot make purchases");
       return;
     }
-    const cartDb = (await import('@/models/CartDatabase')).default.getInstance();
-    const success = await cartDb.addToCart(product, size, quantity);
-    if (success) {
+
+    const existingItem = cart.find(item => item.product.id === product.id);
+    
+    if (existingItem) {
+      const updatedCart = cart.map(item => 
+        item.product.id === product.id 
+          ? { 
+              ...item, 
+              quantity: item.quantity + 1,
+            } 
+          : item
+      );
+      setCart(updatedCart);
+      localStorage.setItem('cart', JSON.stringify(updatedCart));
       window.dispatchEvent(new Event('cartUpdated'));
-      toast.success(`${product.name} تمت إضافته للعربة`);
     } else {
-      toast.error('فشل في إضافة المنتج للعربة');
+      const newCart = [
+        ...cart, 
+        {
+          product: product,
+          quantity: 1,
+        }
+      ];
+      setCart(newCart);
+      localStorage.setItem('cart', JSON.stringify(newCart));
+      window.dispatchEvent(new Event('cartUpdated'));
     }
+    
+    toast.success(`${product.name} added to cart`);
   };
 
   const handleUpdateCartItem = (productId: string, quantity: number) => {
