@@ -11,18 +11,15 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps) => {
-  if (!product) return null; // حماية أساسية
+  if (!product || typeof product !== "object") return null; // حماية أساسية
 
-  // Find all sizes with stock > 0
   const availableSizes = (product.sizes || []).filter(s => s.stock > 0);
   const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size || '');
   const minPrice = availableSizes.length > 0 ? Math.min(...availableSizes.map(s => s.price)) : null;
-  const selectedSizeObj = availableSizes.find(s => s.size === selectedSize);
-  const mainImage = product?.mainImage && product.mainImage !== "" 
-    ? product.mainImage 
-    : (product?.images && product.images[0]) 
-      ? product.images[0] 
-      : '/placeholder.svg';
+  const mainImage =
+    (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
+    (product.images && product.images[0]) ||
+    "/placeholder.svg";
   const [showDetails, setShowDetails] = useState(false);
 
   return (
