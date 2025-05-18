@@ -15,7 +15,6 @@ export interface Product {
   sizes: ProductSize[];
   colors: string[];
   mainImage: string; // base64 or url
-  images?: string[];
   details?: string;
   hasDiscount?: boolean;
   discount?: number;
