@@ -6,7 +6,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ProductCardProps {
   product: Product;
-  onAddToCart: (product: Product, size: string) => void;
+  onAddToCart: (product: Product, size: string, quantity?: number) => void;
   className?: string;
 }
 
@@ -78,7 +78,7 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Button 
-          onClick={() => onAddToCart(product, selectedSize)}
+          onClick={() => onAddToCart(product, selectedSize, 1)}
           className="w-full bg-green-600 hover:bg-green-700 transition-colors"
           disabled={availableSizes.length === 0}
         >
