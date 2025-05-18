@@ -11,9 +11,9 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps) => {
-  if (!product || typeof product !== "object") return null; // حماية أساسية
+  if (!product || typeof product !== "object") return null;
 
-  const availableSizes = (product.sizes || []).filter(s => s.stock > 0);
+  const availableSizes = (product.sizes || []).filter(s => s && s.stock > 0);
   const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size || '');
   const minPrice = availableSizes.length > 0 ? Math.min(...availableSizes.map(s => s.price)) : null;
   const mainImage =
