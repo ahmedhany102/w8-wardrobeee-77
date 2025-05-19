@@ -22,21 +22,52 @@ class UserDatabase {
 
   private async loadUsers(): Promise<void> {
     try {
-      console.log('Loading users from localStorage...');
       const storedUsers = localStorage.getItem('users');
-      console.log('Raw stored users:', storedUsers);
       
       if (storedUsers) {
         this.users = JSON.parse(storedUsers);
-        console.log('Successfully loaded users:', this.users);
       } else {
-        console.log('No users found in localStorage, creating default users...');
-        await this.createDefaultUsers();
+        // Create default admin user
+        const currentDate = new Date().toISOString();
+        const adminUser: User = {
+          id: 'admin-1',
+          name: 'Ahmed Hany',
+          email: 'ahmedhanyseifeldien@gmail.com',
+          password: await this.hashPassword('Ahmedhany11*'),
+          role: 'ADMIN',
+          createdAt: currentDate,
+          lastLogin: currentDate,
+          ipAddress: '192.168.1.1',
+          status: 'ACTIVE',
+          isAdmin: true,
+          isSuperAdmin: true,
+          isBlocked: false
+        };
+        
+        this.users = [adminUser];
+        this.saveUsers();
       }
     } catch (error) {
       console.error('Error loading users:', error);
-      console.log('Falling back to default users...');
-      await this.createDefaultUsers();
+      // Create default admin user if there's an error
+      const currentDate = new Date().toISOString();
+      const adminUser: User = {
+        id: 'admin-1',
+        name: 'Ahmed Hany',
+        email: 'ahmedhanyseifeldien@gmail.com',
+        password: await this.hashPassword('Ahmedhany11*'),
+        role: 'ADMIN',
+        createdAt: currentDate,
+        lastLogin: currentDate,
+        ipAddress: '192.168.1.1',
+        status: 'ACTIVE',
+        isAdmin: true,
+        isSuperAdmin: true,
+        isBlocked: false
+      };
+      
+      this.users = [adminUser];
+      this.saveUsers();
     }
   }
 
