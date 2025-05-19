@@ -1,13 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
 import UserDatabase from '../models/UserDatabase';
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
+import { User } from '@/models/User';
 
 interface AuthContextType {
   user: User | null;
@@ -122,11 +116,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const foundUser = users.find(u => u.email === email && u.password === password);
       
       if (foundUser) {
-        const userData = {
+        const userData: User = {
           id: foundUser.id,
           email: foundUser.email,
           name: foundUser.name || email.split('@')[0],
-          role: foundUser.role || "USER"
+          role: (foundUser.role || "USER") as 'ADMIN' | 'USER',
+          password: foundUser.password,
+          isAdmin: foundUser.role === "ADMIN",
+          isSuperAdmin: false,
+          isBlocked: false,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          ipAddress: '0.0.0.0',
+          status: 'ACTIVE'
         };
         
         setUser(userData);
@@ -175,11 +177,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Verify against admin credentials
       if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        const adminUser = {
+        const adminUser: User = {
           id: "admin-1",
           email: ADMIN_EMAIL,
           name: "Ahmed Hany",
-          role: "ADMIN"
+          role: "ADMIN",
+          password: ADMIN_PASSWORD,
+          isAdmin: true,
+          isSuperAdmin: true,
+          isBlocked: false,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          ipAddress: '192.168.1.1',
+          status: 'ACTIVE'
         };
         setUser(adminUser);
         // Store admin user in localStorage
@@ -220,26 +230,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log("Registration request sent", { email, name });
 
-      // Save user credentials to mock storage
-      const success = saveMockUser(email, password, name);
-      
-      if (!success) {
-        toast.error("Email already registered. Please login or use a different email.");
-        recordActivity(`Registration attempt with existing email: ${email}`, "user");
-        return false;
-      }
-      
       // Add the user to UserDatabase
       const userDb = UserDatabase.getInstance();
-      await userDb.registerUser({
+      const success = await userDb.registerUser({
         name: name || email.split('@')[0],
         email,
         password,
         role: 'USER',
         status: 'ACTIVE',
         isAdmin: false,
+        isSuperAdmin: false,
         isBlocked: false
       });
+
+      if (!success) {
+        toast.error("Email already registered. Please login or use a different email.");
+        recordActivity(`Registration attempt with existing email: ${email}`, "user");
+        return false;
+      }
+
+      // Save user credentials to mock storage for backward compatibility
+      saveMockUser(email, password, name);
 
       // Automatically log in the user after successful registration
       await login(email, password);
