@@ -1,5 +1,8 @@
-import React, { useRef } from "react";
 
+import React, { useRef } from "react";
+import { SizeItem as ProductSizeItem } from "@/models/Product";
+
+// Define SizeItem to match how it's used in ProductForm
 export interface SizeItem {
   size: string;
   price: number;
@@ -115,4 +118,4 @@ const SizeManager: React.FC<SizeManagerProps> = ({ sizes, onChange }) => {
   );
 };
 
-export default SizeManager; 
+export default SizeManager;

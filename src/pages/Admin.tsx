@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserRound } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import UserDatabase from '@/models/UserDatabase';
+import { User } from '@/models/User';
 import DOMPurify from 'dompurify';
 
 interface User {
@@ -74,9 +75,8 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const loadUsers = () => {
     const userDb = UserDatabase.getInstance();
     const allUsers = userDb.getAllUsers();
-    // Remove sensitive data before setting state
-    const sanitizedUsers = allUsers.map(({ password, ...user }) => user);
-    setUsers(sanitizedUsers);
+    // Convert the return value to a proper User array
+    setUsers(allUsers as User[]);
   };
 
   // Load orders from localStorage with error handling

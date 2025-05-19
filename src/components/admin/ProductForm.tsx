@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import ImageUploader from "./ImageUploader";
-import SizeManager from "./SizeManager";
-import { Product, SizeItem, SizeWithStock } from "@/models/Product";
+import SizeManager, { SizeItem } from "./SizeManager";
+import { Product, SizeWithStock } from "@/models/Product";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
@@ -21,14 +20,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   const [hasDiscount, setHasDiscount] = useState(initialData.hasDiscount || false);
   const [discount, setDiscount] = useState(initialData.discount || 0);
   const [images, setImages] = useState<string[]>(initialData.mainImage ? [initialData.mainImage] : (initialData.images || []));
+  
+  // Convert from SizeWithStock to SizeItem for the form
   const [sizes, setSizes] = useState<SizeItem[]>(
     initialData.sizes 
       ? initialData.sizes.map(s => ({ 
-          value: s.size,
-          label: `${s.size} - ${s.price} EGP (${s.stock} available)`
+          size: s.size,
+          price: s.price,
+          stock: s.stock,
+          image: ""
         })) 
       : []
   );
+  
   const [error, setError] = useState<string>("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -40,14 +44,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
     
     // Convert sizes from SizeItem format to SizeWithStock format
     const formattedSizes: SizeWithStock[] = sizes.map(sizeItem => {
-      const parts = sizeItem.label.split(' - ');
-      const pricePart = parts[1]?.split(' ')[0] || '0';
-      const stockPart = parts[1]?.match(/\((\d+) available\)/) || ['', '0'];
-      
       return {
-        size: sizeItem.value,
-        price: Number(pricePart) || 0,
-        stock: Number(stockPart[1]) || 0
+        size: sizeItem.size,
+        price: sizeItem.price,
+        stock: sizeItem.stock
       };
     });
     

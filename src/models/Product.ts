@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -37,13 +36,13 @@ export interface OrderItem {
   size?: string;
 }
 
-// Create a SizeItem interface since it's used in ProductForm.tsx
+// Define the SizeItem interface used in Product model
 export interface SizeItem {
   value: string;
   label: string;
 }
 
-// Create a SizeWithStock interface for sizes with stock and price
+// Define SizeWithStock interface for sizes with stock and price
 export interface SizeWithStock {
   size: string;
   stock: number;
@@ -51,7 +50,7 @@ export interface SizeWithStock {
 }
 
 // ProductDatabase class for managing products
-class ProductDatabase {
+export class ProductDatabase {
   private static instance: ProductDatabase;
   private products: Product[] = [];
 
@@ -141,4 +140,5 @@ class ProductDatabase {
   }
 }
 
+// Export the ProductDatabase class as default and named export
 export default ProductDatabase;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Product, default as ProductDatabase } from '@/models/Product';
+import { Product, ProductDatabase } from '@/models/Product';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';

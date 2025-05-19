@@ -2,20 +2,6 @@ import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from './User';
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  password: string;
-  role: 'ADMIN' | 'USER';
-  createdAt: string;
-  lastLogin: string;
-  ipAddress: string;
-  status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
-  isAdmin: boolean;
-  isBlocked: boolean;
-}
-
 class UserDatabase {
   private static instance: UserDatabase;
   private users: User[] = [];
