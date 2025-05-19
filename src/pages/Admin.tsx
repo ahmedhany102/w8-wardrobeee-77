@@ -13,8 +13,6 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserRound } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import UserDatabase from '@/models/UserDatabase';
-import DOMPurify from 'dompurify';
-import { User } from '@/contexts/AuthContext';
 
 interface AdminProps {
   activeTab?: string;
@@ -24,11 +22,11 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(activeTab);
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Partial<User>>({});
+  const [editData, setEditData] = useState<any>({});
   const [activities, setActivities] = useState<any[]>([]);
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   
@@ -51,73 +49,139 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const loadUsers = () => {
     const userDb = UserDatabase.getInstance();
     const allUsers = userDb.getAllUsers();
-    // Remove sensitive data before setting state
-    const sanitizedUsers = allUsers.map(({ password, ...user }) => user);
-    setUsers(sanitizedUsers);
+    setUsers(allUsers);
   };
 
-  // Load orders from localStorage with error handling
+  // Load orders from localStorage
   const loadOrders = () => {
-    try {
-      const loadedOrders = localStorage.getItem('orders');
-      if (loadedOrders) {
+    const loadedOrders = localStorage.getItem('orders');
+    if (loadedOrders) {
+      try {
         const parsedOrders = JSON.parse(loadedOrders);
         setOrders(parsedOrders);
-      } else {
+      } catch (error) {
+        console.error("Error parsing orders:", error);
         setOrders([]);
       }
-    } catch (error) {
-      console.error("Error loading orders:", error);
+    } else {
       setOrders([]);
     }
   };
 
-  // Load products from localStorage with error handling
+  // Load products from localStorage
   const loadProducts = () => {
-    try {
-      const loadedProducts = localStorage.getItem('products');
-      if (loadedProducts) {
+    const loadedProducts = localStorage.getItem('products');
+    if (loadedProducts) {
+      try {
         const parsedProducts = JSON.parse(loadedProducts);
         setProducts(parsedProducts);
-      } else {
+      } catch (error) {
+        console.error("Error parsing products:", error);
         setProducts([]);
       }
-    } catch (error) {
-      console.error("Error loading products:", error);
+    } else {
       setProducts([]);
     }
   };
 
-  // Load activities from localStorage with error handling
+  // Load activities from localStorage
   const loadActivities = () => {
-    try {
-      const loadedActivities = localStorage.getItem('activities');
-      if (loadedActivities) {
+    const loadedActivities = localStorage.getItem('activities');
+    if (loadedActivities) {
+      try {
         const parsedActivities = JSON.parse(loadedActivities);
         setActivities(parsedActivities);
-      } else {
+      } catch (error) {
+        console.error("Error parsing activities:", error);
         createDefaultActivities();
       }
-    } catch (error) {
-      console.error("Error loading activities:", error);
+    } else {
       createDefaultActivities();
     }
   };
 
-  // Record a new activity with sanitization
+  // Record a new activity
   const recordActivity = (description: string, type: string = "system") => {
-    const sanitizedDescription = DOMPurify.sanitize(description);
     const newActivity = {
       id: `act-${Date.now()}`,
-      description: sanitizedDescription,
+      description,
       timestamp: new Date().toISOString(),
       type,
     };
 
-    const updatedActivities = [newActivity, ...activities].slice(0, 20);
+    const updatedActivities = [newActivity, ...activities].slice(0, 20); // Keep only last 20 activities
     setActivities(updatedActivities);
     localStorage.setItem('activities', JSON.stringify(updatedActivities));
     return newActivity;
+  };
+    
+  // Create mock users with the required admin account
+  const createDefaultUsers = () => {
+    const currentDate = new Date().toISOString();
+    const mockUsers = [
+      {
+        id: 'admin-1',
+        name: 'Ahmed Hany',
+        email: 'ahmedhanyseifeldien@gmail.com',
+        password: 'Ahmed hany11*', // This would be encrypted in a real app
+        role: 'ADMIN',
+        createdAt: currentDate,
+        lastLogin: currentDate,
+        ipAddress: '192.168.1.1',
+        status: 'ACTIVE'
+      },
+      {
+        id: 'user-1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'userpass123', // This would be encrypted in a real app
+        role: 'USER',
+        createdAt: currentDate,
+        lastLogin: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        ipAddress: '192.168.1.2',
+        status: 'ACTIVE'
+      },
+      {
+        id: 'user-2',
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        password: 'janepass456', // This would be encrypted in a real app
+        role: 'USER',
+        createdAt: new Date(Date.now() - 7 * 86400000).toISOString(), // 7 days ago
+        lastLogin: new Date(Date.now() - 2 * 86400000).toISOString(), // 2 days ago
+        ipAddress: '192.168.1.3',
+        status: 'ACTIVE'
+      }
+    ];
+    setUsers(mockUsers);
+    localStorage.setItem('users', JSON.stringify(mockUsers));
+  };
+
+  // Create default activities
+  const createDefaultActivities = () => {
+    const now = Date.now();
+    const defaultActivities = [
+      {
+        id: `act-${now - 300000}`, // 5 minutes ago
+        description: "New user registered: John Doe",
+        timestamp: new Date(now - 300000).toISOString(),
+        type: "user"
+      },
+      {
+        id: `act-${now - 900000}`, // 15 minutes ago
+        description: "New order placed: #ORD-12345",
+        timestamp: new Date(now - 900000).toISOString(),
+        type: "order"
+      },
+      {
+        id: `act-${now - 3600000}`, // 1 hour ago
+        description: "Product stock low: Egyptian Koshari (5 left)",
+        timestamp: new Date(now - 3600000).toISOString(),
+        type: "product"
+      }
+    ];
+    setActivities(defaultActivities);
+    localStorage.setItem('activities', JSON.stringify(defaultActivities));
   };
 
   const handleTabChange = (value: string) => {
@@ -126,58 +190,40 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   };
 
   const handleMakeAdmin = (userId: string) => {
-    const userDb = UserDatabase.getInstance();
-    const success = userDb.updateUserRole(userId, 'ADMIN');
+    const updatedUsers = users.map(u =>
+      u.id === userId ? { ...u, role: 'ADMIN' } : u
+    );
+    setUsers(updatedUsers);
+    localStorage.setItem('users', JSON.stringify(updatedUsers));
     
-    if (success) {
-      const updatedUsers = users.map(u =>
-        u.id === userId ? { ...u, role: 'ADMIN' } : u
-      );
-      setUsers(updatedUsers);
-      
-      const targetUser = users.find(u => u.id === userId);
-      recordActivity(`User ${targetUser?.name} promoted to Admin role`, "user");
-      
-      toast.success('User role updated to Admin');
-    } else {
-      toast.error('Failed to update user role');
-    }
+    const targetUser = users.find(u => u.id === userId);
+    recordActivity(`User ${targetUser?.name} promoted to Admin role`, "user");
+    
+    toast.success('User role updated to Admin');
   };
 
   const handleRemoveAdmin = (userId: string) => {
-    const userDb = UserDatabase.getInstance();
-    const success = userDb.updateUserRole(userId, 'USER');
+    const updatedUsers = users.map(u =>
+      u.id === userId ? { ...u, role: 'USER' } : u
+    );
+    setUsers(updatedUsers);
+    localStorage.setItem('users', JSON.stringify(updatedUsers));
     
-    if (success) {
-      const updatedUsers = users.map(u =>
-        u.id === userId ? { ...u, role: 'USER' } : u
-      );
-      setUsers(updatedUsers);
-      
-      const targetUser = users.find(u => u.id === userId);
-      recordActivity(`Admin privileges removed from ${targetUser?.name}`, "user");
-      
-      toast.success('Admin privileges removed');
-    } else {
-      toast.error('Failed to update user role');
-    }
+    const targetUser = users.find(u => u.id === userId);
+    recordActivity(`Admin privileges removed from ${targetUser?.name}`, "user");
+    
+    toast.success('Admin privileges removed');
   };
 
   const handleDeleteUser = (userId: string) => {
-    const userDb = UserDatabase.getInstance();
-    const success = userDb.deleteUser(userId);
+    const userToDelete = users.find(u => u.id === userId);
+    const updatedUsers = users.filter(u => u.id !== userId);
+    setUsers(updatedUsers);
+    localStorage.setItem('users', JSON.stringify(updatedUsers));
     
-    if (success) {
-      const userToDelete = users.find(u => u.id === userId);
-      const updatedUsers = users.filter(u => u.id !== userId);
-      setUsers(updatedUsers);
-      
-      recordActivity(`User deleted: ${userToDelete?.name} (${userToDelete?.email})`, "user");
-      
-      toast.success('User deleted');
-    } else {
-      toast.error('Failed to delete user');
-    }
+    recordActivity(`User deleted: ${userToDelete?.name} (${userToDelete?.email})`, "user");
+    
+    toast.success('User deleted');
   };
   
   const handleEditUser = (userId: string) => {
@@ -196,49 +242,36 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const handleSaveEdit = () => {
     if (!isEditing) return;
     
-    const userDb = UserDatabase.getInstance();
-    const success = userDb.updateUser(isEditing, editData);
+    const updatedUsers = users.map(u => 
+      u.id === isEditing ? { ...editData } : u
+    );
     
-    if (success) {
-      const updatedUsers = users.map(u => 
-        u.id === isEditing ? { ...u, ...editData } : u
-      );
-      
-      setUsers(updatedUsers);
-      recordActivity(`User information updated: ${editData.name} (${editData.email})`, "user");
-      
-      setIsEditing(null);
-      setEditData({});
-      toast.success('User information updated');
-    } else {
-      toast.error('Failed to update user information');
-    }
+    setUsers(updatedUsers);
+    localStorage.setItem('users', JSON.stringify(updatedUsers));
+    
+    recordActivity(`User information updated: ${editData.name} (${editData.email})`, "user");
+    
+    setIsEditing(null);
+    setEditData({});
+    toast.success('User information updated');
   };
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    // Sanitize input before setting state
-    const sanitizedValue = DOMPurify.sanitize(value);
-    setEditData(prev => ({ ...prev, [name]: sanitizedValue }));
+    setEditData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleStatusChange = (userId: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING') => {
-    const userDb = UserDatabase.getInstance();
-    const success = userDb.updateUserStatus(userId, status);
+  const handleStatusChange = (userId: string, status: string) => {
+    const userToUpdate = users.find(u => u.id === userId);
+    const updatedUsers = users.map(u =>
+      u.id === userId ? { ...u, status } : u
+    );
+    setUsers(updatedUsers);
+    localStorage.setItem('users', JSON.stringify(updatedUsers));
     
-    if (success) {
-      const userToUpdate = users.find(u => u.id === userId);
-      const updatedUsers = users.map(u =>
-        u.id === userId ? { ...u, status } : u
-      );
-      setUsers(updatedUsers);
-      
-      recordActivity(`User status updated: ${userToUpdate?.name} is now ${status}`, "user");
-      
-      toast.success(`User status updated to ${status}`);
-    } else {
-      toast.error('Failed to update user status');
-    }
+    recordActivity(`User status updated: ${userToUpdate?.name} is now ${status}`, "user");
+    
+    toast.success(`User status updated to ${status}`);
   };
 
   const togglePasswordVisibility = (userId: string) => {
@@ -439,7 +472,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                                 <select 
                                   name="role" 
                                   value={editData.role || 'USER'} 
-                                  onChange={(e) => setEditData({...editData, role: e.target.value as 'ADMIN' | 'USER'})}
+                                  onChange={(e) => setEditData({...editData, role: e.target.value})}
                                   className="w-full p-1 border rounded bg-gray-100 dark:bg-gray-800 text-black dark:text-white"
                                 >
                                   <option value="USER">USER</option>
@@ -450,7 +483,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                                 <select 
                                   name="status" 
                                   value={editData.status || 'ACTIVE'} 
-                                  onChange={(e) => setEditData({...editData, status: e.target.value as 'ACTIVE' | 'BLOCKED' | 'PENDING'})}
+                                  onChange={(e) => setEditData({...editData, status: e.target.value})}
                                   className="w-full p-1 border rounded bg-gray-100 dark:bg-gray-800 text-black dark:text-white"
                                 >
                                   <option value="ACTIVE">ACTIVE</option>
