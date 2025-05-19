@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -34,6 +35,11 @@ export interface OrderItem {
   name: string;
   color?: string;
   size?: string;
+  // Additional properties referenced in OrdersPanel
+  productName?: string;
+  unitPrice?: number;
+  totalPrice?: number;
+  imageUrl?: string;
 }
 
 // Define the SizeItem interface used in Product model
@@ -142,3 +148,4 @@ export class ProductDatabase {
 
 // Export the ProductDatabase class as default and named export
 export default ProductDatabase;
+

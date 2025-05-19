@@ -1,6 +1,7 @@
+
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { User } from './User';
+import { User } from '@/models/User';
 
 class UserDatabase {
   private static instance: UserDatabase;

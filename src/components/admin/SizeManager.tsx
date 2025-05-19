@@ -1,6 +1,5 @@
-
 import React, { useRef } from "react";
-import { SizeItem as ProductSizeItem } from "@/models/Product";
+import { SizeWithStock } from "@/models/Product";
 
 // Define SizeItem to match how it's used in ProductForm
 export interface SizeItem {
