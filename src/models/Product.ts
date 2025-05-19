@@ -14,7 +14,7 @@ export interface Product {
   size?: string;
   createdAt: string;
   updatedAt: string;
-  // Adding missing properties referenced in the codebase
+  // Adding properties referenced elsewhere in the codebase
   type?: string;
   details?: string;
   mainImage?: string;

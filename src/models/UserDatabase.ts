@@ -1,5 +1,4 @@
 
-// Import bcryptjs with ESM syntax
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -243,5 +242,4 @@ class UserDatabase {
   }
 }
 
-// Export the class as default
 export default UserDatabase;
