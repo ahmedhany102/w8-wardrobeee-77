@@ -1,14 +1,7 @@
-// src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
-import UserDatabase from "@/models/UserDatabase";
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
-}
+import UserDatabase from '../models/UserDatabase';
+import { User } from '@/models/User';
 
 interface AuthContextType {
   user: User | null;
@@ -24,43 +17,24 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com";
-const ADMIN_PASSWORD = "Ahmed hany11*";
+const ADMIN_PASSWORD = "Ahmedhany11*";
 
-const MOCK_USERS_KEY = "mock_users";
-
-const getMockUsers = () => {
-  const users = localStorage.getItem(MOCK_USERS_KEY);
-  return users ? JSON.parse(users) : [];
-};
-
-const saveMockUser = (email: string, password: string, name: string = "") => {
-  const users = getMockUsers();
-
-  // تأكد أن الإيميل غير موجود أصلاً
-  if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) return false;
-
-  users.push({
-    id: `user-${Date.now()}`,
-    email,
-    password,
-    name: name || email.split("@")[0],
-    role: "USER"
-  });
-
-  localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
-  recordActivity(`User registered: ${email}`, "user");
-  return true;
-};
-
+// Record activity for admin dashboard
 const recordActivity = (description: string, type: string = "system") => {
-  const logs = JSON.parse(localStorage.getItem("activities") || "[]");
-  logs.unshift({
-    id: `log-${Date.now()}`,
-    description,
-    timestamp: new Date().toISOString(),
-    type
-  });
-  localStorage.setItem("activities", JSON.stringify(logs.slice(0, 20)));
+  try {
+    const activities = JSON.parse(localStorage.getItem('activities') || '[]');
+    const newActivity = {
+      id: `act-${Date.now()}`,
+      description,
+      timestamp: new Date().toISOString(),
+      type
+    };
+    
+    const updatedActivities = [newActivity, ...activities].slice(0, 20);
+    localStorage.setItem('activities', JSON.stringify(updatedActivities));
+  } catch (error) {
+    console.error("Error recording activity:", error);
+  }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -73,118 +47,177 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const checkAuthStatus = async () => {
-    setLoading(true);
-    const data = localStorage.getItem("currentUser");
-    if (data) {
-      setUser(JSON.parse(data));
-    } else {
+    try {
+      setLoading(true);
+      const storedUser = localStorage.getItem('currentUser');
+      
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+      } else {
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Authentication check failed", error);
       setUser(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    if (loginAttempts >= 5) {
-      toast.error("Too many login attempts.");
-      return false;
-    }
+    try {
+      if (loginAttempts >= 5) {
+        toast.error("Too many login attempts. Please try again later.");
+        recordActivity(`Login attempt blocked due to rate limiting: ${email}`, "security");
+        return false;
+      }
 
-    const users = getMockUsers();
-    // مقارنة الإيميل بدون حساسية حالة الأحرف
-    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-    if (found) {
-      const loggedUser: User = {
-        id: found.id,
-        email: found.email,
-        name: found.name,
-        role: "USER"
-      };
-      localStorage.setItem("currentUser", JSON.stringify(loggedUser));
-      setUser(loggedUser);
-      setLoginAttempts(0);
-      recordActivity(`User logged in: ${email}`, "user");
-      toast.success("Login successful!");
-      return true;
-    } else {
-      setLoginAttempts(prev => prev + 1);
-      toast.error("Invalid email or password.");
-      recordActivity(`Failed login attempt: ${email}`, "security");
+      const userDb = UserDatabase.getInstance();
+      const foundUser = await userDb.loginUser(email, password);
+      
+      if (foundUser) {
+        setUser(foundUser);
+        localStorage.setItem('currentUser', JSON.stringify(foundUser));
+        setLoginAttempts(0);
+        recordActivity(`User logged in: ${foundUser.name}`, "user");
+        return true;
+      } else {
+        setLoginAttempts(prev => prev + 1);
+        recordActivity(`Failed login attempt: ${email}`, "security");
+        toast.error("Invalid email or password");
+        return false;
+      }
+    } catch (error) {
+      console.error("Login failed", error);
+      recordActivity(`Login error: ${email}`, "error");
+      toast.error("Login failed. Please try again.");
       return false;
     }
   };
 
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
-    if (loginAttempts >= 5) {
-      toast.error("Too many admin login attempts.");
+    try {
+      if (loginAttempts >= 5) {
+        toast.error("Too many login attempts. Please try again later.");
+        recordActivity(`Admin login attempt blocked due to rate limiting: ${email}`, "security");
+        return false;
+      }
+
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        const adminUser: User = {
+          id: "admin-1",
+          email: ADMIN_EMAIL,
+          name: "Ahmed Hany",
+          role: "ADMIN",
+          password: ADMIN_PASSWORD,
+          isAdmin: true,
+          isSuperAdmin: true,
+          isBlocked: false,
+          createdAt: new Date().toISOString(),
+          lastLogin: new Date().toISOString(),
+          ipAddress: '192.168.1.1',
+          status: 'ACTIVE'
+        };
+        setUser(adminUser);
+        localStorage.setItem('currentUser', JSON.stringify(adminUser));
+        setLoginAttempts(0);
+        recordActivity(`Admin logged in: ${adminUser.name}`, "security");
+        return true;
+      } else {
+        setLoginAttempts(prev => prev + 1);
+        recordActivity(`Failed admin login attempt: ${email}`, "security");
+        toast.error("Invalid admin credentials");
+        return false;
+      }
+    } catch (error) {
+      console.error("Admin login failed", error);
+      recordActivity(`Admin login error: ${email}`, "error");
+      toast.error("Admin login failed. Please try again.");
       return false;
     }
+  };
 
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      const adminUser: User = {
-        id: "admin-1",
+  const signup = async (email: string, password: string, name: string = ""): Promise<boolean> => {
+    try {
+      // Validate email format
+      if (!email.includes('@')) {
+        toast.error("Please enter a valid email address");
+        return false;
+      }
+      
+      // Prevent users from registering with the admin email
+      if (email === ADMIN_EMAIL) {
+        toast.error("This email is reserved. Please use a different email address.");
+        recordActivity(`Attempted registration with reserved email: ${email}`, "security");
+        return false;
+      }
+
+      // Add the user to UserDatabase
+      const userDb = UserDatabase.getInstance();
+      const success = await userDb.registerUser({
+        name: name || email.split('@')[0],
         email,
-        name: "Ahmed Hany",
-        role: "ADMIN"
-      };
-      localStorage.setItem("currentUser", JSON.stringify(adminUser));
-      setUser(adminUser);
-      setLoginAttempts(0);
-      recordActivity(`Admin logged in`, "admin");
-      toast.success("Admin login successful!");
-      return true;
-    } else {
-      setLoginAttempts(prev => prev + 1);
-      toast.error("Invalid admin credentials.");
-      recordActivity(`Failed admin login attempt: ${email}`, "security");
+        password,
+        role: 'USER',
+        status: 'ACTIVE',
+        isAdmin: false,
+        isSuperAdmin: false,
+        isBlocked: false
+      });
+
+      if (!success) {
+        toast.error("Email already registered. Please login or use a different email.");
+        recordActivity(`Registration attempt with existing email: ${email}`, "user");
+        return false;
+      }
+
+      // Get the newly registered user
+      const newUser = await userDb.loginUser(email, password);
+      if (newUser) {
+        setUser(newUser);
+        localStorage.setItem('currentUser', JSON.stringify(newUser));
+        toast.success("Registration successful! You are now logged in.");
+        return true;
+      } else {
+        toast.error("Registration successful but login failed. Please try logging in manually.");
+        return false;
+      }
+    } catch (error) {
+      console.error("Signup failed", error);
+      recordActivity(`Registration error: ${email}`, "error");
+      toast.error("Registration failed. Please try again later.");
       return false;
     }
   };
 
-  const signup = async (email: string, password: string, name = ""): Promise<boolean> => {
-    if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-      toast.error("You cannot register with the admin email.");
-      return false;
-    }
-
-    const success = saveMockUser(email, password, name);
-    if (!success) {
-      toast.error("Email already registered.");
-      return false;
-    }
-
-    // إضافة المستخدم في قاعدة بيانات وهمية (اختياري حسب مشروعك)
-    const db = UserDatabase.getInstance();
-    db.addUser({
-      id: `user-${Date.now()}`,
-      name: name || email.split("@")[0],
-      email,
-      password: btoa(password), // تشفير بسيط، لكن في تخزين حقيقي يفضل تجنب الباسورد واضح
-      isAdmin: false,
-      isBlocked: false,
-      createdAt: new Date().toISOString()
-    });
-
-    // تسجيل دخول أوتوماتيكي بعد التسجيل
-    const loggedIn = await login(email, password);
-    if (loggedIn) {
-      toast.success("Registration successful and logged in!");
-      return true;
-    } else {
-      toast.error("Registration succeeded but login failed.");
-      return false;
+  const logout = async () => {
+    try {
+      if (user) {
+        recordActivity(`User logged out: ${user.name}`, "user");
+      }
+      localStorage.removeItem('currentUser');
+      setUser(null);
+    } catch (error) {
+      console.error("Logout request failed", error);
+      setUser(null);
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem("currentUser");
-    setUser(null);
-    recordActivity("User logged out", "user");
-    toast.success("Logged out successfully.");
-  };
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, adminLogin, signup, logout, isAdmin: user?.role === "ADMIN", checkAuthStatus }}
+      value={{
+        user,
+        loading,
+        login,
+        adminLogin,
+        signup,
+        logout,
+        isAdmin,
+        checkAuthStatus
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -193,6 +226,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
   return context;
 };
