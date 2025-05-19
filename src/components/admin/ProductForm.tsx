@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import ImageUploader from "./ImageUploader";
 import SizeManager, { SizeItem } from "./SizeManager";
-import { Product, SizeWithStock } from "@/models/Product";
+import { Product, SizeWithStock, ColorImage } from "@/models/Product";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
@@ -9,17 +10,56 @@ interface ProductFormProps {
   submitLabel?: string;
 }
 
-const categories = ["رجالي", "حريمي", "أطفال"];
+// Define available categories with nested structure
+const categoryStructure = {
+  "رجالي": {
+    "أحذية": null,
+    "ملابس": {
+      "تيشيرتات": null,
+      "بناطيل": null,
+    }
+  },
+  "حريمي": {
+    "فساتين": null,
+    "بلوزات": null,
+    "أحذية": null,
+  },
+  "أطفال": {
+    "أولاد": {
+      "تيشيرتات": null,
+      "بناطيل": null,
+      "أحذية": null,
+    },
+    "بنات": {
+      "فساتين": null,
+      "تيشيرتات": null,
+      "أحذية": null,
+    }
+  }
+};
+
+// Convert nested categories to flat paths for select dropdown
+const flattenCategories = (obj: any, prefix: string[] = []): string[][] => {
+  return Object.entries(obj || {}).flatMap(([key, value]) => {
+    const path = [...prefix, key];
+    return value === null 
+      ? [path] 
+      : [path, ...flattenCategories(value, path)];
+  });
+};
+
+const availableCategories = flattenCategories(categoryStructure);
 
 const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, submitLabel = "حفظ المنتج" }) => {
   const [name, setName] = useState(initialData.name || "");
-  const [category, setCategory] = useState(initialData.category || "رجالي");
+  const [categoryPath, setCategoryPath] = useState<string[]>(initialData.categoryPath || ["رجالي"]);
   const [type, setType] = useState(initialData.type || "");
   const [colors, setColors] = useState<string[]>(initialData.colors || []);
   const [details, setDetails] = useState(initialData.details || "");
   const [hasDiscount, setHasDiscount] = useState(initialData.hasDiscount || false);
   const [discount, setDiscount] = useState(initialData.discount || 0);
   const [images, setImages] = useState<string[]>(initialData.mainImage ? [initialData.mainImage] : (initialData.images || []));
+  const [colorImages, setColorImages] = useState<ColorImage[]>(initialData.colorImages || []);
   
   // Convert from SizeWithStock to SizeItem for the form
   const [sizes, setSizes] = useState<SizeItem[]>(
@@ -35,9 +75,21 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   
   const [error, setError] = useState<string>("");
 
+  // Set up color-specific image handling
+  const handleColorImageChange = (color: string, imageUrl: string) => {
+    const existingIndex = colorImages.findIndex(ci => ci.color === color);
+    if (existingIndex >= 0) {
+      const updated = [...colorImages];
+      updated[existingIndex] = { color, imageUrl };
+      setColorImages(updated);
+    } else {
+      setColorImages([...colorImages, { color, imageUrl }]);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !type.trim() || !category || sizes.length === 0 || images.length === 0) {
+    if (!name.trim() || !type.trim() || categoryPath.length === 0 || sizes.length === 0 || images.length === 0) {
       setError("يرجى ملء جميع الحقول المطلوبة (الاسم، القسم، النوع، صورة، المقاسات)");
       return;
     }
@@ -54,9 +106,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
     setError("");
     onSubmit({
       name: name.trim(),
-      category: category as Product["category"],
+      category: categoryPath[0] as Product["category"],
+      categoryPath,
       type: type.trim(),
       colors,
+      colorImages,
       details,
       hasDiscount,
       discount: hasDiscount ? discount : 0,
@@ -88,12 +142,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
         <div className="flex flex-col w-full">
           <label className="block font-bold mb-1">القسم *</label>
           <select
-            value={category}
-            onChange={e => setCategory(e.target.value as "رجالي" | "حريمي" | "أطفال")}
+            value={categoryPath.join(" > ")}
+            onChange={e => {
+              const selectedPath = e.target.value.split(" > ");
+              setCategoryPath(selectedPath);
+            }}
             className="border rounded px-3 py-2 w-full"
             required
           >
-            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            {availableCategories.map(path => (
+              <option key={path.join("-")} value={path.join(" > ")}>
+                {path.join(" > ")}
+              </option>
+            ))}
           </select>
         </div>
         <div className="flex flex-col w-full">
@@ -150,6 +211,47 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
         <label className="block font-bold mb-1">صور المنتج *</label>
         <ImageUploader value={images} onChange={setImages} label={undefined} />
       </div>
+      
+      {/* Color-specific images section */}
+      {colors.length > 0 && (
+        <div className="flex flex-col w-full border p-4 rounded bg-gray-50">
+          <label className="block font-bold mb-3">صور خاصة بكل لون</label>
+          <div className="space-y-4">
+            {colors.map(color => (
+              <div key={color} className="flex flex-col md:flex-row items-start md:items-center gap-2 border-b pb-4">
+                <div className="font-medium min-w-[100px]">{color}</div>
+                <div className="flex-1">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          handleColorImageChange(color, event.target?.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="text-sm text-gray-800"
+                  />
+                </div>
+                {colorImages.find(ci => ci.color === color)?.imageUrl && (
+                  <div className="w-12 h-12 overflow-hidden rounded border">
+                    <img 
+                      src={colorImages.find(ci => ci.color === color)?.imageUrl} 
+                      alt={`${color} preview`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <div className="overflow-x-auto w-full">
         <SizeManager sizes={sizes} onChange={setSizes} />
       </div>

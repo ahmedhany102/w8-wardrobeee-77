@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -25,6 +26,15 @@ export interface Product {
   hasDiscount?: boolean;
   stock?: number;
   imageUrl?: string;
+  // Adding support for nested categories
+  categoryPath?: string[];
+  // Adding support for color-specific images
+  colorImages?: ColorImage[];
+}
+
+export interface ColorImage {
+  color: string;
+  imageUrl: string;
 }
 
 export interface OrderItem {

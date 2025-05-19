@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import OrdersPanel from '@/components/admin/OrdersPanel';
 import ProductManagement from '@/components/admin/ProductManagement';
+import CouponManagement from '@/components/admin/CouponManagement';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserRound } from 'lucide-react';
@@ -38,6 +39,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [coupons, setCoupons] = useState<any[]>([]);
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<User>>({});
   const [activities, setActivities] = useState<any[]>([]);
@@ -69,6 +71,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     loadUsers();
     loadOrders();
     loadProducts();
+    loadCoupons();
     loadActivities();
   }, [user, navigate]);
 
@@ -109,6 +112,22 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     } catch (error) {
       console.error("Error loading products:", error);
       setProducts([]);
+    }
+  };
+
+  // Load coupons from localStorage with error handling
+  const loadCoupons = () => {
+    try {
+      const loadedCoupons = localStorage.getItem('coupons');
+      if (loadedCoupons) {
+        const parsedCoupons = JSON.parse(loadedCoupons);
+        setCoupons(parsedCoupons);
+      } else {
+        setCoupons([]);
+      }
+    } catch (error) {
+      console.error("Error loading coupons:", error);
+      setCoupons([]);
     }
   };
 
@@ -331,11 +350,17 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
               >
                 Products
               </TabsTrigger>
+              <TabsTrigger 
+                value="coupons" 
+                className="flex-1 data-[state=active]:bg-green-200 data-[state=active]:text-green-800"
+              >
+                Coupons
+              </TabsTrigger>
             </TabsList>
           </div>
 
           <TabsContent value="dashboard">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 md:gap-6 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 md:gap-6 mb-6">
               <Card className="hover:shadow-lg transition-all">
                 <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md py-3">
                   <CardTitle>Total Users</CardTitle>
@@ -369,6 +394,15 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
                 </CardHeader>
                 <CardContent className="pt-4 dark:bg-gray-800 dark:text-white">
                   <p className="text-2xl md:text-3xl font-bold">{products.length}</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-all">
+                <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md py-3">
+                  <CardTitle>Coupons</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-4 dark:bg-gray-800 dark:text-white">
+                  <p className="text-2xl md:text-3xl font-bold">{coupons.length}</p>
                 </CardContent>
               </Card>
             </div>
@@ -622,6 +656,10 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
 
           <TabsContent value="products">
             <ProductManagement />
+          </TabsContent>
+          
+          <TabsContent value="coupons">
+            <CouponManagement />
           </TabsContent>
         </Tabs>
       </div>

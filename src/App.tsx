@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { RequireAuth } from './components/RequireAuth';
@@ -63,6 +64,7 @@ function App() {
                   <Route path="/admin/products" element={<Admin activeTab="products" />} />
                   <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
                   <Route path="/admin/users" element={<Admin activeTab="users" />} />
+                  <Route path="/admin/coupons" element={<Admin activeTab="coupons" />} />
                 </Route>
 
                 {/* 404 */}

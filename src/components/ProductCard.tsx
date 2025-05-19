@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Product, SizeWithStock } from '@/models/Product';
+import { Product, SizeWithStock, ColorImage } from '@/models/Product';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
@@ -33,14 +33,29 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
   const availableSizes = (product.sizes || []).filter(s => s && s.stock > 0);
   const [selectedSize, setSelectedSize] = useState(availableSizes[0]?.size || '');
   const [selectedColor, setSelectedColor] = useState(product.colors?.[0] || '');
+  const [currentImage, setCurrentImage] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const minPrice = availableSizes.length > 0 ? Math.min(...availableSizes.map(s => s.price)) : null;
+  
+  // Get the default image
   const mainImage =
     (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
     (product.images && product.images[0]) ||
     "/placeholder.svg";
   
   const isOutOfStock = availableSizes.length === 0;
+  
+  // Update current image when selected color changes
+  useEffect(() => {
+    if (product.colorImages && product.colorImages.length > 0 && selectedColor) {
+      const colorImage = product.colorImages.find(ci => ci.color === selectedColor);
+      if (colorImage) {
+        setCurrentImage(colorImage.imageUrl);
+        return;
+      }
+    }
+    setCurrentImage(mainImage);
+  }, [selectedColor, product.colorImages, mainImage]);
 
   return (
     <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className}`}>
@@ -48,7 +63,7 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
         <div className="relative">
           <AspectRatio ratio={4/3} className="bg-gray-100 min-h-[150px]">
             <img 
-              src={mainImage}
+              src={currentImage || mainImage}
               alt={product?.name || "منتج"}
               className="object-cover w-full h-full"
               loading="lazy"
@@ -76,7 +91,9 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
       </CardHeader>
       <CardContent className="p-3">
         <h3 className="font-semibold truncate text-sm">{product?.name || "منتج بدون اسم"}</h3>
-        <p className="text-gray-500 text-xs truncate">{product?.category || "-"} - {product?.type || "-"}</p>
+        <p className="text-gray-500 text-xs truncate">
+          {product?.categoryPath ? product.categoryPath.join(" > ") : (product?.category || "-")} - {product?.type || "-"}
+        </p>
         {product.details && <p className="text-xs text-gray-600 mt-1 truncate">{product.details}</p>}
         <div className="mt-2">
           {minPrice !== null ? (
@@ -85,6 +102,27 @@ const ProductCard = ({ product, onAddToCart, className = '' }: ProductCardProps)
             <span className="text-base font-bold text-gray-400">غير متوفر</span>
           )}
         </div>
+        
+        {/* Color Selection */}
+        {product.colors && product.colors.length > 0 && (
+          <div className="mt-2">
+            <label className="block text-xs mb-1">اختر اللون:</label>
+            <div className="flex flex-wrap gap-1">
+              {product.colors.map(color => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setSelectedColor(color)}
+                  className={`w-6 h-6 rounded-full border ${selectedColor === color ? 'ring-2 ring-green-600' : ''}`}
+                  style={{ backgroundColor: colorMap[color] || '#ccc' }}
+                  title={color}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Size Selection */}
         {availableSizes.length > 0 && (
           <div className="mt-2">
             <label className="block text-xs mb-1">اختر المقاس:</label>
