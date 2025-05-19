@@ -140,20 +140,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signup = async (email: string, password: string, name: string = ""): Promise<boolean> => {
     try {
-      // Validate email format
       if (!email.includes('@')) {
         toast.error("Please enter a valid email address");
         return false;
       }
       
-      // Prevent users from registering with the admin email
       if (email === ADMIN_EMAIL) {
         toast.error("This email is reserved. Please use a different email address.");
         recordActivity(`Attempted registration with reserved email: ${email}`, "security");
         return false;
       }
 
-      // Add the user to UserDatabase
       const userDb = UserDatabase.getInstance();
       const success = await userDb.registerUser({
         name: name || email.split('@')[0],
@@ -172,11 +169,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
 
-      // Get the newly registered user
-      const newUser = await userDb.loginUser(email, password);
-      if (newUser) {
-        setUser(newUser);
-        localStorage.setItem('currentUser', JSON.stringify(newUser));
+      // Try to login immediately after successful registration
+      const loginSuccess = await login(email, password);
+      if (loginSuccess) {
         toast.success("Registration successful! You are now logged in.");
         return true;
       } else {
