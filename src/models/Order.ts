@@ -34,6 +34,8 @@ export interface OrderItem {
   unitPrice: number;
   totalPrice: number;
   imageUrl?: string;
+  color?: string;
+  size?: string;
 }
 
 // Adding these interfaces that are referenced in other files
