@@ -1,5 +1,5 @@
 
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface User {
