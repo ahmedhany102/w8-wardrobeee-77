@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Product } from '@/models/Product';
+import { Product, SizeWithStock } from '@/models/Product';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';

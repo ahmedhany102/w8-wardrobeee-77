@@ -1,10 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { Product, default as ProductDatabase } from '@/models/Product';
+import { Product } from '@/models/Product';
+import ProductDatabase from '@/models/Product';
 import SearchBar from '@/components/SearchBar';
 import CartDatabase from '@/models/CartDatabase';
 
@@ -48,7 +50,7 @@ const Index = () => {
       const allProducts = await productDb.getAllProducts();
       setProducts(allProducts);
       const uniqueCategories = ['All', ...new Set(allProducts.map(p => p.category))];
-      setCategories(uniqueCategories);
+      setCategories(uniqueCategories as string[]);
       filterProducts(allProducts, selectedCategory, searchQuery);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -75,9 +77,9 @@ const Index = () => {
     setFilteredProducts(filtered);
   };
 
-  const handleAddToCart = async (product: Product) => {
+  const handleAddToCart = async (product: Product, size: string, quantity: number = 1) => {
     const cartDb = CartDatabase.getInstance();
-    const success = await cartDb.addToCart(product, 1);
+    const success = await cartDb.addToCart(product, size, '', quantity);
     if (success) {
       window.dispatchEvent(new Event('cartUpdated'));
       // يمكنك إضافة toast هنا إذا أردت

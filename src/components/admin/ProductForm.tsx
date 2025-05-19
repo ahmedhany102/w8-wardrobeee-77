@@ -1,7 +1,8 @@
+
 import React, { useState } from "react";
 import ImageUploader from "./ImageUploader";
-import SizeManager, { SizeItem } from "./SizeManager";
-import { Product } from "@/models/Product";
+import SizeManager from "./SizeManager";
+import { Product, SizeItem, SizeWithStock } from "@/models/Product";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
@@ -20,7 +21,14 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   const [hasDiscount, setHasDiscount] = useState(initialData.hasDiscount || false);
   const [discount, setDiscount] = useState(initialData.discount || 0);
   const [images, setImages] = useState<string[]>(initialData.mainImage ? [initialData.mainImage] : (initialData.images || []));
-  const [sizes, setSizes] = useState<SizeItem[]>(initialData.sizes || []);
+  const [sizes, setSizes] = useState<SizeItem[]>(
+    initialData.sizes 
+      ? initialData.sizes.map(s => ({ 
+          value: s.size,
+          label: `${s.size} - ${s.price} EGP (${s.stock} available)`
+        })) 
+      : []
+  );
   const [error, setError] = useState<string>("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,6 +37,20 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       setError("يرجى ملء جميع الحقول المطلوبة (الاسم، القسم، النوع، صورة، المقاسات)");
       return;
     }
+    
+    // Convert sizes from SizeItem format to SizeWithStock format
+    const formattedSizes: SizeWithStock[] = sizes.map(sizeItem => {
+      const parts = sizeItem.label.split(' - ');
+      const pricePart = parts[1]?.split(' ')[0] || '0';
+      const stockPart = parts[1]?.match(/\((\d+) available\)/) || ['', '0'];
+      
+      return {
+        size: sizeItem.value,
+        price: Number(pricePart) || 0,
+        stock: Number(stockPart[1]) || 0
+      };
+    });
+    
     setError("");
     onSubmit({
       name: name.trim(),
@@ -40,8 +62,13 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       discount: hasDiscount ? discount : 0,
       mainImage: images[0],
       images,
-      sizes,
-    } as any);
+      sizes: formattedSizes,
+      description: '',
+      price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
+      inventory: formattedSizes.reduce((sum, item) => sum + item.stock, 0),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
   };
 
   return (
@@ -156,4 +183,4 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   );
 };
 
-export default ProductForm; 
+export default ProductForm;

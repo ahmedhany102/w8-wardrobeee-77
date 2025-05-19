@@ -1,5 +1,6 @@
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
+import { User } from './User';
 
 export interface User {
   id: string;
@@ -11,6 +12,8 @@ export interface User {
   lastLogin: string;
   ipAddress: string;
   status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
+  isAdmin: boolean;
+  isBlocked: boolean;
 }
 
 class UserDatabase {
@@ -82,7 +85,9 @@ class UserDatabase {
         createdAt: currentDate,
         lastLogin: currentDate,
         ipAddress: '192.168.1.1',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        isAdmin: true,
+        isBlocked: false
       }
     ];
 
@@ -121,7 +126,9 @@ class UserDatabase {
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         ipAddress: '0.0.0.0', // Should be set by the server
-        status: 'PENDING'
+        status: 'PENDING',
+        isAdmin: userData.role === 'ADMIN',
+        isBlocked: false
       };
 
       this.users.push(newUser);
@@ -178,6 +185,16 @@ class UserDatabase {
       // Check if new email is already taken by another user
       if (updates.email && this.users.some(u => u.email === updates.email && u.id !== id)) {
         throw new Error('Email already in use');
+      }
+
+      // Update isAdmin property based on role
+      if (updates.role) {
+        updates.isAdmin = updates.role === 'ADMIN';
+      }
+
+      // Update isBlocked property based on status
+      if (updates.status) {
+        updates.isBlocked = updates.status === 'BLOCKED';
       }
 
       this.users[userIndex] = {
