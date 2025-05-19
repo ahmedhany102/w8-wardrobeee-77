@@ -1,17 +1,16 @@
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
-// Define the User interface here directly
 export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // hashed
+  password: string;
   role: 'ADMIN' | 'USER';
-  status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
   createdAt: string;
-  lastLogin?: string;
-  ipAddress?: string;
+  lastLogin: string;
+  ipAddress: string;
+  status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
 }
 
 class UserDatabase {
@@ -61,6 +60,7 @@ class UserDatabase {
   }
 
   private validatePassword(password: string): boolean {
+    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   }
@@ -77,7 +77,7 @@ class UserDatabase {
         id: 'admin-1',
         name: 'Ahmed Hany',
         email: 'ahmedhanyseifeldien@gmail.com',
-        password: 'Ahmedhany11*',
+        password: 'Ahmedhany11*', // Will be hashed
         role: 'ADMIN',
         createdAt: currentDate,
         lastLogin: currentDate,
@@ -85,6 +85,8 @@ class UserDatabase {
         status: 'ACTIVE'
       }
     ];
+
+    // Hash passwords for default users
     Promise.all(defaultUsers.map(async (user) => {
       user.password = await this.hashPassword(user.password);
       return user;
@@ -96,15 +98,21 @@ class UserDatabase {
 
   public async registerUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<boolean> {
     try {
+      // Validate email format
       if (!this.validateEmail(userData.email)) {
         throw new Error('Invalid email format');
       }
+
+      // Validate password strength
       if (!this.validatePassword(userData.password)) {
         throw new Error('Password does not meet security requirements');
       }
+
+      // Check if email already exists
       if (this.users.some(user => user.email === userData.email)) {
         throw new Error('Email already registered');
       }
+
       const hashedPassword = await this.hashPassword(userData.password);
       const newUser: User = {
         ...userData,
@@ -112,9 +120,10 @@ class UserDatabase {
         password: hashedPassword,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
-        ipAddress: '0.0.0.0',
+        ipAddress: '0.0.0.0', // Should be set by the server
         status: 'PENDING'
       };
+
       this.users.push(newUser);
       this.saveUsers();
       return true;
@@ -124,16 +133,21 @@ class UserDatabase {
     }
   }
 
-  public async loginUser(email: string, password: string): Promise<Omit<User, 'password'> | null> {
+  public async loginUser(email: string, password: string): Promise<User | null> {
     try {
       const user = this.users.find(u => u.email === email);
       if (!user) return null;
+
       const isValid = await this.verifyPassword(password, user.password);
       if (!isValid) return null;
+
+      // Update last login
       user.lastLogin = new Date().toISOString();
       this.saveUsers();
+
+      // Return user without password
       const { password: _, ...userWithoutPassword } = user;
-      return userWithoutPassword;
+      return userWithoutPassword as User;
     } catch (error) {
       console.error('Error during login:', error);
       return null;
@@ -147,7 +161,7 @@ class UserDatabase {
   public getUserById(id: string): Omit<User, 'password'> | null {
     const user = this.users.find(u => u.id === id);
     if (!user) return null;
-    const { password: _, ...userWithoutPassword } = user;
+    const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
@@ -155,16 +169,22 @@ class UserDatabase {
     try {
       const userIndex = this.users.findIndex(u => u.id === id);
       if (userIndex === -1) return false;
+
+      // Validate email if it's being updated
       if (updates.email && !this.validateEmail(updates.email)) {
         throw new Error('Invalid email format');
       }
+
+      // Check if new email is already taken by another user
       if (updates.email && this.users.some(u => u.email === updates.email && u.id !== id)) {
         throw new Error('Email already in use');
       }
+
       this.users[userIndex] = {
         ...this.users[userIndex],
         ...updates
       };
+
       this.saveUsers();
       return true;
     } catch (error) {
@@ -185,12 +205,15 @@ class UserDatabase {
     try {
       const userIndex = this.users.findIndex(u => u.id === id);
       if (userIndex === -1) return false;
+
       const user = this.users[userIndex];
       const isValid = await this.verifyPassword(currentPassword, user.password);
       if (!isValid) return false;
+
       if (!this.validatePassword(newPassword)) {
         throw new Error('New password does not meet security requirements');
       }
+
       const hashedPassword = await this.hashPassword(newPassword);
       this.users[userIndex].password = hashedPassword;
       this.saveUsers();
@@ -205,6 +228,7 @@ class UserDatabase {
     try {
       const initialLength = this.users.length;
       this.users = this.users.filter(u => u.id !== id);
+      
       if (this.users.length !== initialLength) {
         this.saveUsers();
         return true;
