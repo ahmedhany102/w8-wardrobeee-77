@@ -1,295 +1,169 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { toast } from "sonner";
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import UserDatabase from '@/models/UserDatabase';
+// import { User } from '@/models/UserDatabase'; // تم حذف الاستيراد من هنا
+import { toast } from 'sonner';
 
-interface User {
+// تعريف واجهة المستخدم هنا مباشرة
+export interface User {
   id: string;
-  email: string;
   name: string;
-  role: string;
+  email: string;
+  password: string; // Hashed
+  role: 'ADMIN' | 'USER';
+  status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
+  createdAt: string;
+  lastLogin?: string;
+  ipAddress?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: Omit<User, 'password'> | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
-  adminLogin: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name?: string) => Promise<boolean>;
   logout: () => void;
-  isAdmin: boolean;
-  checkAuthStatus: () => Promise<void>;
+  register: (userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>) => Promise<boolean>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = "http://localhost:8080/api"; // Backend API URL
-const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com"; // Admin email
-const ADMIN_PASSWORD = "Ahmed hany11*"; // Admin password for validation
-
-// Mock user storage for demo purposes
-const MOCK_USERS_STORAGE_KEY = "mock_users";
-
-// Helper function to get mock users from localStorage
-const getMockUsers = (): {email: string, password: string, id: string, name: string, role?: string}[] => {
-  const usersJson = localStorage.getItem(MOCK_USERS_STORAGE_KEY);
-  return usersJson ? JSON.parse(usersJson) : [];
-};
-
-// Helper function to save mock users to localStorage
-const saveMockUser = (email: string, password: string, name: string = "") => {
-  const users = getMockUsers();
-  if (!users.find(u => u.email === email)) {
-    users.push({
-      id: `user-${Date.now()}`,
-      email,
-      password,
-      name: name || email.split('@')[0],
-      role: "USER"
-    });
-    localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(users));
-    console.log("User registration request sent", { email, name });
-    
-    // Record activity for admin dashboard
-    recordActivity(`New user registered: ${name || email.split('@')[0]} (${email})`, "user");
-    
-    return true;
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
-  return false;
+  return context;
 };
 
-// Record activity for admin dashboard
-const recordActivity = (description: string, type: string = "system") => {
-  try {
-    const activities = JSON.parse(localStorage.getItem('activities') || '[]');
-    const newActivity = {
-      id: `act-${Date.now()}`,
-      description,
-      timestamp: new Date().toISOString(),
-      type
-    };
-    
-    const updatedActivities = [newActivity, ...activities].slice(0, 20); // Keep only last 20 activities
-    localStorage.setItem('activities', JSON.stringify(updatedActivities));
-  } catch (error) {
-    console.error("Error recording activity:", error);
-  }
-};
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<Omit<User, 'password'> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loginAttempts, setLoginAttempts] = useState(0);
+  const userDb = UserDatabase.getInstance();
 
-  // Check if user is authenticated on initial load
   useEffect(() => {
-    checkAuthStatus();
+    // Check for existing session
+    const checkSession = async () => {
+      try {
+        const session = localStorage.getItem('session');
+        if (session) {
+          const { userId, expiresAt } = JSON.parse(session);
+          
+          // Check if session is expired
+          if (new Date(expiresAt) > new Date()) {
+            // يجب تحديث هذه الدالة في UserDatabase لترجع User بدون كلمة مرور
+            const user = userDb.getUserById(userId);
+            if (user) {
+              setUser(user as Omit<User, 'password'>);
+            } else {
+              // Clear invalid session
+              localStorage.removeItem('session');
+            }
+          } else {
+            // Clear expired session
+            localStorage.removeItem('session');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+        localStorage.removeItem('session');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkSession();
   }, []);
 
-  const checkAuthStatus = async () => {
-    try {
-      setLoading(true);
-      // Check for user session in localStorage
-      const storedUser = localStorage.getItem('currentUser');
-      
-      if (storedUser) {
-        const userData = JSON.parse(storedUser);
-        setUser(userData);
-      } else {
-        // Clear any potentially invalid session data
-        setUser(null);
-      }
-    } catch (error) {
-      console.error("Authentication check failed", error);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+  const createSession = (userId: string) => {
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour session
+
+    const session = {
+      userId,
+      expiresAt: expiresAt.toISOString()
+    };
+
+    localStorage.setItem('session', JSON.stringify(session));
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Check for rate limiting on client side
-      if (loginAttempts >= 5) {
-        toast.error("Too many login attempts. Please try again later.");
-        recordActivity(`Login attempt blocked due to rate limiting: ${email}`, "security");
-        return false;
-      }
-
-      console.log("Login request sent", { email });
-
-      // Regular user login - check against mock users
-      const users = getMockUsers();
-      const foundUser = users.find(u => u.email === email && u.password === password);
-      
-      if (foundUser) {
-        const userData = {
-          id: foundUser.id,
-          email: foundUser.email,
-          name: foundUser.name || email.split('@')[0],
-          role: foundUser.role || "USER"
-        };
-        
-        setUser(userData);
-        // Store user in localStorage (simulate session)
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        console.log("Login successful, stored user:", userData);
-        setLoginAttempts(0); // Reset attempts on success
-        
-        // Update last login time
-        const updatedUsers = users.map(u => {
-          if (u.email === email) {
-            return { ...u, lastLogin: new Date().toISOString() };
-          }
-          return u;
-        });
-        localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
-        
-        recordActivity(`User logged in: ${userData.name}`, "user");
-        return true;
-      } else {
-        // Increment failed attempts
-        setLoginAttempts(prev => prev + 1);
-        recordActivity(`Failed login attempt: ${email}`, "security");
-        toast.error("Invalid email or password");
-        return false;
-      }
-    } catch (error) {
-      console.error("Login failed", error);
-      recordActivity(`Login error: ${email}`, "error");
-      toast.error("Login failed. Please try again.");
-      return false;
-    }
-  };
-
-  // Separate admin login function
-  const adminLogin = async (email: string, password: string): Promise<boolean> => {
-    try {
-      // Check for rate limiting
-      if (loginAttempts >= 5) {
-        toast.error("Too many login attempts. Please try again later.");
-        recordActivity(`Admin login attempt blocked due to rate limiting: ${email}`, "security");
-        return false;
-      }
-
-      console.log("Admin login request sent", { email });
-
-      // Verify against admin credentials
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        const adminUser = {
-          id: "admin-1",
-          email: ADMIN_EMAIL,
-          name: "Ahmed Hany",
-          role: "ADMIN"
-        };
-        setUser(adminUser);
-        // Store admin user in localStorage
-        localStorage.setItem('currentUser', JSON.stringify(adminUser));
-        setLoginAttempts(0); // Reset attempts on success
-        
-        recordActivity(`Admin logged in: ${adminUser.name}`, "security");
-        return true;
-      } else {
-        // Increment failed attempts
-        setLoginAttempts(prev => prev + 1);
-        recordActivity(`Failed admin login attempt: ${email}`, "security");
-        toast.error("Invalid admin credentials");
-        return false;
-      }
-    } catch (error) {
-      console.error("Admin login failed", error);
-      recordActivity(`Admin login error: ${email}`, "error");
-      toast.error("Admin login failed. Please try again.");
-      return false;
-    }
-  };
-
-  const signup = async (email: string, password: string, name: string = ""): Promise<boolean> => {
-    try {
-      // Prevent users from registering with the admin email
-      if (email === ADMIN_EMAIL) {
-        toast.error("This email is reserved. Please use a different email address.");
-        recordActivity(`Attempted registration with reserved email: ${email}`, "security");
-        return false;
-      }
-
-      console.log("Registration request sent", { email, name });
-
-      // Save user credentials to mock storage
-      const success = saveMockUser(email, password, name);
-      
-      if (!success) {
-        toast.error("Email already registered. Please login or use a different email.");
-        recordActivity(`Registration attempt with existing email: ${email}`, "user");
-        return false;
-      }
-      
-      // إضافة المستخدم إلى UserDatabase
-      const userDb = UserDatabase.getInstance();
-      const hashedPassword = btoa(password); // تشفير بسيط (Base64) - يفضل استبداله لاحقًا بتشفير أقوى
-      userDb.addUser({
-        id: `user-${Date.now()}`,
-        name: name || email.split('@')[0],
-        email,
-        password: hashedPassword,
-        isAdmin: false,
-        isBlocked: false,
-        createdAt: new Date().toISOString(),
-      });
-
-      // Automatically log in the user after successful registration
-      await login(email, password);
-      
-      toast.success("Registration successful! You are now logged in.");
-      return true;
-    } catch (error) {
-      console.error("Signup failed", error);
-      recordActivity(`Registration error: ${email}`, "error");
-      toast.error("Registration failed. Please try again later.");
-      return false;
-    }
-  };
-
-  const logout = async () => {
-    try {
+      // يجب تحديث هذه الدالة في UserDatabase لترجع User بدون كلمة مرور
+      const user = await userDb.loginUser(email, password);
       if (user) {
-        recordActivity(`User logged out: ${user.name}`, "user");
+        setUser(user as Omit<User, 'password'>);
+        createSession(user.id);
+        toast.success('Login successful');
+        return true;
+      } else {
+        toast.error('Invalid email or password');
+        return false;
       }
-      
-      // Clear user data from localStorage
-      localStorage.removeItem('currentUser');
-      setUser(null);
     } catch (error) {
-      console.error("Logout request failed", error);
-      // Always clear the user data locally even if the request fails
-      setUser(null);
+      console.error('Login error:', error);
+      toast.error('An error occurred during login');
+      return false;
     }
   };
 
-  // Check if user is admin
-  const isAdmin = user?.role === "ADMIN";
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('session');
+    toast.success('Logged out successfully');
+  };
+
+  const register = async (userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<boolean> => {
+    try {
+      // يجب تحديث هذه الدالة في UserDatabase لتقبل userData كـ Omit<User, ...>
+      const success = await userDb.registerUser(userData);
+      if (success) {
+        toast.success('Registration successful');
+        return true;
+      } else {
+        toast.error('Registration failed');
+        return false;
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast.error('An error occurred during registration');
+      return false;
+    }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      // يجب تحديث هذه الدالة في UserDatabase لتقبل المعلمات بشكل صحيح
+      const success = await userDb.changePassword(user.id, currentPassword, newPassword);
+      if (success) {
+        toast.success('Password changed successfully');
+        return true;
+      } else {
+        toast.error('Failed to change password');
+        return false;
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      toast.error('An error occurred while changing password');
+      return false;
+    }
+  };
+
+  const value = {
+    user,
+    loading,
+    login,
+    logout,
+    register,
+    changePassword
+  };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        adminLogin,
-        signup,
-        logout,
-        isAdmin,
-        checkAuthStatus
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
-};
+export default AuthContext;
