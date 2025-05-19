@@ -72,7 +72,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   
   const [error, setError] = useState<string>("");
 
-  // Set up color-specific image handling
   const handleColorImageChange = (color: string, imageUrl: string) => {
     const existingIndex = colorImages.findIndex(ci => ci.color === color);
     if (existingIndex >= 0) {
@@ -133,6 +132,22 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
           />
         </div>
         <div>
+          <label className="block text-sm font-medium mb-1">القسم*</label>
+          <select
+            value={categoryPath[0]}
+            onChange={e => setCategoryPath([e.target.value])}
+            className="w-full p-2 border rounded text-sm"
+            required
+          >
+            {Object.keys(categoryStructure).map(category => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
           <label className="block text-sm font-medium mb-1">النوع*</label>
           <input
             type="text"
@@ -141,6 +156,21 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
             className="w-full p-2 border rounded text-sm"
             required
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">الفئة الفرعية</label>
+          <select
+            value={categoryPath[1] || ""}
+            onChange={e => setCategoryPath([categoryPath[0], e.target.value])}
+            className="w-full p-2 border rounded text-sm"
+          >
+            <option value="">اختر الفئة الفرعية</option>
+            {categoryStructure[categoryPath[0]] && 
+              Object.keys(categoryStructure[categoryPath[0]]).map(subCategory => (
+                <option key={subCategory} value={subCategory}>{subCategory}</option>
+              ))
+            }
+          </select>
         </div>
       </div>
 
@@ -210,11 +240,19 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
                 className="p-2 border rounded text-sm"
                 placeholder="اسم اللون"
               />
+              <input
+                type="text"
+                value={colorImages.find(ci => ci.color === color)?.imageUrl || ''}
+                onChange={e => handleColorImageChange(color, e.target.value)}
+                className="p-2 border rounded text-sm"
+                placeholder="رابط صورة اللون"
+              />
               <button
                 type="button"
                 onClick={() => {
                   const newColors = colors.filter((_, i) => i !== index);
                   setColors(newColors);
+                  setColorImages(colorImages.filter(ci => ci.color !== color));
                 }}
                 className="text-red-600 hover:text-red-700"
               >
