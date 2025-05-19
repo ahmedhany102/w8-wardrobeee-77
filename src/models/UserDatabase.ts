@@ -8,7 +8,9 @@ class UserDatabase {
   private readonly SALT_ROUNDS = 10;
 
   private constructor() {
-    this.loadUsers();
+    this.loadUsers().catch(error => {
+      console.error('Error initializing users:', error);
+    });
   }
 
   public static getInstance(): UserDatabase {
@@ -18,7 +20,7 @@ class UserDatabase {
     return UserDatabase.instance;
   }
 
-  private loadUsers(): void {
+  private async loadUsers(): Promise<void> {
     try {
       console.log('Loading users from localStorage...');
       const storedUsers = localStorage.getItem('users');
@@ -29,12 +31,12 @@ class UserDatabase {
         console.log('Successfully loaded users:', this.users);
       } else {
         console.log('No users found in localStorage, creating default users...');
-        this.createDefaultUsers();
+        await this.createDefaultUsers();
       }
     } catch (error) {
       console.error('Error loading users:', error);
       console.log('Falling back to default users...');
-      this.createDefaultUsers();
+      await this.createDefaultUsers();
     }
   }
 
@@ -68,7 +70,7 @@ class UserDatabase {
     return emailRegex.test(email);
   }
 
-  private createDefaultUsers(): void {
+  private async createDefaultUsers(): Promise<void> {
     console.log('Creating default users...');
     const currentDate = new Date().toISOString();
     const defaultUsers: User[] = [
@@ -76,7 +78,7 @@ class UserDatabase {
         id: 'admin-1',
         name: 'Ahmed Hany',
         email: 'ahmedhanyseifeldien@gmail.com',
-        password: 'Ahmedhany11*', // Will be hashed
+        password: 'Ahmedhany11*',
         role: 'ADMIN',
         createdAt: currentDate,
         lastLogin: currentDate,
@@ -88,48 +90,36 @@ class UserDatabase {
       }
     ];
 
-    console.log('Default users before hashing:', defaultUsers);
-
     // Hash passwords for default users
-    Promise.all(defaultUsers.map(async (user) => {
-      user.password = await this.hashPassword(user.password);
-      return user;
-    })).then((hashedUsers) => {
-      console.log('Default users after hashing:', hashedUsers);
-      this.users = hashedUsers;
-      this.saveUsers();
-      console.log('Default users created and saved successfully');
-    }).catch(error => {
-      console.error('Error creating default users:', error);
-    });
+    const hashedUsers = await Promise.all(
+      defaultUsers.map(async (user) => ({
+        ...user,
+        password: await this.hashPassword(user.password)
+      }))
+    );
+
+    this.users = hashedUsers;
+    this.saveUsers();
   }
 
   public async registerUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<boolean> {
     try {
-      console.log('Starting user registration process...');
-      console.log('Current users in database:', this.users);
-
       // Validate email format
       if (!this.validateEmail(userData.email)) {
-        console.log('Invalid email format:', userData.email);
         throw new Error('Invalid email format');
       }
 
       // Validate password strength
       if (!this.validatePassword(userData.password)) {
-        console.log('Invalid password format');
         throw new Error('Password does not meet security requirements');
       }
 
       // Check if email already exists
       const existingUser = this.users.find(user => user.email === userData.email);
       if (existingUser) {
-        console.log('Email already exists:', userData.email);
-        console.log('Existing user:', existingUser);
         throw new Error('Email already registered');
       }
 
-      console.log('Creating new user...');
       const hashedPassword = await this.hashPassword(userData.password);
       const newUser: User = {
         ...userData,
@@ -144,10 +134,8 @@ class UserDatabase {
         isBlocked: false
       };
 
-      console.log('Adding new user to database:', newUser);
       this.users.push(newUser);
       this.saveUsers();
-      console.log('User registration successful');
       return true;
     } catch (error) {
       console.error('Error registering user:', error);
