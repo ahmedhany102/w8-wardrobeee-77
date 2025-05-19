@@ -76,7 +76,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const loadUsers = () => {
     const userDb = UserDatabase.getInstance();
     const allUsers = userDb.getAllUsers();
-    // Convert the return value to a proper User array
+    // Ensure the users array is correctly typed
     setUsers(allUsers as User[]);
   };
 
@@ -155,7 +155,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     
     if (success) {
       const updatedUsers = users.map(u =>
-        u.id === userId ? { ...u, role: 'ADMIN' } : u
+        u.id === userId ? { ...u, role: 'ADMIN' as const } : u
       );
       setUsers(updatedUsers);
       
@@ -174,7 +174,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     
     if (success) {
       const updatedUsers = users.map(u =>
-        u.id === userId ? { ...u, role: 'USER' } : u
+        u.id === userId ? { ...u, role: 'USER' as const } : u
       );
       setUsers(updatedUsers);
       
@@ -231,7 +231,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     
     if (success) {
       const updatedUsers = users.map(u => 
-        u.id === isEditing ? { ...u, ...editData } : u
+        u.id === isEditing ? { ...u, ...editData, role: editData.role as 'ADMIN' | 'USER' } : u
       );
       
       setUsers(updatedUsers);
