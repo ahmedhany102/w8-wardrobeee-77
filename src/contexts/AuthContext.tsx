@@ -3,11 +3,18 @@ import UserDatabase from '@/models/UserDatabase';
 // import { User } from '@/models/UserDatabase'; // تم حذف الاستيراد من هنا
 import { toast } from 'sonner';
 
-// قم باستيراد User من UserDatabase الآن بعد إعادة تعريفها هناك
-import { User } from '@/models/UserDatabase';
-
 // تعريف واجهة المستخدم هنا مباشرة
-// interface User { ... }
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password: string; // Hashed
+  role: 'ADMIN' | 'USER';
+  status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
+  createdAt: string;
+  lastLogin?: string;
+  ipAddress?: string;
+}
 
 interface AuthContextType {
   user: Omit<User, 'password'> | null;
