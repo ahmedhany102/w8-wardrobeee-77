@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
-import UserDatabase from '@/models/UserDatabase';
+import UserDatabase from '../models/UserDatabase';
 
 interface User {
   id: string;

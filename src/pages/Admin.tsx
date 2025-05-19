@@ -14,7 +14,16 @@ import { Eye, EyeOff, UserRound } from 'lucide-react';
 import { formatDistance } from 'date-fns';
 import UserDatabase from '@/models/UserDatabase';
 import DOMPurify from 'dompurify';
-import { User } from '@/contexts/AuthContext';
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  status?: string;
+  lastLogin?: string;
+  password?: string;
+}
 
 interface AdminProps {
   activeTab?: string;
@@ -31,6 +40,20 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const [editData, setEditData] = useState<Partial<User>>({});
   const [activities, setActivities] = useState<any[]>([]);
   const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
+  
+  // Function to create default activities if none exist
+  const createDefaultActivities = () => {
+    const defaultActivities = [
+      {
+        id: `act-${Date.now()}`,
+        description: 'System initialized',
+        timestamp: new Date().toISOString(),
+        type: 'system'
+      }
+    ];
+    setActivities(defaultActivities);
+    localStorage.setItem('activities', JSON.stringify(defaultActivities));
+  };
   
   useEffect(() => {
     // Verify admin status on component mount
