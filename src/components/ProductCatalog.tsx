@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -210,28 +211,28 @@ const ProductCatalog: React.FC = () => {
       
       <Tabs defaultValue="ALL" value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="flex justify-center overflow-x-auto pb-4">
-          <TabsList className="mb-8 bg-gradient-to-r from-green-900 to-black flex justify-between space-x-8 px-8 w-auto">
+          <TabsList className="mb-8 bg-gradient-to-r from-green-900 to-black flex justify-between space-x-8 px-4 w-auto">
             <TabsTrigger 
               value="ALL" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
             >
               All
             </TabsTrigger>
             <TabsTrigger 
               value="رجالي" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
             >
               رجالي
             </TabsTrigger>
             <TabsTrigger 
               value="حريمي" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
             >
               حريمي
             </TabsTrigger>
             <TabsTrigger 
               value="أطفال" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-5"
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
             >
               أطفال
             </TabsTrigger>
@@ -256,7 +257,7 @@ const ProductCatalog: React.FC = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {filteredProducts.map((product) => (
               <ProductCard 
                 key={product.id} 
@@ -268,7 +269,7 @@ const ProductCatalog: React.FC = () => {
         )}
       </Tabs>
 
-      {/* Shopping Cart Dialog */}
+      {/* Shopping Cart Dialog - Only Cash on Delivery */}
       <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
         <DialogContent className="sm:max-w-md bg-gradient-to-b from-green-900 to-black text-white">
           <div className="space-y-4">
@@ -311,6 +312,7 @@ const ProductCatalog: React.FC = () => {
                     <span>Total:</span>
                     <span>{calculateTotal().toFixed(2)} EGP</span>
                   </div>
+                  <p className="text-sm text-green-300 mt-2">Payment Method: Cash on Delivery</p>
                 </div>
                 
                 <div className="flex justify-between pt-4">

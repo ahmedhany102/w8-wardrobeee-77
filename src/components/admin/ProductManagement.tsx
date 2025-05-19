@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Product, default as ProductDatabase } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -94,19 +95,22 @@ const ProductManagement = () => {
           onChange={e => setSearchTerm(e.target.value)}
           className="border px-3 py-2 rounded w-full md:w-64"
         />
-        <Button onClick={() => setShowAddDialog(true)} className="bg-green-800 hover:bg-green-900">
-          <Plus className="h-4 w-4 mr-2" /> إضافة منتج جديد
-        </Button>
-        <Button
-          onClick={() => {
-            localStorage.removeItem('products');
-            window.location.reload();
-          }}
-          className="bg-red-700 hover:bg-red-800 text-white mb-2 md:mb-0"
-        >
-          مسح كل المنتجات
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={() => setShowAddDialog(true)} className="bg-green-800 hover:bg-green-900 text-sm">
+            <Plus className="h-4 w-4 mr-2" /> إضافة منتج جديد
+          </Button>
+          <Button
+            onClick={() => {
+              localStorage.removeItem('products');
+              window.location.reload();
+            }}
+            className="bg-red-700 hover:bg-red-800 text-white text-sm"
+          >
+            مسح كل المنتجات
+          </Button>
+        </div>
       </div>
+      
       <Card className="border-green-100">
         <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white">
           <CardTitle className="text-xl">إدارة المنتجات</CardTitle>
@@ -125,12 +129,12 @@ const ProductManagement = () => {
               <Table>
                 <TableHeader className="bg-green-50">
                   <TableRow>
-                    <TableHead>الصورة</TableHead>
+                    <TableHead className="w-16">الصورة</TableHead>
                     <TableHead>الاسم</TableHead>
-                    <TableHead>القسم</TableHead>
-                    <TableHead>النوع</TableHead>
-                    <TableHead>الألوان</TableHead>
-                    <TableHead>الخصم</TableHead>
+                    <TableHead className="hidden md:table-cell">القسم</TableHead>
+                    <TableHead className="hidden md:table-cell">النوع</TableHead>
+                    <TableHead className="hidden lg:table-cell">الألوان</TableHead>
+                    <TableHead className="hidden md:table-cell">الخصم</TableHead>
                     <TableHead className="text-right">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -139,37 +143,44 @@ const ProductManagement = () => {
                     <TableRow key={product.id} className="hover:bg-green-50 transition-colors">
                       <TableCell>
                         {product.mainImage ? (
-                          <img src={product.mainImage} alt={product.name} className="h-14 w-14 object-cover rounded-md" />
+                          <img src={product.mainImage} alt={product.name} className="h-10 w-10 object-cover rounded-md" />
                         ) : (
-                          <span className="text-gray-400">بدون صورة</span>
+                          <span className="text-gray-400">-</span>
                         )}
                       </TableCell>
-                      <TableCell className="font-medium truncate" title={product.name}>{product.name}</TableCell>
-                      <TableCell>{product.category}</TableCell>
-                      <TableCell>{product.type}</TableCell>
-                      <TableCell>{product.colors?.join(", ")}</TableCell>
-                      <TableCell>{product.hasDiscount && product.discount ? `${product.discount}%` : "-"}</TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setEditProduct(product);
-                            setShowEditDialog(true);
-                          }}
-                          className="bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300"
-                        >
-                          <Pencil className="h-4 w-4 mr-1" /> تعديل
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            setDeleteProductId(product.id);
-                            setShowDeleteDialog(true);
-                          }}
-                          className="bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300 text-red-600"
-                        >
-                          <Trash className="h-4 w-4 mr-1" /> حذف
-                        </Button>
+                      <TableCell className="font-medium truncate" title={product.name}>
+                        <div className="max-w-[120px] truncate">{product.name}</div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{product.category}</TableCell>
+                      <TableCell className="hidden md:table-cell">{product.type}</TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {product.colors ? 
+                          <div className="max-w-[120px] truncate">{product.colors.join(", ")}</div> : "-"}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{product.hasDiscount && product.discount ? `${product.discount}%` : "-"}</TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setEditProduct(product);
+                              setShowEditDialog(true);
+                            }}
+                            className="bg-blue-50 hover:bg-blue-100 border-blue-200 hover:border-blue-300 p-1 h-auto"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              setDeleteProductId(product.id);
+                              setShowDeleteDialog(true);
+                            }}
+                            className="bg-red-50 hover:bg-red-100 border-red-200 hover:border-red-300 text-red-600 p-1 h-auto"
+                          >
+                            <Trash className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -179,9 +190,10 @@ const ProductManagement = () => {
           )}
         </CardContent>
       </Card>
+      
       {/* Add Product Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>إضافة منتج جديد</DialogTitle>
           </DialogHeader>
@@ -194,9 +206,10 @@ const ProductManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
       {/* Edit Product Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>تعديل المنتج</DialogTitle>
           </DialogHeader>
@@ -212,6 +225,7 @@ const ProductManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
       {/* Delete Product Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="sm:max-w-md">

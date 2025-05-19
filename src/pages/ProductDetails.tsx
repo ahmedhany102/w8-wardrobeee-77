@@ -42,9 +42,15 @@ const ProductDetails = () => {
   if (!product) return <Layout><div className="text-center py-20">جاري تحميل المنتج...</div></Layout>;
 
   const availableSizes = (product.sizes || []).filter(s => s && s.stock > 0);
+  const isOutOfStock = availableSizes.length === 0;
   const images = product.images && product.images.length > 0 ? product.images : [product.mainImage || '/placeholder.svg'];
 
   const handleAddToCart = () => {
+    if (isOutOfStock) {
+      toast.error('المنتج غير متوفر حالياً');
+      return;
+    }
+    
     if (!selectedSize || !selectedColor) {
       toast.error('يرجى اختيار المقاس واللون');
       return;
@@ -84,6 +90,12 @@ const ProductDetails = () => {
             <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
             <div className="text-gray-600">{product.category} - {product.type}</div>
             <div className="text-gray-700">{product.details}</div>
+            
+            {/* Stock status indicator */}
+            <div className={`text-sm font-bold ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
+              {isOutOfStock ? 'غير متوفر حالياً' : 'متوفر'}
+            </div>
+            
             {/* اختيار اللون */}
             {product.colors && product.colors.length > 0 && (
               <div>
@@ -123,10 +135,10 @@ const ProductDetails = () => {
             )}
             <Button
               className="w-full bg-green-600 hover:bg-green-700 mt-4"
-              disabled={!selectedSize || !selectedColor}
+              disabled={isOutOfStock || !selectedSize || !selectedColor}
               onClick={handleAddToCart}
             >
-              أضف للعربة
+              {isOutOfStock ? 'غير متوفر' : 'أضف للعربة'}
             </Button>
           </div>
         </div>
