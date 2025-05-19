@@ -223,17 +223,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return false;
       }
       
-      // إضافة المستخدم إلى UserDatabase
+      // Add the user to UserDatabase
       const userDb = UserDatabase.getInstance();
-      const hashedPassword = btoa(password); // تشفير بسيط (Base64) - يفضل استبداله لاحقًا بتشفير أقوى
-      userDb.addUser({
-        id: `user-${Date.now()}`,
+      await userDb.registerUser({
         name: name || email.split('@')[0],
         email,
-        password: hashedPassword,
-        isAdmin: false,
-        isBlocked: false,
-        createdAt: new Date().toISOString(),
+        password,
+        role: 'USER',
+        status: 'ACTIVE'
       });
 
       // Automatically log in the user after successful registration
