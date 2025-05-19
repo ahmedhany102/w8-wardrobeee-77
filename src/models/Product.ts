@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -148,4 +147,3 @@ export class ProductDatabase {
 
 // Export the ProductDatabase class as default and named export
 export default ProductDatabase;
-

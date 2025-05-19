@@ -123,7 +123,7 @@ const ProductCatalog: React.FC = () => {
       return;
     }
     const cartDb = (await import('@/models/CartDatabase')).default.getInstance();
-    const success = await cartDb.addToCart(product, size.toString(), quantity);
+    const success = await cartDb.addToCart(product, size.toString(), quantity.toString());
     if (success) {
       window.dispatchEvent(new Event('cartUpdated'));
       toast.success(`${product.name} تمت إضافته للعربة`);

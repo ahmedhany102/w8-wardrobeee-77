@@ -205,6 +205,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signup = async (email: string, password: string, name: string = ""): Promise<boolean> => {
     try {
+      // Validate email format
+      if (!email.includes('@')) {
+        toast.error("Please enter a valid email address");
+        return false;
+      }
+      
       // Prevent users from registering with the admin email
       if (email === ADMIN_EMAIL) {
         toast.error("This email is reserved. Please use a different email address.");
@@ -230,7 +236,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         role: 'USER',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        isAdmin: false,
+        isBlocked: false
       });
 
       // Automatically log in the user after successful registration

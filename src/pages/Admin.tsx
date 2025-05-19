@@ -16,7 +16,8 @@ import UserDatabase from '@/models/UserDatabase';
 import { User } from '@/models/User';
 import DOMPurify from 'dompurify';
 
-interface User {
+// Use a different interface name to avoid conflict with imported User
+interface UserView {
   id: string;
   email: string;
   name: string;
@@ -220,7 +221,13 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     if (!isEditing) return;
     
     const userDb = UserDatabase.getInstance();
-    const success = userDb.updateUser(isEditing, editData);
+    // Make sure role is correctly typed
+    const updatedData: Partial<Omit<User, "id" | "password">> = {
+      ...editData,
+      role: editData.role as 'ADMIN' | 'USER'
+    };
+    
+    const success = userDb.updateUser(isEditing, updatedData);
     
     if (success) {
       const updatedUsers = users.map(u => 
