@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import ProductCard from '@/components/ProductCard';
@@ -115,9 +114,6 @@ const Index = () => {
                   </Button>
                   <Button asChild className="bg-transparent border-2 border-green-400 text-white hover:bg-green-800 px-8 py-3 rounded-md text-lg transition-transform hover:scale-105 active:scale-95">
                     <Link to="/signup">Sign Up</Link>
-                  </Button>
-                  <Button asChild className="bg-transparent border-2 border-green-400 text-white hover:bg-green-800 px-8 py-3 rounded-md text-lg transition-transform hover:scale-105 active:scale-95">
-                    <Link to="/admin-login">Admin Login</Link>
                   </Button>
                 </>
               ) : (
