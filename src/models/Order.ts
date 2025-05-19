@@ -1,3 +1,4 @@
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -20,11 +21,6 @@ export interface Order {
     cardLast4?: string;
     cardBrand?: string;
     transactionId?: string;
-  };
-  couponInfo?: {
-    code: string;
-    discountPercentage: number;
-    discountAmount: number;
   };
   createdAt: string;
   updatedAt: string;

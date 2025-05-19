@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Order, OrderItem } from '@/models/Order';
 import OrderDatabase from '@/models/OrderDatabase';
 import { useAuth } from '@/contexts/AuthContext';
-import CouponDatabase from '@/models/CouponDatabase';
 
 interface OrderFormProps {
   cartItems: {
@@ -22,13 +21,9 @@ interface OrderFormProps {
   }[];
   total: number;
   onOrderComplete?: () => void;
-  appliedCoupon?: {
-    code: string;
-    discount: number;
-  } | null;
 }
 
-const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete, appliedCoupon }) => {
+const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -63,7 +58,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         return;
       }
 
-      // Convert cart items to order items
+      // Convert cart items to order items (مع تمرير اللون والمقاس)
       const orderItems: OrderItem[] = cartItems.map(item => ({
         productId: item.productId,
         productName: item.name,
@@ -74,9 +69,6 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         color: item.color || '-',
         size: item.size || '-',
       }));
-
-      // Calculate discount amount if coupon is applied
-      const discountAmount = appliedCoupon ? (total * appliedCoupon.discount) / 100 : 0;
 
       // Create order object
       const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
@@ -98,25 +90,12 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         paymentInfo: {
           method: formData.paymentMethod as Order['paymentInfo']['method'],
         },
-        notes: formData.notes,
-        ...(appliedCoupon && {
-          couponInfo: {
-            code: appliedCoupon.code,
-            discountPercentage: appliedCoupon.discount,
-            discountAmount: discountAmount
-          }
-        })
+        notes: formData.notes
       };
 
       // Save order to database
       const orderDb = OrderDatabase.getInstance();
       const newOrder = await orderDb.saveOrder(orderData);
-
-      // If coupon was applied, increment its usage count
-      if (appliedCoupon) {
-        const couponDb = CouponDatabase.getInstance();
-        await couponDb.incrementUsage(appliedCoupon.code);
-      }
 
       // Show success message
       toast.success('Order placed successfully!');

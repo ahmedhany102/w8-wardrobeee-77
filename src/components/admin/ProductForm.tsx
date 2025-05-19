@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import ImageUploader from "./ImageUploader";
 import SizeManager, { SizeItem } from "./SizeManager";
@@ -125,143 +126,158 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label className="block text-sm font-medium mb-1">اسم المنتج*</label>
+    <form className="space-y-6 w-full max-w-2xl mx-auto" onSubmit={handleSubmit}>
+      {error && <div className="bg-red-100 text-red-700 p-2 rounded">{error}</div>}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+        <div className="flex flex-col w-full">
+          <label className="block font-bold mb-1">اسم المنتج *</label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full p-2 border rounded text-sm"
+            className="border rounded px-3 py-2 w-full"
             required
           />
         </div>
-        <div>
-          <label className="block text-sm font-medium mb-1">السعر*</label>
+        <div className="flex flex-col w-full">
+          <label className="block font-bold mb-1">القسم *</label>
+          <select
+            value={categoryPath.join(" > ")}
+            onChange={e => {
+              const selectedPath = e.target.value.split(" > ");
+              setCategoryPath(selectedPath);
+            }}
+            className="border rounded px-3 py-2 w-full"
+            required
+          >
+            {availableCategories.map(path => (
+              <option key={path.join("-")} value={path.join(" > ")}>
+                {path.join(" > ")}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-col w-full">
+          <label className="block font-bold mb-1">النوع *</label>
           <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={price}
-            onChange={e => setPrice(parseFloat(e.target.value) || 0)}
-            className="w-full p-2 border rounded text-sm"
+            type="text"
+            value={type}
+            onChange={e => setType(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+            placeholder="مثال: تشيرت، قميص، بنطلون، فستان، حذاء..."
             required
           />
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">الوصف*</label>
-        <textarea
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          className="w-full p-2 border rounded text-sm"
-          rows={4}
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">الصورة*</label>
-        <input
-          type="text"
-          value={imageUrl}
-          onChange={e => setImageUrl(e.target.value)}
-          className="w-full p-2 border rounded text-sm"
-          placeholder="رابط الصورة"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">الفئة*</label>
-        <select
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-          className="w-full p-2 border rounded text-sm"
-          required
-        >
-          <option value="">اختر الفئة</option>
-          <option value="clothing">ملابس</option>
-          <option value="accessories">إكسسوارات</option>
-          <option value="shoes">أحذية</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">الألوان المتاحة*</label>
-        <div className="flex flex-wrap gap-2">
-          {colors.map((color, index) => (
-            <div key={index} className="flex items-center gap-2">
-              <input
-                type="text"
-                value={color}
-                onChange={e => {
-                  const newColors = [...colors];
-                  newColors[index] = e.target.value;
-                  setColors(newColors);
-                }}
-                className="p-2 border rounded text-sm"
-                placeholder="اسم اللون"
-              />
+        <div className="flex flex-col w-full">
+          <label className="block font-bold mb-1 mb-2">الألوان المتوفرة</label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { name: 'أحمر', code: '#ff0000' },
+              { name: 'أزرق', code: '#0074D9' },
+              { name: 'أسود', code: '#111111' },
+              { name: 'أبيض', code: '#ffffff', border: true },
+              { name: 'أخضر', code: '#2ECC40' },
+              { name: 'أصفر', code: '#FFDC00' },
+              { name: 'رمادي', code: '#AAAAAA' },
+              { name: 'وردي', code: '#FF69B4' },
+              { name: 'بنفسجي', code: '#B10DC9' },
+              { name: 'بني', code: '#8B4513' },
+            ].map(color => (
               <button
                 type="button"
-                onClick={() => {
-                  const newColors = colors.filter((_, i) => i !== index);
-                  setColors(newColors);
-                }}
-                className="text-red-600 hover:text-red-700"
+                key={color.code}
+                className={`w-8 h-8 rounded-full border-2 flex items-center justify-center focus:outline-none ${colors.includes(color.name) ? 'ring-2 ring-green-600 border-green-600' : 'border-gray-300'} ${color.border ? 'border' : ''}`}
+                style={{ background: color.code }}
+                title={color.name}
+                onClick={() => setColors(colors.includes(color.name) ? colors.filter(c => c !== color.name) : [...colors, color.name])}
               >
-                حذف
+                {colors.includes(color.name) && <span className="text-xs text-white font-bold">✓</span>}
               </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            onClick={() => setColors([...colors, ''])}
-            className="text-green-600 hover:text-green-700"
-          >
-            إضافة لون
-          </button>
+            ))}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">اضغط لاختيار لون أو أكثر</div>
         </div>
       </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">المقاسات المتاحة*</label>
-        <div className="overflow-x-auto">
-          <SizeManager sizes={sizes} onChange={setSizes} />
-        </div>
+      <div className="flex flex-col w-full">
+        <label className="block font-bold mb-1">تفاصيل إضافية</label>
+        <textarea
+          value={details}
+          onChange={e => setDetails(e.target.value)}
+          className="border rounded px-3 py-2 w-full"
+          rows={2}
+        />
       </div>
-
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col w-full">
+        <label className="block font-bold mb-1">صور المنتج *</label>
+        <ImageUploader value={images} onChange={setImages} label={undefined} />
+      </div>
+      
+      {/* Color-specific images section */}
+      {colors.length > 0 && (
+        <div className="flex flex-col w-full border p-4 rounded bg-gray-50">
+          <label className="block font-bold mb-3">صور خاصة بكل لون</label>
+          <div className="space-y-4">
+            {colors.map(color => (
+              <div key={color} className="flex flex-col md:flex-row items-start md:items-center gap-2 border-b pb-4">
+                <div className="font-medium min-w-[100px]">{color}</div>
+                <div className="flex-1">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          handleColorImageChange(color, event.target?.result as string);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="text-sm text-gray-800"
+                  />
+                </div>
+                {colorImages.find(ci => ci.color === color)?.imageUrl && (
+                  <div className="w-12 h-12 overflow-hidden rounded border">
+                    <img 
+                      src={colorImages.find(ci => ci.color === color)?.imageUrl} 
+                      alt={`${color} preview`} 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      
+      <div className="overflow-x-auto w-full">
+        <SizeManager sizes={sizes} onChange={setSizes} />
+      </div>
+      <div className="flex items-center gap-2 w-full">
         <input
           type="checkbox"
           checked={hasDiscount}
           onChange={e => setHasDiscount(e.target.checked)}
           id="hasDiscount"
-          className="w-4 h-4"
         />
-        <label htmlFor="hasDiscount" className="text-sm font-medium">منتج عليه خصم</label>
+        <label htmlFor="hasDiscount">منتج عليه خصم</label>
         {hasDiscount && (
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="1"
-              max="100"
-              value={discount}
-              onChange={e => setDiscount(parseInt(e.target.value) || 0)}
-              className="w-20 p-2 border rounded text-sm"
-              placeholder="نسبة الخصم %"
-            />
-            <span className="text-sm">%</span>
-          </div>
+          <input
+            type="number"
+            min={1}
+            max={100}
+            value={discount}
+            onChange={e => setDiscount(parseInt(e.target.value) || 0)}
+            className="border rounded px-2 py-1 w-20 ml-2"
+            placeholder="نسبة الخصم %"
+          />
         )}
       </div>
-
       <button
         type="submit"
-        className="w-full bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded font-bold text-sm"
+        className="bg-green-700 hover:bg-green-800 text-white px-6 py-2 rounded font-bold w-full"
       >
         {submitLabel}
       </button>
