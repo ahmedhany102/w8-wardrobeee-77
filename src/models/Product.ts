@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -67,12 +68,9 @@ export interface SizeWithStock {
 export class ProductDatabase {
   private static instance: ProductDatabase;
   private products: Product[] = [];
-  private db: IDBDatabase | null = null;
-  private readonly DB_NAME = 'w8StoreDB';
-  private readonly STORE_NAME = 'products';
 
   private constructor() {
-    this.initDB();
+    this.loadProducts();
   }
 
   public static getInstance(): ProductDatabase {
@@ -82,65 +80,28 @@ export class ProductDatabase {
     return ProductDatabase.instance;
   }
 
-  private initDB(): void {
-    const request = indexedDB.open(this.DB_NAME, 1);
-
-    request.onerror = (event) => {
-      console.error('Error opening database:', event);
-    };
-
-    request.onsuccess = (event) => {
-      this.db = (event.target as IDBOpenDBRequest).result;
-      this.loadProducts();
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-        db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
-      }
-    };
-  }
-
   private loadProducts(): void {
-    if (!this.db) return;
-
-    const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
-    const store = transaction.objectStore(this.STORE_NAME);
-    const request = store.getAll();
-
-    request.onsuccess = () => {
-      this.products = request.result || [];
-      window.dispatchEvent(new Event('productsUpdated'));
-    };
-
-    request.onerror = (event) => {
-      console.error('Error loading products:', event);
+    try {
+      const storedProducts = localStorage.getItem('products');
+      if (storedProducts) {
+        this.products = JSON.parse(storedProducts);
+      } else {
+        this.products = [];
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
       this.products = [];
-    };
+    }
   }
 
   private saveProducts(): void {
-    if (!this.db) return;
-
-    const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(this.STORE_NAME);
-
-    // Clear existing products
-    store.clear();
-
-    // Add all products
-    this.products.forEach(product => {
-      store.add(product);
-    });
-
-    transaction.oncomplete = () => {
+    try {
+      localStorage.setItem('products', JSON.stringify(this.products));
+      // Dispatch an event to notify components that products have been updated
       window.dispatchEvent(new Event('productsUpdated'));
-    };
-
-    transaction.onerror = (event) => {
-      console.error('Error saving products:', event);
-    };
+    } catch (error) {
+      console.error('Error saving products:', error);
+    }
   }
 
   public async getAllProducts(): Promise<Product[]> {
