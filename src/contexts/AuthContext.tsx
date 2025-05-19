@@ -111,42 +111,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log("Login request sent", { email });
 
-      // Regular user login - check against mock users
-      const users = getMockUsers();
-      const foundUser = users.find(u => u.email === email && u.password === password);
+      // Regular user login - check against UserDatabase
+      const userDb = UserDatabase.getInstance();
+      const foundUser = await userDb.loginUser(email, password);
       
       if (foundUser) {
-        const userData: User = {
-          id: foundUser.id,
-          email: foundUser.email,
-          name: foundUser.name || email.split('@')[0],
-          role: (foundUser.role || "USER") as 'ADMIN' | 'USER',
-          password: foundUser.password,
-          isAdmin: foundUser.role === "ADMIN",
-          isSuperAdmin: false,
-          isBlocked: false,
-          createdAt: new Date().toISOString(),
-          lastLogin: new Date().toISOString(),
-          ipAddress: '0.0.0.0',
-          status: 'ACTIVE'
-        };
-        
-        setUser(userData);
+        setUser(foundUser);
         // Store user in localStorage (simulate session)
-        localStorage.setItem('currentUser', JSON.stringify(userData));
-        console.log("Login successful, stored user:", userData);
+        localStorage.setItem('currentUser', JSON.stringify(foundUser));
+        console.log("Login successful, stored user:", foundUser);
         setLoginAttempts(0); // Reset attempts on success
         
-        // Update last login time
-        const updatedUsers = users.map(u => {
-          if (u.email === email) {
-            return { ...u, lastLogin: new Date().toISOString() };
-          }
-          return u;
-        });
-        localStorage.setItem(MOCK_USERS_STORAGE_KEY, JSON.stringify(updatedUsers));
-        
-        recordActivity(`User logged in: ${userData.name}`, "user");
+        recordActivity(`User logged in: ${foundUser.name}`, "user");
         return true;
       } else {
         // Increment failed attempts
@@ -248,9 +224,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         recordActivity(`Registration attempt with existing email: ${email}`, "user");
         return false;
       }
-
-      // Save user credentials to mock storage for backward compatibility
-      saveMockUser(email, password, name);
 
       // Automatically log in the user after successful registration
       await login(email, password);
