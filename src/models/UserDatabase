@@ -1,38 +1,35 @@
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
-/**
- * @typedef {Object} User
- * @property {string} id
- * @property {string} name
- * @property {string} email
- * @property {string} password
- * @property {'ADMIN'|'USER'} role
- * @property {string} createdAt
- * @property {string} lastLogin
- * @property {string} ipAddress
- * @property {'ACTIVE'|'BLOCKED'|'PENDING'} status
- */
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  role: 'ADMIN' | 'USER';
+  createdAt: string;
+  lastLogin: string;
+  ipAddress: string;
+  status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
+}
 
 class UserDatabase {
-  static instance;
-  users = [];
-  SALT_ROUNDS = 10;
+  private static instance: UserDatabase;
+  private users: User[] = [];
+  private readonly SALT_ROUNDS = 10;
 
-  constructor() {
-    if (UserDatabase.instance) return UserDatabase.instance;
+  private constructor() {
     this.loadUsers();
-    UserDatabase.instance = this;
   }
 
-  static getInstance() {
+  public static getInstance(): UserDatabase {
     if (!UserDatabase.instance) {
       UserDatabase.instance = new UserDatabase();
     }
     return UserDatabase.instance;
   }
 
-  loadUsers() {
+  private loadUsers(): void {
     try {
       const storedUsers = localStorage.getItem('users');
       if (storedUsers) {
@@ -46,7 +43,7 @@ class UserDatabase {
     }
   }
 
-  saveUsers() {
+  private saveUsers(): void {
     try {
       localStorage.setItem('users', JSON.stringify(this.users));
     } catch (error) {
@@ -54,27 +51,27 @@ class UserDatabase {
     }
   }
 
-  async hashPassword(password) {
+  private async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, this.SALT_ROUNDS);
   }
 
-  async verifyPassword(password, hash) {
+  private async verifyPassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
   }
 
-  validatePassword(password) {
+  private validatePassword(password: string): boolean {
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   }
 
-  validateEmail(email) {
+  private validateEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  createDefaultUsers() {
+  private createDefaultUsers(): void {
     const currentDate = new Date().toISOString();
-    const defaultUsers = [
+    const defaultUsers: User[] = [
       {
         id: 'admin-1',
         name: 'Ahmed Hany',
@@ -96,7 +93,7 @@ class UserDatabase {
     });
   }
 
-  async registerUser(userData) {
+  public async registerUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<boolean> {
     try {
       if (!this.validateEmail(userData.email)) {
         throw new Error('Invalid email format');
@@ -108,7 +105,7 @@ class UserDatabase {
         throw new Error('Email already registered');
       }
       const hashedPassword = await this.hashPassword(userData.password);
-      const newUser = {
+      const newUser: User = {
         ...userData,
         id: uuidv4(),
         password: hashedPassword,
@@ -126,7 +123,7 @@ class UserDatabase {
     }
   }
 
-  async loginUser(email, password) {
+  public async loginUser(email: string, password: string): Promise<Omit<User, 'password'> | null> {
     try {
       const user = this.users.find(u => u.email === email);
       if (!user) return null;
@@ -142,18 +139,18 @@ class UserDatabase {
     }
   }
 
-  getAllUsers() {
+  public getAllUsers(): Omit<User, 'password'>[] {
     return this.users.map(({ password, ...user }) => user);
   }
 
-  getUserById(id) {
+  public getUserById(id: string): Omit<User, 'password'> | null {
     const user = this.users.find(u => u.id === id);
     if (!user) return null;
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
   }
 
-  async updateUser(id, updates) {
+  public async updateUser(id: string, updates: Partial<Omit<User, 'id' | 'password'>>): Promise<boolean> {
     try {
       const userIndex = this.users.findIndex(u => u.id === id);
       if (userIndex === -1) return false;
@@ -175,15 +172,15 @@ class UserDatabase {
     }
   }
 
-  async updateUserRole(id, role) {
+  public async updateUserRole(id: string, role: 'ADMIN' | 'USER'): Promise<boolean> {
     return this.updateUser(id, { role });
   }
 
-  async updateUserStatus(id, status) {
+  public async updateUserStatus(id: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING'): Promise<boolean> {
     return this.updateUser(id, { status });
   }
 
-  async changePassword(id, currentPassword, newPassword) {
+  public async changePassword(id: string, currentPassword: string, newPassword: string): Promise<boolean> {
     try {
       const userIndex = this.users.findIndex(u => u.id === id);
       if (userIndex === -1) return false;
@@ -203,7 +200,7 @@ class UserDatabase {
     }
   }
 
-  deleteUser(id) {
+  public deleteUser(id: string): boolean {
     try {
       const initialLength = this.users.length;
       this.users = this.users.filter(u => u.id !== id);
