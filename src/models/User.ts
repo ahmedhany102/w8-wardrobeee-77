@@ -1,4 +1,3 @@
-
 import { OrderItem } from './Product';
 
 export interface User {
@@ -7,6 +6,7 @@ export interface User {
   email: string;
   password: string; // hashed
   isAdmin: boolean;
+  isSuperAdmin: boolean; // New field for super admin
   isBlocked: boolean;
   createdAt: string;
   // Add these properties to match what's used in UserDatabase.ts
