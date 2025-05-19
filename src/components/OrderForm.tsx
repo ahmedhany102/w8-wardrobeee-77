@@ -38,7 +38,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
     city: '',
     zipCode: '',
     notes: '',
-    paymentMethod: 'CASH', // Default to Cash on Delivery
+    paymentMethod: 'CASH', // Only Cash on Delivery is available
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -213,19 +213,14 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
 
       <div>
         <Label htmlFor="paymentMethod">Payment Method</Label>
-        <select
-          id="paymentMethod"
+        <div className="w-full p-2 border border-gray-300 rounded-md bg-white dark:bg-gray-800">
+          Cash on Delivery
+        </div>
+        <input
+          type="hidden"
           name="paymentMethod"
-          value={formData.paymentMethod}
-          onChange={handleChange}
-          className="w-full p-2 border border-gray-300 rounded-md bg-white dark:bg-gray-800"
-          required
-        >
-          <option value="CASH">Cash on Delivery</option>
-          <option value="CREDIT_CARD">Credit Card</option>
-          <option value="WALLET">Mobile Wallet</option>
-          <option value="BANK_TRANSFER">Bank Transfer</option>
-        </select>
+          value="CASH"
+        />
       </div>
 
       <div>
