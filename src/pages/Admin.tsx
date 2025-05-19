@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserRound } from 'lucide-react';
 import { formatDistance } from 'date-fns';
+import UserDatabase from '@/models/UserDatabase';
 
 interface AdminProps {
   activeTab?: string;
@@ -44,89 +45,10 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     loadActivities();
   }, [user, navigate]);
 
-  // Load users from localStorage
+  // Load users from UserDatabase
   const loadUsers = () => {
-    const loadedUsers = localStorage.getItem('users');
-    const registeredUsers = localStorage.getItem('registeredUsers');
-    
-    let allUsers = [];
-    
-    // Load predefined users
-    if (loadedUsers) {
-      try {
-        const parsedUsers = JSON.parse(loadedUsers);
-        allUsers = [...parsedUsers];
-      } catch (error) {
-        console.error("Error parsing users:", error);
-        createDefaultUsers();
-        return;
-      }
-    } else {
-      createDefaultUsers();
-      return;
-    }
-    
-    // Add registered users
-    if (registeredUsers) {
-      try {
-        const parsedRegisteredUsers = JSON.parse(registeredUsers);
-        
-        // Convert registered users to admin format
-        const formattedRegisteredUsers = parsedRegisteredUsers.map((regUser: any) => {
-          return {
-            id: regUser.id || `user-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-            name: regUser.name,
-            email: regUser.email,
-            password: regUser.password || '********', // Password might be hashed or not stored
-            role: regUser.role || 'USER',
-            createdAt: regUser.createdAt || new Date().toISOString(),
-            lastLogin: regUser.lastLogin || new Date().toISOString(),
-            ipAddress: regUser.ipAddress || '0.0.0.0',
-            status: regUser.status || 'ACTIVE'
-          };
-        });
-        
-        // Merge users without duplicates (based on email)
-        const emailsInAllUsers = new Set(allUsers.map(u => u.email));
-        const uniqueRegisteredUsers = formattedRegisteredUsers.filter(
-          (u: any) => !emailsInAllUsers.has(u.email)
-        );
-        
-        allUsers = [...allUsers, ...uniqueRegisteredUsers];
-      } catch (error) {
-        console.error("Error parsing registered users:", error);
-      }
-    }
-    
-    // Get currently logged in user from localStorage
-    const currentUserJson = localStorage.getItem('currentUser');
-    if (currentUserJson) {
-      try {
-        const currentUser = JSON.parse(currentUserJson);
-        if (currentUser && currentUser.email) {
-          // Check if user already exists in the list
-          const userExists = allUsers.some(u => u.email === currentUser.email);
-          
-          if (!userExists && currentUser.role !== 'ADMIN') {
-            // Add current user to the list if not already present
-            allUsers.push({
-              id: currentUser.id || `user-${Date.now()}`,
-              name: currentUser.name || 'Unknown User',
-              email: currentUser.email,
-              password: '********', // Password is not shown for security
-              role: currentUser.role || 'USER',
-              createdAt: new Date().toISOString(),
-              lastLogin: new Date().toISOString(),
-              ipAddress: '127.0.0.1',
-              status: 'ACTIVE'
-            });
-          }
-        }
-      } catch (error) {
-        console.error("Error parsing current user:", error);
-      }
-    }
-    
+    const userDb = UserDatabase.getInstance();
+    const allUsers = userDb.getAllUsers();
     setUsers(allUsers);
   };
 
