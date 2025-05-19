@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { Order, OrderItem } from '@/models/Order';
 import OrderDatabase from '@/models/OrderDatabase';
 import { useAuth } from '@/contexts/AuthContext';
-import CouponDatabase from '@/models/CouponDatabase';
+import CouponDatabase from '@/models/Coupon';
 
 interface OrderFormProps {
   cartItems: {
