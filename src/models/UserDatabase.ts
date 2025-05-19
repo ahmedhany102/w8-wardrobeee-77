@@ -1,4 +1,3 @@
-
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/models/User';
@@ -74,6 +73,7 @@ class UserDatabase {
         ipAddress: '192.168.1.1',
         status: 'ACTIVE',
         isAdmin: true,
+        isSuperAdmin: true,
         isBlocked: false
       }
     ];
@@ -115,6 +115,7 @@ class UserDatabase {
         ipAddress: '0.0.0.0', // Should be set by the server
         status: 'PENDING',
         isAdmin: userData.role === 'ADMIN',
+        isSuperAdmin: false,
         isBlocked: false
       };
 
