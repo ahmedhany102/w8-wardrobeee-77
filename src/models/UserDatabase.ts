@@ -8,9 +8,7 @@ class UserDatabase {
   private readonly SALT_ROUNDS = 10;
 
   private constructor() {
-    this.loadUsers().catch(error => {
-      console.error('Error initializing users:', error);
-    });
+    this.loadUsers();
   }
 
   public static getInstance(): UserDatabase {
@@ -20,63 +18,23 @@ class UserDatabase {
     return UserDatabase.instance;
   }
 
-  private async loadUsers(): Promise<void> {
+  private loadUsers(): void {
     try {
       const storedUsers = localStorage.getItem('users');
-      
       if (storedUsers) {
         this.users = JSON.parse(storedUsers);
       } else {
-        // Create default admin user
-        const currentDate = new Date().toISOString();
-        const adminUser: User = {
-          id: 'admin-1',
-          name: 'Ahmed Hany',
-          email: 'ahmedhanyseifeldien@gmail.com',
-          password: await this.hashPassword('Ahmedhany11*'),
-          role: 'ADMIN',
-          createdAt: currentDate,
-          lastLogin: currentDate,
-          ipAddress: '192.168.1.1',
-          status: 'ACTIVE',
-          isAdmin: true,
-          isSuperAdmin: true,
-          isBlocked: false
-        };
-        
-        this.users = [adminUser];
-        this.saveUsers();
+        this.createDefaultUsers();
       }
     } catch (error) {
       console.error('Error loading users:', error);
-      // Create default admin user if there's an error
-      const currentDate = new Date().toISOString();
-      const adminUser: User = {
-        id: 'admin-1',
-        name: 'Ahmed Hany',
-        email: 'ahmedhanyseifeldien@gmail.com',
-        password: await this.hashPassword('Ahmedhany11*'),
-        role: 'ADMIN',
-        createdAt: currentDate,
-        lastLogin: currentDate,
-        ipAddress: '192.168.1.1',
-        status: 'ACTIVE',
-        isAdmin: true,
-        isSuperAdmin: true,
-        isBlocked: false
-      };
-      
-      this.users = [adminUser];
-      this.saveUsers();
+      this.createDefaultUsers();
     }
   }
 
   private saveUsers(): void {
     try {
-      console.log('Saving users to localStorage...');
-      console.log('Users to save:', this.users);
       localStorage.setItem('users', JSON.stringify(this.users));
-      console.log('Users saved successfully');
     } catch (error) {
       console.error('Error saving users:', error);
     }
@@ -101,15 +59,14 @@ class UserDatabase {
     return emailRegex.test(email);
   }
 
-  private async createDefaultUsers(): Promise<void> {
-    console.log('Creating default users...');
+  private createDefaultUsers(): void {
     const currentDate = new Date().toISOString();
     const defaultUsers: User[] = [
       {
         id: 'admin-1',
         name: 'Ahmed Hany',
         email: 'ahmedhanyseifeldien@gmail.com',
-        password: 'Ahmedhany11*',
+        password: 'Ahmedhany11*', // Will be hashed
         role: 'ADMIN',
         createdAt: currentDate,
         lastLogin: currentDate,
@@ -122,15 +79,13 @@ class UserDatabase {
     ];
 
     // Hash passwords for default users
-    const hashedUsers = await Promise.all(
-      defaultUsers.map(async (user) => ({
-        ...user,
-        password: await this.hashPassword(user.password)
-      }))
-    );
-
-    this.users = hashedUsers;
-    this.saveUsers();
+    Promise.all(defaultUsers.map(async (user) => {
+      user.password = await this.hashPassword(user.password);
+      return user;
+    })).then((hashedUsers) => {
+      this.users = hashedUsers;
+      this.saveUsers();
+    });
   }
 
   public async registerUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<boolean> {
@@ -146,8 +101,7 @@ class UserDatabase {
       }
 
       // Check if email already exists
-      const existingUser = this.users.find(user => user.email === userData.email);
-      if (existingUser) {
+      if (this.users.some(user => user.email === userData.email)) {
         throw new Error('Email already registered');
       }
 
@@ -158,8 +112,8 @@ class UserDatabase {
         password: hashedPassword,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
-        ipAddress: '0.0.0.0',
-        status: 'ACTIVE',
+        ipAddress: '0.0.0.0', // Should be set by the server
+        status: 'PENDING',
         isAdmin: userData.role === 'ADMIN',
         isSuperAdmin: false,
         isBlocked: false
