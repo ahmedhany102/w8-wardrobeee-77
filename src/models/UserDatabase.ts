@@ -20,21 +20,30 @@ class UserDatabase {
 
   private loadUsers(): void {
     try {
+      console.log('Loading users from localStorage...');
       const storedUsers = localStorage.getItem('users');
+      console.log('Raw stored users:', storedUsers);
+      
       if (storedUsers) {
         this.users = JSON.parse(storedUsers);
+        console.log('Successfully loaded users:', this.users);
       } else {
+        console.log('No users found in localStorage, creating default users...');
         this.createDefaultUsers();
       }
     } catch (error) {
       console.error('Error loading users:', error);
+      console.log('Falling back to default users...');
       this.createDefaultUsers();
     }
   }
 
   private saveUsers(): void {
     try {
+      console.log('Saving users to localStorage...');
+      console.log('Users to save:', this.users);
       localStorage.setItem('users', JSON.stringify(this.users));
+      console.log('Users saved successfully');
     } catch (error) {
       console.error('Error saving users:', error);
     }
@@ -60,6 +69,7 @@ class UserDatabase {
   }
 
   private createDefaultUsers(): void {
+    console.log('Creating default users...');
     const currentDate = new Date().toISOString();
     const defaultUsers: User[] = [
       {
@@ -78,33 +88,48 @@ class UserDatabase {
       }
     ];
 
+    console.log('Default users before hashing:', defaultUsers);
+
     // Hash passwords for default users
     Promise.all(defaultUsers.map(async (user) => {
       user.password = await this.hashPassword(user.password);
       return user;
     })).then((hashedUsers) => {
+      console.log('Default users after hashing:', hashedUsers);
       this.users = hashedUsers;
       this.saveUsers();
+      console.log('Default users created and saved successfully');
+    }).catch(error => {
+      console.error('Error creating default users:', error);
     });
   }
 
   public async registerUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<boolean> {
     try {
+      console.log('Starting user registration process...');
+      console.log('Current users in database:', this.users);
+
       // Validate email format
       if (!this.validateEmail(userData.email)) {
+        console.log('Invalid email format:', userData.email);
         throw new Error('Invalid email format');
       }
 
       // Validate password strength
       if (!this.validatePassword(userData.password)) {
+        console.log('Invalid password format');
         throw new Error('Password does not meet security requirements');
       }
 
       // Check if email already exists
-      if (this.users.some(user => user.email === userData.email)) {
+      const existingUser = this.users.find(user => user.email === userData.email);
+      if (existingUser) {
+        console.log('Email already exists:', userData.email);
+        console.log('Existing user:', existingUser);
         throw new Error('Email already registered');
       }
 
+      console.log('Creating new user...');
       const hashedPassword = await this.hashPassword(userData.password);
       const newUser: User = {
         ...userData,
@@ -112,15 +137,17 @@ class UserDatabase {
         password: hashedPassword,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
-        ipAddress: '0.0.0.0', // Should be set by the server
-        status: 'PENDING',
+        ipAddress: '0.0.0.0',
+        status: 'ACTIVE',
         isAdmin: userData.role === 'ADMIN',
         isSuperAdmin: false,
         isBlocked: false
       };
 
+      console.log('Adding new user to database:', newUser);
       this.users.push(newUser);
       this.saveUsers();
+      console.log('User registration successful');
       return true;
     } catch (error) {
       console.error('Error registering user:', error);
