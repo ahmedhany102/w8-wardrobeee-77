@@ -207,18 +207,11 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   };
 
   const handleDeleteUser = (userId: string) => {
-    const userToDelete = users.find(u => u.id === userId);
-    
-    // Prevent deleting super admin
-    if (userToDelete?.isSuperAdmin) {
-      toast.error('Cannot delete super admin account');
-      return;
-    }
-
     const userDb = UserDatabase.getInstance();
     const success = userDb.deleteUser(userId);
     
     if (success) {
+      const userToDelete = users.find(u => u.id === userId);
       const updatedUsers = users.filter(u => u.id !== userId);
       setUsers(updatedUsers);
       
@@ -232,13 +225,6 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   
   const handleEditUser = (userId: string) => {
     const userToEdit = users.find(u => u.id === userId);
-    
-    // Prevent editing super admin unless current user is super admin
-    if (userToEdit?.isSuperAdmin && !user?.isSuperAdmin) {
-      toast.error('Only super admin can edit super admin account');
-      return;
-    }
-
     if (userToEdit) {
       setIsEditing(userId);
       setEditData({ ...userToEdit });
@@ -253,15 +239,8 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
   const handleSaveEdit = () => {
     if (!isEditing) return;
     
-    const userToEdit = users.find(u => u.id === isEditing);
-    
-    // Prevent editing super admin unless current user is super admin
-    if (userToEdit?.isSuperAdmin && !user?.isSuperAdmin) {
-      toast.error('Only super admin can edit super admin account');
-      return;
-    }
-    
     const userDb = UserDatabase.getInstance();
+    // Make sure role is correctly typed
     const updatedData: Partial<Omit<User, "id" | "password">> = {
       ...editData,
       role: editData.role as 'ADMIN' | 'USER'
