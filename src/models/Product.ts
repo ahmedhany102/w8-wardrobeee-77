@@ -1,4 +1,5 @@
 
+// Define the Product interface
 export interface Product {
   id: string;
   name: string;
@@ -21,6 +22,8 @@ export interface Product {
   colors?: string[];
   sizes?: string[];
   hasDiscount?: boolean;
+  stock?: number;
+  imageUrl?: string;
 }
 
 export interface OrderItem {
@@ -30,4 +33,10 @@ export interface OrderItem {
   name: string;
   color?: string;
   size?: string;
+}
+
+// Create a SizeItem interface since it's used in ProductForm.tsx
+export interface SizeItem {
+  value: string;
+  label: string;
 }
