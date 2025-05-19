@@ -14,6 +14,13 @@ export interface Product {
   size?: string;
   createdAt: string;
   updatedAt: string;
+  // Adding missing properties referenced in the codebase
+  type?: string;
+  details?: string;
+  mainImage?: string;
+  colors?: string[];
+  sizes?: string[];
+  hasDiscount?: boolean;
 }
 
 export interface OrderItem {
