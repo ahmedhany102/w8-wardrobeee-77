@@ -1,4 +1,3 @@
-
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/models/User';
@@ -7,9 +6,12 @@ class UserDatabase {
   private static instance: UserDatabase;
   private users: User[] = [];
   private readonly SALT_ROUNDS = 10;
+  private db: IDBDatabase | null = null;
+  private readonly DB_NAME = 'w8StoreDB';
+  private readonly STORE_NAME = 'users';
 
   private constructor() {
-    this.loadUsers();
+    this.initDB();
   }
 
   public static getInstance(): UserDatabase {
@@ -19,26 +21,82 @@ class UserDatabase {
     return UserDatabase.instance;
   }
 
-  private loadUsers(): void {
-    try {
-      const storedUsers = localStorage.getItem('users');
-      if (storedUsers) {
-        this.users = JSON.parse(storedUsers);
-      } else {
-        this.createDefaultUsers();
+  private initDB(): void {
+    const request = indexedDB.open(this.DB_NAME, 1);
+
+    request.onerror = (event) => {
+      console.error('Error opening database:', event);
+    };
+
+    request.onsuccess = (event) => {
+      this.db = (event.target as IDBOpenDBRequest).result;
+      this.loadUsers();
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+        db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
       }
-    } catch (error) {
-      console.error('Error loading users:', error);
-      this.createDefaultUsers();
-    }
+    };
+  }
+
+  private loadUsers(): void {
+    if (!this.db) return;
+
+    const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
+    const store = transaction.objectStore(this.STORE_NAME);
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      this.users = request.result || [];
+      if (this.users.length === 0) {
+        this.createDefaultAdmin();
+      }
+    };
+
+    request.onerror = (event) => {
+      console.error('Error loading users:', event);
+      this.createDefaultAdmin();
+    };
+  }
+
+  private createDefaultAdmin(): void {
+    const adminUser: User = {
+      id: 'admin-1',
+      name: 'Ahmed Hany',
+      email: 'ahmedhanyseifeldien@gmail.com',
+      password: 'Ahmedhany11*',
+      role: 'ADMIN',
+      createdAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
+      ipAddress: '192.168.1.1',
+      status: 'ACTIVE',
+      isAdmin: true,
+      isSuperAdmin: true,
+      isBlocked: false
+    };
+    this.users = [adminUser];
+    this.saveUsers();
   }
 
   private saveUsers(): void {
-    try {
-      localStorage.setItem('users', JSON.stringify(this.users));
-    } catch (error) {
-      console.error('Error saving users:', error);
-    }
+    if (!this.db) return;
+
+    const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+    const store = transaction.objectStore(this.STORE_NAME);
+
+    // Clear existing users
+    store.clear();
+
+    // Add all users
+    this.users.forEach(user => {
+      store.add(user);
+    });
+
+    transaction.onerror = (event) => {
+      console.error('Error saving users:', event);
+    };
   }
 
   private async hashPassword(password: string): Promise<string> {
@@ -50,7 +108,6 @@ class UserDatabase {
   }
 
   private validatePassword(password: string): boolean {
-    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     return passwordRegex.test(password);
   }
@@ -60,48 +117,18 @@ class UserDatabase {
     return emailRegex.test(email);
   }
 
-  private createDefaultUsers(): void {
-    const currentDate = new Date().toISOString();
-    const defaultUsers: User[] = [
-      {
-        id: 'admin-1',
-        name: 'Ahmed Hany',
-        email: 'ahmedhanyseifeldien@gmail.com',
-        password: 'Ahmedhany11*', // Will be hashed
-        role: 'ADMIN',
-        createdAt: currentDate,
-        lastLogin: currentDate,
-        ipAddress: '192.168.1.1',
-        status: 'ACTIVE',
-        isAdmin: true,
-        isBlocked: false
-      }
-    ];
-
-    // Hash passwords for default users
-    Promise.all(defaultUsers.map(async (user) => {
-      user.password = await this.hashPassword(user.password);
-      return user;
-    })).then((hashedUsers) => {
-      this.users = hashedUsers;
-      this.saveUsers();
-    });
-  }
-
   public async registerUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<boolean> {
     try {
-      // Validate email format
       if (!this.validateEmail(userData.email)) {
         throw new Error('Invalid email format');
       }
 
-      // Validate password strength
       if (!this.validatePassword(userData.password)) {
         throw new Error('Password does not meet security requirements');
       }
 
-      // Check if email already exists
-      if (this.users.some(user => user.email === userData.email)) {
+      const existingUser = this.users.find(user => user.email === userData.email);
+      if (existingUser) {
         throw new Error('Email already registered');
       }
 
@@ -112,9 +139,10 @@ class UserDatabase {
         password: hashedPassword,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
-        ipAddress: '0.0.0.0', // Should be set by the server
-        status: 'PENDING',
+        ipAddress: '0.0.0.0',
+        status: 'ACTIVE',
         isAdmin: userData.role === 'ADMIN',
+        isSuperAdmin: false,
         isBlocked: false
       };
 
@@ -130,16 +158,20 @@ class UserDatabase {
   public async loginUser(email: string, password: string): Promise<User | null> {
     try {
       const user = this.users.find(u => u.email === email);
-      if (!user) return null;
+      if (!user) {
+        console.log('User not found:', email);
+        return null;
+      }
 
       const isValid = await this.verifyPassword(password, user.password);
-      if (!isValid) return null;
+      if (!isValid) {
+        console.log('Invalid password for user:', email);
+        return null;
+      }
 
-      // Update last login
       user.lastLogin = new Date().toISOString();
       this.saveUsers();
 
-      // Return user without password
       const { password: _, ...userWithoutPassword } = user;
       return userWithoutPassword as User;
     } catch (error) {
@@ -164,22 +196,18 @@ class UserDatabase {
       const userIndex = this.users.findIndex(u => u.id === id);
       if (userIndex === -1) return false;
 
-      // Validate email if it's being updated
       if (updates.email && !this.validateEmail(updates.email)) {
         throw new Error('Invalid email format');
       }
 
-      // Check if new email is already taken by another user
       if (updates.email && this.users.some(u => u.email === updates.email && u.id !== id)) {
         throw new Error('Email already in use');
       }
 
-      // Update isAdmin property based on role
       if (updates.role) {
         updates.isAdmin = updates.role === 'ADMIN';
       }
 
-      // Update isBlocked property based on status
       if (updates.status) {
         updates.isBlocked = updates.status === 'BLOCKED';
       }
@@ -193,37 +221,6 @@ class UserDatabase {
       return true;
     } catch (error) {
       console.error('Error updating user:', error);
-      return false;
-    }
-  }
-
-  public async updateUserRole(id: string, role: 'ADMIN' | 'USER'): Promise<boolean> {
-    return this.updateUser(id, { role });
-  }
-
-  public async updateUserStatus(id: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING'): Promise<boolean> {
-    return this.updateUser(id, { status });
-  }
-
-  public async changePassword(id: string, currentPassword: string, newPassword: string): Promise<boolean> {
-    try {
-      const userIndex = this.users.findIndex(u => u.id === id);
-      if (userIndex === -1) return false;
-
-      const user = this.users[userIndex];
-      const isValid = await this.verifyPassword(currentPassword, user.password);
-      if (!isValid) return false;
-
-      if (!this.validatePassword(newPassword)) {
-        throw new Error('New password does not meet security requirements');
-      }
-
-      const hashedPassword = await this.hashPassword(newPassword);
-      this.users[userIndex].password = hashedPassword;
-      this.saveUsers();
-      return true;
-    } catch (error) {
-      console.error('Error changing password:', error);
       return false;
     }
   }
