@@ -3,46 +3,30 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/Layout";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
-const signupSchema = z
-  .object({
-    name: z.string().min(2, {
-      message: "Name must be at least 2 characters",
-    }),
-    email: z.string().email({
-      message: "Please enter a valid email address",
-    }),
-    password: z.string().min(8, {
-      message: "Password must be at least 8 characters",
-    }),
-    confirmPassword: z.string().min(8, {
-      message: "Confirm Password must be at least 8 characters",
-    }),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
+const signupSchema = z.object({
+  name: z.string().min(2, {
+    message: "Name must be at least 2 characters",
+  }),
+  email: z.string().email({
+    message: "Please enter a valid email address",
+  }),
+  password: z.string().min(8, {
+    message: "Password must be at least 8 characters",
+  }),
+  confirmPassword: z.string().min(8, {
+    message: "Password must be at least 8 characters",
+  }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
@@ -50,8 +34,8 @@ const Signup = () => {
   const { signup, user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
+  // Redirect if already logged in
   React.useEffect(() => {
     if (user) {
       navigate("/");
@@ -100,8 +84,8 @@ const Signup = () => {
                     <FormItem>
                       <FormLabel className="text-gray-700 dark:text-gray-300">Name</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Your name"
+                        <Input 
+                          placeholder="Your name" 
                           {...field}
                           autoComplete="name"
                           disabled={isSubmitting}
@@ -119,8 +103,8 @@ const Signup = () => {
                     <FormItem>
                       <FormLabel className="text-gray-700 dark:text-gray-300">Email</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="you@example.com"
+                        <Input 
+                          placeholder="you@example.com" 
                           {...field}
                           autoComplete="email"
                           disabled={isSubmitting}
@@ -138,23 +122,14 @@ const Signup = () => {
                     <FormItem>
                       <FormLabel className="text-gray-700 dark:text-gray-300">Password</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            {...field}
-                            autoComplete="new-password"
-                            disabled={isSubmitting}
-                            className="pr-10 transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword((prev) => !prev)}
-                            className="absolute right-2 top-2 text-sm text-gray-600 dark:text-gray-300"
-                          >
-                            {showPassword ? "Hide" : "Show"}
-                          </button>
-                        </div>
+                        <Input 
+                          type="password" 
+                          placeholder="••••••••" 
+                          {...field}
+                          autoComplete="new-password"
+                          disabled={isSubmitting} 
+                          className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -167,12 +142,12 @@ const Signup = () => {
                     <FormItem>
                       <FormLabel className="text-gray-700 dark:text-gray-300">Confirm Password</FormLabel>
                       <FormControl>
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
+                        <Input 
+                          type="password" 
+                          placeholder="••••••••" 
                           {...field}
                           autoComplete="new-password"
-                          disabled={isSubmitting}
+                          disabled={isSubmitting} 
                           className="transition-all hover:border-green-500 focus:ring-green-700 bg-white/80 dark:bg-gray-800"
                         />
                       </FormControl>
@@ -180,8 +155,8 @@ const Signup = () => {
                     </FormItem>
                   )}
                 />
-                <Button
-                  type="submit"
+                <Button 
+                  type="submit" 
                   className="w-full bg-green-800 hover:bg-green-900 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                   disabled={isSubmitting}
                 >
@@ -193,10 +168,7 @@ const Signup = () => {
           <CardFooter className="flex flex-col space-y-2 bg-green-50 rounded-b-md dark:bg-gray-900 py-4">
             <div className="text-center w-full">
               <span className="text-sm text-gray-700 dark:text-gray-300">Already have an account? </span>
-              <Link
-                to="/login"
-                className="text-green-800 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium"
-              >
+              <Link to="/login" className="text-green-800 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium">
                 Log in
               </Link>
             </div>
