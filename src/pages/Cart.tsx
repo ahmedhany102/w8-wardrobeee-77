@@ -12,6 +12,7 @@ import CartDatabase, { CartItem } from '@/models/CartDatabase';
 import OrderDatabase from '@/models/OrderDatabase';
 import OrderForm from '@/components/OrderForm';
 import { Trash2, ShoppingCart, CircleDollarSign, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { CouponDatabase } from '@/models/Coupon';
 
 const Cart = () => {
   const { user } = useAuth();
@@ -20,6 +21,9 @@ const Cart = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('cart');
   const [orderNotes, setOrderNotes] = useState('');
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponError, setCouponError] = useState('');
   
   useEffect(() => {
     // Redirect if not logged in
@@ -126,10 +130,42 @@ const Cart = () => {
     }
   };
   
-  // Calculate cart totals
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      setCouponError('الرجاء إدخال كود الخصم');
+      return;
+    }
+
+    try {
+      const couponDb = CouponDatabase.getInstance();
+      const result = await couponDb.isCouponValid(couponCode.trim());
+      
+      if (result.valid && result.discount) {
+        setAppliedCoupon({ code: couponCode.trim(), discount: result.discount });
+        setCouponError('');
+        toast.success('تم تطبيق كود الخصم بنجاح');
+      } else {
+        setCouponError(result.message || 'كود الخصم غير صالح');
+        setAppliedCoupon(null);
+      }
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      setCouponError('حدث خطأ أثناء التحقق من كود الخصم');
+      setAppliedCoupon(null);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+  };
+  
+  // Calculate cart totals with coupon discount
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shippingFee = subtotal > 0 ? 25 : 0; // Free shipping over a threshold could be implemented
-  const total = subtotal + shippingFee;
+  const shippingFee = subtotal > 0 ? 25 : 0;
+  const discountAmount = appliedCoupon ? (subtotal * appliedCoupon.discount) / 100 : 0;
+  const total = subtotal + shippingFee - discountAmount;
   
   return (
     <Layout>
@@ -311,6 +347,7 @@ const Cart = () => {
                       }))}
                       total={total}
                       onOrderComplete={handleOrderComplete}
+                      appliedCoupon={appliedCoupon}
                     />
                   </CardContent>
                 </Card>
@@ -345,11 +382,54 @@ const Cart = () => {
                         <span>Shipping</span>
                         <span>{shippingFee.toFixed(2)} EGP</span>
                       </div>
+                      {appliedCoupon && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Discount ({appliedCoupon.discount}%)</span>
+                          <span>-{discountAmount.toFixed(2)} EGP</span>
+                        </div>
+                      )}
                       <Separator />
                       <div className="flex justify-between font-bold">
                         <span>Total</span>
                         <span>{total.toFixed(2)} EGP</span>
                       </div>
+                    </div>
+
+                    {/* Coupon Section */}
+                    <div className="mt-4 space-y-2">
+                      {!appliedCoupon ? (
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Enter coupon code"
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value)}
+                            className="flex-1"
+                          />
+                          <Button 
+                            onClick={handleApplyCoupon}
+                            className="bg-green-800 hover:bg-green-900"
+                          >
+                            Apply
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between bg-green-50 p-2 rounded">
+                          <span className="text-sm text-green-800">
+                            Coupon applied: {appliedCoupon.code} ({appliedCoupon.discount}% off)
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemoveCoupon}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      )}
+                      {couponError && (
+                        <p className="text-sm text-red-600">{couponError}</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
