@@ -35,10 +35,7 @@ const getMockUsers = () => {
 
 const saveMockUser = (email: string, password: string, name: string = "") => {
   const users = getMockUsers();
-
-  // تأكد أن الإيميل غير موجود أصلاً
-  if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) return false;
-
+  if (users.find(u => u.email === email)) return false;
   users.push({
     id: `user-${Date.now()}`,
     email,
@@ -46,7 +43,6 @@ const saveMockUser = (email: string, password: string, name: string = "") => {
     name: name || email.split("@")[0],
     role: "USER"
   });
-
   localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
   recordActivity(`User registered: ${email}`, "user");
   return true;
@@ -90,8 +86,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const users = getMockUsers();
-    // مقارنة الإيميل بدون حساسية حالة الأحرف
-    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+    const found = users.find(u => u.email === email && u.password === password);
     if (found) {
       const loggedUser: User = {
         id: found.id,
@@ -103,7 +98,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(loggedUser);
       setLoginAttempts(0);
       recordActivity(`User logged in: ${email}`, "user");
-      toast.success("Login successful!");
       return true;
     } else {
       setLoginAttempts(prev => prev + 1);
@@ -130,18 +124,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(adminUser);
       setLoginAttempts(0);
       recordActivity(`Admin logged in`, "admin");
-      toast.success("Admin login successful!");
       return true;
     } else {
       setLoginAttempts(prev => prev + 1);
       toast.error("Invalid admin credentials.");
-      recordActivity(`Failed admin login attempt: ${email}`, "security");
       return false;
     }
   };
 
   const signup = async (email: string, password: string, name = ""): Promise<boolean> => {
-    if (email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    if (email === ADMIN_EMAIL) {
       toast.error("You cannot register with the admin email.");
       return false;
     }
@@ -152,34 +144,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
 
-    // إضافة المستخدم في قاعدة بيانات وهمية (اختياري حسب مشروعك)
     const db = UserDatabase.getInstance();
     db.addUser({
       id: `user-${Date.now()}`,
       name: name || email.split("@")[0],
       email,
-      password: btoa(password), // تشفير بسيط، لكن في تخزين حقيقي يفضل تجنب الباسورد واضح
+      password: btoa(password),
       isAdmin: false,
       isBlocked: false,
       createdAt: new Date().toISOString()
     });
 
-    // تسجيل دخول أوتوماتيكي بعد التسجيل
-    const loggedIn = await login(email, password);
-    if (loggedIn) {
-      toast.success("Registration successful and logged in!");
-      return true;
-    } else {
-      toast.error("Registration succeeded but login failed.");
-      return false;
-    }
+    await login(email, password);
+    toast.success("Registration successful!");
+    return true;
   };
 
   const logout = () => {
     localStorage.removeItem("currentUser");
     setUser(null);
     recordActivity("User logged out", "user");
-    toast.success("Logged out successfully.");
   };
 
   return (
