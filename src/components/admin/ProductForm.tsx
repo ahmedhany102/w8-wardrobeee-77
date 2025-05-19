@@ -59,8 +59,6 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   const [discount, setDiscount] = useState(initialData.discount || 0);
   const [images, setImages] = useState<string[]>(initialData.mainImage ? [initialData.mainImage] : (initialData.images || []));
   const [colorImages, setColorImages] = useState<ColorImage[]>(initialData.colorImages || []);
-  
-  // Convert from SizeWithStock to SizeItem for the form
   const [sizes, setSizes] = useState<SizeItem[]>(
     initialData.sizes 
       ? initialData.sizes.map(s => ({ 
@@ -93,14 +91,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       return;
     }
     
-    // Convert sizes from SizeItem format to SizeWithStock format
-    const formattedSizes: SizeWithStock[] = sizes.map(sizeItem => {
-      return {
-        size: sizeItem.size,
-        price: sizeItem.price,
-        stock: sizeItem.stock
-      };
-    });
+    const formattedSizes: SizeWithStock[] = sizes.map(sizeItem => ({
+      size: sizeItem.size,
+      price: sizeItem.price,
+      stock: sizeItem.stock
+    }));
     
     setError("");
     onSubmit({
@@ -116,7 +111,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       mainImage: images[0],
       images,
       sizes: formattedSizes,
-      description: '',
+      description: details,
       price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
       inventory: formattedSizes.reduce((sum, item) => sum + item.stock, 0),
       createdAt: new Date().toISOString(),
@@ -138,13 +133,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">السعر*</label>
+          <label className="block text-sm font-medium mb-1">النوع*</label>
           <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={price}
-            onChange={e => setPrice(parseFloat(e.target.value) || 0)}
+            type="text"
+            value={type}
+            onChange={e => setType(e.target.value)}
             className="w-full p-2 border rounded text-sm"
             required
           />
@@ -154,8 +147,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       <div>
         <label className="block text-sm font-medium mb-1">الوصف*</label>
         <textarea
-          value={description}
-          onChange={e => setDescription(e.target.value)}
+          value={details}
+          onChange={e => setDetails(e.target.value)}
           className="w-full p-2 border rounded text-sm"
           rows={4}
           required
@@ -163,30 +156,42 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">الصورة*</label>
-        <input
-          type="text"
-          value={imageUrl}
-          onChange={e => setImageUrl(e.target.value)}
-          className="w-full p-2 border rounded text-sm"
-          placeholder="رابط الصورة"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">الفئة*</label>
-        <select
-          value={category}
-          onChange={e => setCategory(e.target.value)}
-          className="w-full p-2 border rounded text-sm"
-          required
-        >
-          <option value="">اختر الفئة</option>
-          <option value="clothing">ملابس</option>
-          <option value="accessories">إكسسوارات</option>
-          <option value="shoes">أحذية</option>
-        </select>
+        <label className="block text-sm font-medium mb-1">الصور*</label>
+        <div className="space-y-2">
+          {images.map((image, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={image}
+                onChange={e => {
+                  const newImages = [...images];
+                  newImages[index] = e.target.value;
+                  setImages(newImages);
+                }}
+                className="flex-1 p-2 border rounded text-sm"
+                placeholder="رابط الصورة"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const newImages = images.filter((_, i) => i !== index);
+                  setImages(newImages);
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                حذف
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setImages([...images, ''])}
+            className="text-green-600 hover:text-green-700"
+          >
+            إضافة صورة
+          </button>
+        </div>
       </div>
 
       <div>
@@ -258,6 +263,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="text-red-600 text-sm">{error}</div>
+      )}
 
       <button
         type="submit"
