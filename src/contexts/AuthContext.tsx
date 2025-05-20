@@ -8,6 +8,7 @@ interface User {
   email: string;
   name: string;
   role: string;
+  isSuperAdmin?: boolean; // Add isSuperAdmin property
 }
 
 interface AuthContextType {
@@ -95,7 +96,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: found.id,
         email: found.email,
         name: found.name,
-        role: "USER"
+        role: "USER",
+        isSuperAdmin: false // Add default value
       };
       localStorage.setItem("currentUser", JSON.stringify(loggedUser));
       setUser(loggedUser);
@@ -121,7 +123,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: "admin-1",
         email,
         name: "Ahmed Hany",
-        role: "ADMIN"
+        role: "ADMIN",
+        isSuperAdmin: true // Set admin as super admin
       };
       localStorage.setItem("currentUser", JSON.stringify(adminUser));
       setUser(adminUser);
