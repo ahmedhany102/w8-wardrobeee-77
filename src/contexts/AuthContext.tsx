@@ -1,4 +1,3 @@
-
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
@@ -159,6 +158,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isBlocked: false,
       role: 'USER',
       status: 'ACTIVE',
+      isSuperAdmin: false, // Add this property
     });
 
     // Automatically log the user in instead of calling login method

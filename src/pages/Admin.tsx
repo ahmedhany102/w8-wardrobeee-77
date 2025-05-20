@@ -234,7 +234,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     const userToEdit = users.find(u => u.id === userId);
     
     // Prevent editing super admin unless current user is super admin
-    if (userToEdit?.isSuperAdmin && !user?.isSuperAdmin) {
+    if (userToEdit?.isSuperAdmin && user && !user.isSuperAdmin) {
       toast.error('Only super admin can edit super admin account');
       return;
     }
@@ -256,7 +256,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     const userToEdit = users.find(u => u.id === isEditing);
     
     // Prevent editing super admin unless current user is super admin
-    if (userToEdit?.isSuperAdmin && !user?.isSuperAdmin) {
+    if (userToEdit?.isSuperAdmin && user && !user.isSuperAdmin) {
       toast.error('Only super admin can edit super admin account');
       return;
     }

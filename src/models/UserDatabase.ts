@@ -281,11 +281,11 @@ class UserDatabase {
     }
   }
 
-  public updateUserRole(id: string, role: 'ADMIN' | 'USER'): boolean {
+  public async updateUserRole(id: string, role: 'ADMIN' | 'USER'): Promise<boolean> {
     return this.updateUser(id, { role });
   }
 
-  public updateUserStatus(id: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING'): boolean {
+  public async updateUserStatus(id: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING'): Promise<boolean> {
     return this.updateUser(id, { status });
   }
 

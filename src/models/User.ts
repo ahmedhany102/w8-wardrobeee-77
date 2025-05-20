@@ -13,6 +13,6 @@ export interface User {
   lastLogin: string;
   ipAddress: string;
   status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
-  // Add missing properties that are used elsewhere
-  isSuperAdmin?: boolean;
+  // Make isSuperAdmin required but with a default value
+  isSuperAdmin: boolean;
 }
