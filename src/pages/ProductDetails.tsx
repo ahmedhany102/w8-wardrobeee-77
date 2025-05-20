@@ -28,6 +28,7 @@ const ProductDetails = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [currentImage, setCurrentImage] = useState('');
   const [imgIdx, setImgIdx] = useState(0);
+  const [colorSpecificSizes, setColorSpecificSizes] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -35,9 +36,11 @@ const ProductDetails = () => {
       const prod = await db.getProductById(id);
       if (prod) {
         setProduct(prod);
-        setSelectedSize(prod?.sizes?.[0]?.size || '');
-        setSelectedColor(prod?.colors?.[0] || '');
-
+        // Set first available color
+        if (prod.colors && prod.colors.length > 0) {
+          setSelectedColor(prod.colors[0]);
+        }
+        
         // Set initial image based on first color's image if available
         if (prod.colorImages && prod.colorImages.length > 0 && prod.colors && prod.colors.length > 0) {
           const firstColorImage = prod.colorImages.find(ci => ci.color === prod.colors?.[0]);
@@ -54,9 +57,10 @@ const ProductDetails = () => {
     fetchProduct();
   }, [id]);
 
+  // Update available sizes when color changes
   useEffect(() => {
-    // Update current image when selected color changes
     if (product && selectedColor) {
+      // Find image for the selected color
       const colorImage = product.colorImages?.find(ci => ci.color === selectedColor);
       if (colorImage) {
         setCurrentImage(colorImage.imageUrl);
@@ -65,12 +69,20 @@ const ProductDetails = () => {
       } else {
         setCurrentImage(product.mainImage || (product.images?.[0] || ''));
       }
+
+      // Filter sizes that have stock for this color
+      // For now, we'll show all sizes since we don't have color-specific sizes yet
+      const availableSizes = (product.sizes || []).filter(s => s && s.stock > 0);
+      setColorSpecificSizes(availableSizes);
+      
+      // Reset selected size when color changes
+      setSelectedSize('');
     }
   }, [selectedColor, product]);
 
   if (!product) return <Layout><div className="text-center py-20">جاري تحميل المنتج...</div></Layout>;
 
-  const availableSizes = (product.sizes || []).filter(s => s && s.stock > 0);
+  const availableSizes = colorSpecificSizes.length > 0 ? colorSpecificSizes : (product.sizes || []).filter(s => s && s.stock > 0);
   const isOutOfStock = availableSizes.length === 0;
   
   // Use color images when available, fall back to regular images

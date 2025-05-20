@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import OrdersPanel from '@/components/admin/OrdersPanel';
 import ProductManagement from '@/components/admin/ProductManagement';
 import CouponManagement from '@/components/admin/CouponManagement';
+import AdManagement from '@/components/admin/AdManagement';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, UserRound } from 'lucide-react';
@@ -168,9 +170,12 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     navigate(`/admin${value !== 'dashboard' ? `/${value}` : ''}`);
   };
 
-  const handleMakeAdmin = (userId: string) => {
+  const handleMakeAdmin = async (userId: string) => {
     const userDb = UserDatabase.getInstance();
-    const success = userDb.updateUserRole(userId, 'ADMIN');
+    const success = await userDb.updateUser(userId, { 
+      role: 'ADMIN', 
+      isAdmin: true 
+    });
     
     if (success) {
       const updatedUsers = users.map(u =>
@@ -187,13 +192,17 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     }
   };
 
-  const handleRemoveAdmin = (userId: string) => {
+  const handleRemoveAdmin = async (userId: string) => {
     const userDb = UserDatabase.getInstance();
-    const success = userDb.updateUserRole(userId, 'USER');
+    const success = await userDb.updateUser(userId, { 
+      role: 'USER', 
+      isAdmin: false,
+      isSuperAdmin: false // Also remove super admin status
+    });
     
     if (success) {
       const updatedUsers = users.map(u =>
-        u.id === userId ? { ...u, role: 'USER' as const } : u
+        u.id === userId ? { ...u, role: 'USER' as const, isSuperAdmin: false } : u
       );
       setUsers(updatedUsers);
       
@@ -250,7 +259,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     setEditData({});
   };
   
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!isEditing) return;
     
     const userToEdit = users.find(u => u.id === isEditing);
@@ -267,7 +276,7 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
       role: editData.role as 'ADMIN' | 'USER'
     };
     
-    const success = userDb.updateUser(isEditing, updatedData);
+    const success = await userDb.updateUser(isEditing, updatedData);
     
     if (success) {
       const updatedUsers = users.map(u => 
@@ -292,14 +301,17 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
     setEditData(prev => ({ ...prev, [name]: sanitizedValue }));
   };
 
-  const handleStatusChange = (userId: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING') => {
+  const handleStatusChange = async (userId: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING') => {
     const userDb = UserDatabase.getInstance();
-    const success = userDb.updateUserStatus(userId, status);
+    const success = await userDb.updateUser(userId, { 
+      status, 
+      isBlocked: status === 'BLOCKED'
+    });
     
     if (success) {
       const userToUpdate = users.find(u => u.id === userId);
       const updatedUsers = users.map(u =>
-        u.id === userId ? { ...u, status } : u
+        u.id === userId ? { ...u, status, isBlocked: status === 'BLOCKED' } : u
       );
       setUsers(updatedUsers);
       

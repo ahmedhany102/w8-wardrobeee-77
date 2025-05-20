@@ -160,7 +160,7 @@ class UserDatabase {
         ipAddress: '0.0.0.0',
         status: 'ACTIVE',
         isAdmin: userData.role === 'ADMIN',
-        isSuperAdmin: false,
+        isSuperAdmin: userData.isSuperAdmin || false,
         isBlocked: false
       };
 

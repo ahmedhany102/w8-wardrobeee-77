@@ -1,3 +1,4 @@
+
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
@@ -8,7 +9,7 @@ interface User {
   email: string;
   name: string;
   role: string;
-  isSuperAdmin?: boolean; // Add isSuperAdmin property
+  isSuperAdmin: boolean; // Make isSuperAdmin required
 }
 
 interface AuthContextType {
@@ -97,7 +98,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: found.email,
         name: found.name,
         role: "USER",
-        isSuperAdmin: false // Add default value
+        isSuperAdmin: false // Set explicit default value
       };
       localStorage.setItem("currentUser", JSON.stringify(loggedUser));
       setUser(loggedUser);
@@ -161,7 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isBlocked: false,
       role: 'USER',
       status: 'ACTIVE',
-      isSuperAdmin: false, // Add this property
+      isSuperAdmin: false, // Add this property explicitly
     });
 
     // Automatically log the user in instead of calling login method
@@ -169,7 +170,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       id: newUser.id,
       email: newUser.email,
       name: newUser.name,
-      role: "USER"
+      role: "USER",
+      isSuperAdmin: false // Set explicit value
     };
     
     localStorage.setItem("currentUser", JSON.stringify(loggedUser));
