@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 
+// Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
   'أحمر': '#ff0000',
   'أزرق': '#0074D9',
@@ -28,7 +29,7 @@ const ProductDetails = () => {
   const [selectedColor, setSelectedColor] = useState('');
   const [currentImage, setCurrentImage] = useState('');
   const [imgIdx, setImgIdx] = useState(0);
-  const [colorSpecificSizes, setColorSpecificSizes] = useState<any[]>([]);
+  const [availableSizes, setAvailableSizes] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -36,24 +37,33 @@ const ProductDetails = () => {
       const prod = await db.getProductById(id);
       if (prod) {
         setProduct(prod);
-        // Set first available color
+        
+        // Set first available color if there are color variations
         if (prod.colors && prod.colors.length > 0) {
           setSelectedColor(prod.colors[0]);
-        }
-        
-        // Set initial image based on first color's image if available
-        if (prod.colorImages && prod.colorImages.length > 0 && prod.colors && prod.colors.length > 0) {
-          const firstColorImage = prod.colorImages.find(ci => ci.color === prod.colors?.[0]);
-          if (firstColorImage) {
-            setCurrentImage(firstColorImage.imageUrl);
+          
+          // Find image for selected color
+          const colorImage = prod.colorImages?.find(ci => ci.color === prod.colors?.[0]);
+          if (colorImage) {
+            setCurrentImage(colorImage.imageUrl);
           } else {
             setCurrentImage(prod.mainImage || (prod.images?.[0] || ''));
           }
+          
+          // Get available sizes for this color (in this version, all sizes are available for all colors)
+          const prodSizes = prod.sizes?.filter(s => s.stock > 0) || [];
+          setAvailableSizes(prodSizes);
         } else {
+          // No color variations, just use main image
           setCurrentImage(prod.mainImage || (prod.images?.[0] || ''));
+          
+          // Get all available sizes
+          const prodSizes = prod.sizes?.filter(s => s.stock > 0) || [];
+          setAvailableSizes(prodSizes);
         }
       }
     };
+    
     fetchProduct();
   }, [id]);
 
@@ -70,10 +80,10 @@ const ProductDetails = () => {
         setCurrentImage(product.mainImage || (product.images?.[0] || ''));
       }
 
-      // Filter sizes that have stock for this color
       // For now, we'll show all sizes since we don't have color-specific sizes yet
-      const availableSizes = (product.sizes || []).filter(s => s && s.stock > 0);
-      setColorSpecificSizes(availableSizes);
+      // In a real implementation, you would filter sizes based on color
+      const prodSizes = product.sizes?.filter(s => s.stock > 0) || [];
+      setAvailableSizes(prodSizes);
       
       // Reset selected size when color changes
       setSelectedSize('');
@@ -82,31 +92,32 @@ const ProductDetails = () => {
 
   if (!product) return <Layout><div className="text-center py-20">جاري تحميل المنتج...</div></Layout>;
 
-  const availableSizes = colorSpecificSizes.length > 0 ? colorSpecificSizes : (product.sizes || []).filter(s => s && s.stock > 0);
   const isOutOfStock = availableSizes.length === 0;
   
-  // Use color images when available, fall back to regular images
-  const images = [currentImage || product.mainImage || ''];
+  // Collect images for display - start with the current color image or main image
+  let images = [currentImage];
+  // Add other images if available (but avoid duplicates)
   if (product.images && product.images.length > 0) {
-    // Add regular images to the array if they're not the main image or current color image
     product.images.forEach(img => {
-      if (img !== images[0] && img !== currentImage) {
+      if (!images.includes(img)) {
         images.push(img);
       }
     });
   }
-
+  
+  // Handle add to cart
   const handleAddToCart = () => {
     if (isOutOfStock) {
       toast.error('المنتج غير متوفر حالياً');
       return;
     }
     
-    if (!selectedSize || !selectedColor) {
+    if (!selectedSize || (!selectedColor && product.colors && product.colors.length > 0)) {
       toast.error('يرجى اختيار المقاس واللون');
       return;
     }
-    // استخدم CartDatabase لإضافة المنتج مع اللون والمقاس
+    
+    // Use CartDatabase to add the product with color and size
     import('@/models/CartDatabase').then(async ({ default: CartDatabase }) => {
       const cartDb = CartDatabase.getInstance();
       await cartDb.addToCart(product, selectedSize, selectedColor, 1);
@@ -119,7 +130,7 @@ const ProductDetails = () => {
     <Layout>
       <div className="container max-w-3xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* سلايدر صور */}
+          {/* Product Image Slider */}
           <div className="flex flex-col items-center md:w-1/2">
             <div className="relative w-full flex justify-center">
               <img 
@@ -140,32 +151,35 @@ const ProductDetails = () => {
                 </div>
               )}
             </div>
-            <div className="flex gap-2 mt-2 overflow-x-auto">
-              {images.map((img, idx) => (
-                <img 
-                  key={idx} 
-                  src={img} 
-                  alt="thumb" 
-                  className={`h-12 w-12 object-cover rounded border cursor-pointer ${imgIdx === idx ? 'ring-2 ring-green-600' : ''}`} 
-                  onClick={() => setImgIdx(idx)} 
-                />
-              ))}
-            </div>
+            {images.length > 1 && (
+              <div className="flex gap-2 mt-2 overflow-x-auto">
+                {images.map((img, idx) => (
+                  <img 
+                    key={idx} 
+                    src={img} 
+                    alt="thumb" 
+                    className={`h-12 w-12 object-cover rounded border cursor-pointer ${imgIdx === idx ? 'ring-2 ring-green-600' : ''}`} 
+                    onClick={() => setImgIdx(idx)} 
+                  />
+                ))}
+              </div>
+            )}
           </div>
-          {/* تفاصيل المنتج */}
+          
+          {/* Product Details */}
           <div className="flex-1 space-y-4">
             <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
             <div className="text-gray-600">
               {product.categoryPath ? product.categoryPath.join(" > ") : product.category} - {product.type}
             </div>
-            <div className="text-gray-700">{product.details}</div>
+            <div className="text-gray-700">{product.details || product.description}</div>
             
             {/* Stock status indicator */}
             <div className={`text-sm font-bold ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
               {isOutOfStock ? 'غير متوفر حالياً' : 'متوفر'}
             </div>
             
-            {/* اختيار اللون */}
+            {/* Color selection */}
             {product.colors && product.colors.length > 0 && (
               <div>
                 <label className="block font-bold mb-1">اختر اللون:</label>
@@ -203,32 +217,40 @@ const ProductDetails = () => {
               </div>
             )}
             
-            {/* اختيار المقاس */}
+            {/* Size selection */}
             {availableSizes.length > 0 && (
               <div>
                 <label className="block font-bold mb-1">اختر المقاس:</label>
-                <select
-                  value={selectedSize}
-                  onChange={e => setSelectedSize(e.target.value)}
-                  className="border rounded px-2 py-1 w-full"
-                >
-                  <option value="">اختر المقاس</option>
+                <div className="flex flex-wrap gap-2">
                   {availableSizes.map(size => (
-                    <option key={size.size} value={size.size}>
-                      {size.size} - {size.price} EGP {size.stock <= 0 ? '(غير متوفر)' : ''}
-                    </option>
+                    <button
+                      key={size.size}
+                      type="button"
+                      className={`px-3 py-1 border rounded-full ${selectedSize === size.size ? 'bg-green-600 text-white' : 'bg-gray-100'}`}
+                      onClick={() => setSelectedSize(size.size)}
+                    >
+                      {size.size} - {size.price} EGP
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
             )}
             
+            {/* Add to cart button */}
             <Button
               className="w-full bg-green-600 hover:bg-green-700 mt-4"
-              disabled={isOutOfStock || !selectedSize || !selectedColor}
+              disabled={isOutOfStock || !selectedSize || (product.colors && product.colors.length > 0 && !selectedColor)}
               onClick={handleAddToCart}
             >
               {isOutOfStock ? 'غير متوفر' : 'أضف للعربة'}
             </Button>
+            
+            {/* Discount information */}
+            {product.hasDiscount && product.discount && product.discount > 0 && (
+              <div className="bg-red-50 border border-red-100 rounded p-2 text-center">
+                <span className="text-red-600 font-bold">خصم {product.discount}%</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

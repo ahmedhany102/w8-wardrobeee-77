@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Layout from '@/components/Layout';
 import ProductCatalog from '@/components/ProductCatalog';
 import AdCarousel from '@/components/AdCarousel';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const { user } = useAuth();
@@ -12,7 +11,7 @@ const Index = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6">
-        {/* Ad Carousel */}
+        {/* Ad Carousel - More prominent */}
         <div className="mb-8">
           <AdCarousel />
         </div>

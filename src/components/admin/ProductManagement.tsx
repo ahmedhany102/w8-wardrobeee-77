@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Pencil, Plus, Trash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import ProductForm from "./ProductForm";
+import ImprovedProductForm from "./ImprovedProductForm";
 
 const ProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -83,7 +83,8 @@ const ProductManagement = () => {
   // Filter products by search
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.type.toLowerCase().includes(searchTerm.toLowerCase())
+    (product.type && product.type.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -154,7 +155,7 @@ const ProductManagement = () => {
                       <TableCell className="hidden md:table-cell">{product.category}</TableCell>
                       <TableCell className="hidden md:table-cell">{product.type}</TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {product.colors ? 
+                        {product.colors && product.colors.length > 0 ? 
                           <div className="max-w-[120px] truncate">{product.colors.join(", ")}</div> : "-"}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{product.hasDiscount && product.discount ? `${product.discount}%` : "-"}</TableCell>
@@ -197,13 +198,11 @@ const ProductManagement = () => {
           <DialogHeader>
             <DialogTitle>إضافة منتج جديد</DialogTitle>
           </DialogHeader>
-          <ProductForm
+          <ImprovedProductForm
             onSubmit={handleAddProduct}
             submitLabel="إضافة المنتج"
+            onCancel={() => setShowAddDialog(false)}
           />
-          <DialogFooter>
-            <Button onClick={() => setShowAddDialog(false)} className="mt-2">إلغاء</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
       
@@ -214,15 +213,13 @@ const ProductManagement = () => {
             <DialogTitle>تعديل المنتج</DialogTitle>
           </DialogHeader>
           {editProduct && (
-            <ProductForm
+            <ImprovedProductForm
               initialData={editProduct}
               onSubmit={handleEditProduct}
               submitLabel="حفظ التعديلات"
+              onCancel={() => setShowEditDialog(false)}
             />
           )}
-          <DialogFooter>
-            <Button onClick={() => setShowEditDialog(false)} className="mt-2">إلغاء</Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
       

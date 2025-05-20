@@ -35,7 +35,7 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
     <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className} h-full`}>
       <CardHeader className="p-0">
         <div className="relative">
-          <AspectRatio ratio={1/1} className="bg-gray-100 min-h-[120px]">
+          <AspectRatio ratio={1/1} className="bg-gray-100 min-h-[100px]"> {/* Reduced min-height */}
             <img 
               src={mainImage}
               alt={product?.name || "منتج"}
@@ -58,22 +58,22 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
           </AspectRatio>
         </div>
       </CardHeader>
-      <CardContent className="p-2">
-        <h3 className="font-medium truncate text-xs sm:text-sm">{product?.name || "منتج بدون اسم"}</h3>
+      <CardContent className="p-1 sm:p-2"> {/* Reduced padding */}
+        <h3 className="font-medium truncate text-xs">{product?.name || "منتج بدون اسم"}</h3>
         <p className="text-gray-500 text-xs truncate">
           {product?.categoryPath ? product.categoryPath.join(" > ") : (product?.category || "-")}
         </p>
         <div className="mt-1">
           {minPrice > 0 ? (
-            <span className="text-sm font-bold text-green-700">{minPrice} EGP</span>
+            <span className="text-xs font-bold text-green-700">{minPrice} EGP</span> {/* Smaller text */}
           ) : (
-            <span className="text-sm font-bold text-gray-400">غير متوفر</span>
+            <span className="text-xs font-bold text-gray-400">غير متوفر</span> {/* Smaller text */}
           )}
         </div>
       </CardContent>
-      <CardFooter className="p-2">
+      <CardFooter className="p-1 sm:p-2"> {/* Reduced padding */}
         <Button
-          className="w-full bg-blue-600 hover:bg-blue-700 transition-colors text-xs py-0.5"
+          className="w-full bg-blue-600 hover:bg-blue-700 transition-colors text-xs py-0.5 h-6" {/* Reduced height */}
           onClick={() => navigate(`/product/${product.id}`)}
         >
           عرض التفاصيل

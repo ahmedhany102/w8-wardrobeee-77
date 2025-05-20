@@ -89,8 +89,14 @@ const AdCarousel = () => {
   
   const currentAd = ads[currentIndex];
   
+  const handleAdClick = () => {
+    if (currentAd.link) {
+      window.location.href = currentAd.link;
+    }
+  };
+  
   return (
-    <Card className="w-full overflow-hidden relative group">
+    <Card className="w-full overflow-hidden relative group cursor-pointer" onClick={handleAdClick}>
       <AspectRatio ratio={16/6} className="bg-gray-100">
         <img 
           src={currentAd.imageUrl} 
@@ -111,7 +117,10 @@ const AdCarousel = () => {
       {ads.length > 1 && (
         <>
           <Button
-            onClick={prevAd}
+            onClick={(e) => {
+              e.stopPropagation();
+              prevAd();
+            }}
             variant="outline"
             size="icon"
             className="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hidden group-hover:flex h-8 w-8"
@@ -119,7 +128,10 @@ const AdCarousel = () => {
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
-            onClick={nextAd}
+            onClick={(e) => {
+              e.stopPropagation();
+              nextAd();
+            }}
             variant="outline"
             size="icon" 
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-70 hidden group-hover:flex h-8 w-8"
@@ -132,7 +144,10 @@ const AdCarousel = () => {
             {ads.map((_, index) => (
               <button 
                 key={index}
-                onClick={() => setCurrentIndex(index)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(index);
+                }}
                 className={`h-2 w-2 rounded-full ${index === currentIndex ? 'bg-white' : 'bg-gray-400'}`}
               />
             ))}
