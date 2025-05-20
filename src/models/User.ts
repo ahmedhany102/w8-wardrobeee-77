@@ -1,3 +1,4 @@
+
 import { OrderItem } from './Product';
 
 export interface User {
@@ -8,9 +9,10 @@ export interface User {
   isAdmin: boolean;
   isBlocked: boolean;
   createdAt: string;
-  // Add these properties to match what's used in UserDatabase.ts
   role: 'ADMIN' | 'USER';
   lastLogin: string;
   ipAddress: string;
   status: 'ACTIVE' | 'BLOCKED' | 'PENDING';
+  // Add missing properties that are used elsewhere
+  isSuperAdmin?: boolean;
 }

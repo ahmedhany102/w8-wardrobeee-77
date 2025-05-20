@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { X, Menu, User, ShoppingCart, Home, Phone, LogIn, UserPlus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMediaQuery } from "@/hooks/use-mobile";
 import CartDatabase from "@/models/CartDatabase";
 
 const MainNavigation = () => {
@@ -12,7 +10,7 @@ const MainNavigation = () => {
   const location = useLocation();
   const [cartItemCount, setCartItemCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const isMobile = useMediaQuery("(max-width: 768px)");
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
 
   useEffect(() => {
     // Close mobile menu when route changes

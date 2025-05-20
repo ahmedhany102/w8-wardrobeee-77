@@ -1,4 +1,3 @@
-
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/models/User';
@@ -139,9 +138,9 @@ class UserDatabase {
     return emailRegex.test(email);
   }
 
-  public async addUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<User | null> {
+  public async addUser(userData: Partial<User>): Promise<User | null> {
     try {
-      if (!this.validateEmail(userData.email)) {
+      if (!userData.email || !this.validateEmail(userData.email)) {
         throw new Error('Invalid email format');
       }
 
@@ -151,8 +150,11 @@ class UserDatabase {
       }
 
       const newUser: User = {
-        ...userData,
         id: userData.id || uuidv4(),
+        name: userData.name || '',
+        email: userData.email,
+        password: userData.password || '',
+        role: userData.role || 'USER',
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         ipAddress: '0.0.0.0',
@@ -228,7 +230,7 @@ class UserDatabase {
     return userWithoutPassword;
   }
 
-  public async updateUser(id: string, updates: Partial<Omit<User, 'id'>>): Promise<boolean> {
+  public async updateUser(id: string, updates: Partial<User>): Promise<boolean> {
     try {
       const userIndex = this.users.findIndex(u => u.id === id);
       if (userIndex === -1) return false;
@@ -277,6 +279,14 @@ class UserDatabase {
       console.error('Error updating user:', error);
       return false;
     }
+  }
+
+  public updateUserRole(id: string, role: 'ADMIN' | 'USER'): boolean {
+    return this.updateUser(id, { role });
+  }
+
+  public updateUserStatus(id: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING'): boolean {
+    return this.updateUser(id, { status });
   }
 
   public deleteUser(id: string): boolean {

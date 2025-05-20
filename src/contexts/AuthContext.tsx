@@ -152,13 +152,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Add to UserDatabase
     const db = UserDatabase.getInstance();
     await db.addUser({
-      id: newUser.id,
       name: name || email.split("@")[0],
       email,
       password: btoa(password),
       isAdmin: false,
       isBlocked: false,
-      createdAt: new Date().toISOString()
+      role: 'USER',
+      status: 'ACTIVE',
     });
 
     // Automatically log the user in instead of calling login method
