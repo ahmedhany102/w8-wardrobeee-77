@@ -1,3 +1,4 @@
+
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
@@ -36,16 +37,19 @@ const getMockUsers = () => {
 const saveMockUser = (email: string, password: string, name: string = "") => {
   const users = getMockUsers();
   if (users.find(u => u.email === email)) return false;
-  users.push({
+  
+  const newUser = {
     id: `user-${Date.now()}`,
     email,
     password,
     name: name || email.split("@")[0],
     role: "USER"
-  });
+  };
+  
+  users.push(newUser);
   localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
   recordActivity(`User registered: ${email}`, "user");
-  return true;
+  return newUser; // Return the new user object instead of just true
 };
 
 const recordActivity = (description: string, type: string = "system") => {
@@ -138,15 +142,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return false;
     }
 
-    const success = saveMockUser(email, password, name);
-    if (!success) {
+    // Save user and get the new user object
+    const newUser = saveMockUser(email, password, name);
+    if (!newUser) {
       toast.error("Email already registered.");
       return false;
     }
 
+    // Add to UserDatabase
     const db = UserDatabase.getInstance();
-    db.addUser({
-      id: `user-${Date.now()}`,
+    await db.addUser({
+      id: newUser.id,
       name: name || email.split("@")[0],
       email,
       password: btoa(password),
@@ -155,8 +161,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       createdAt: new Date().toISOString()
     });
 
-    await login(email, password);
+    // Automatically log the user in instead of calling login method
+    const loggedUser: User = {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      role: "USER"
+    };
+    
+    localStorage.setItem("currentUser", JSON.stringify(loggedUser));
+    setUser(loggedUser);
+    recordActivity(`User registered and logged in: ${email}`, "user");
     toast.success("Registration successful!");
+    
     return true;
   };
 

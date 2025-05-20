@@ -26,24 +26,63 @@ const ProductDetails = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
+  const [currentImage, setCurrentImage] = useState('');
   const [imgIdx, setImgIdx] = useState(0);
 
   useEffect(() => {
     const fetchProduct = async () => {
       const db = ProductDatabase.getInstance();
       const prod = await db.getProductById(id);
-      setProduct(prod);
-      setSelectedSize(prod?.sizes?.[0]?.size || '');
-      setSelectedColor(prod?.colors?.[0] || '');
+      if (prod) {
+        setProduct(prod);
+        setSelectedSize(prod?.sizes?.[0]?.size || '');
+        setSelectedColor(prod?.colors?.[0] || '');
+
+        // Set initial image based on first color's image if available
+        if (prod.colorImages && prod.colorImages.length > 0 && prod.colors && prod.colors.length > 0) {
+          const firstColorImage = prod.colorImages.find(ci => ci.color === prod.colors?.[0]);
+          if (firstColorImage) {
+            setCurrentImage(firstColorImage.imageUrl);
+          } else {
+            setCurrentImage(prod.mainImage || (prod.images?.[0] || ''));
+          }
+        } else {
+          setCurrentImage(prod.mainImage || (prod.images?.[0] || ''));
+        }
+      }
     };
     fetchProduct();
   }, [id]);
+
+  useEffect(() => {
+    // Update current image when selected color changes
+    if (product && selectedColor) {
+      const colorImage = product.colorImages?.find(ci => ci.color === selectedColor);
+      if (colorImage) {
+        setCurrentImage(colorImage.imageUrl);
+        // Reset image index since we're viewing a color-specific image now
+        setImgIdx(0);
+      } else {
+        setCurrentImage(product.mainImage || (product.images?.[0] || ''));
+      }
+    }
+  }, [selectedColor, product]);
 
   if (!product) return <Layout><div className="text-center py-20">جاري تحميل المنتج...</div></Layout>;
 
   const availableSizes = (product.sizes || []).filter(s => s && s.stock > 0);
   const isOutOfStock = availableSizes.length === 0;
-  const images = product.images && product.images.length > 0 ? product.images : [product.mainImage || '/placeholder.svg'];
+  
+  // Use color images when available, fall back to regular images
+  const images = [currentImage || product.mainImage || ''];
+  if (product.images && product.images.length > 0) {
+    // Add regular images to the array if they're not the main image or current color image
+    product.images.forEach(img => {
+      if (img !== images[0] && img !== currentImage) {
+        images.push(img);
+      }
+    });
+  }
 
   const handleAddToCart = () => {
     if (isOutOfStock) {
@@ -71,24 +110,42 @@ const ProductDetails = () => {
           {/* سلايدر صور */}
           <div className="flex flex-col items-center md:w-1/2">
             <div className="relative w-full flex justify-center">
-              <img src={images[imgIdx]} alt={product.name} className="rounded-lg object-contain w-full h-80 bg-white border" />
+              <img 
+                src={images[imgIdx]} 
+                alt={product.name} 
+                className="rounded-lg object-contain w-full h-80 bg-white border" 
+              />
               {images.length > 1 && (
                 <div className="absolute top-1/2 left-0 right-0 flex justify-between items-center px-2">
-                  <button onClick={() => setImgIdx((imgIdx - 1 + images.length) % images.length)} className="bg-gray-200 rounded-full p-1">◀</button>
-                  <button onClick={() => setImgIdx((imgIdx + 1) % images.length)} className="bg-gray-200 rounded-full p-1">▶</button>
+                  <button 
+                    onClick={() => setImgIdx((imgIdx - 1 + images.length) % images.length)} 
+                    className="bg-gray-200 rounded-full p-1"
+                  >◀</button>
+                  <button 
+                    onClick={() => setImgIdx((imgIdx + 1) % images.length)} 
+                    className="bg-gray-200 rounded-full p-1"
+                  >▶</button>
                 </div>
               )}
             </div>
-            <div className="flex gap-2 mt-2">
+            <div className="flex gap-2 mt-2 overflow-x-auto">
               {images.map((img, idx) => (
-                <img key={idx} src={img} alt="thumb" className={`h-12 w-12 object-cover rounded border cursor-pointer ${imgIdx === idx ? 'ring-2 ring-green-600' : ''}`} onClick={() => setImgIdx(idx)} />
+                <img 
+                  key={idx} 
+                  src={img} 
+                  alt="thumb" 
+                  className={`h-12 w-12 object-cover rounded border cursor-pointer ${imgIdx === idx ? 'ring-2 ring-green-600' : ''}`} 
+                  onClick={() => setImgIdx(idx)} 
+                />
               ))}
             </div>
           </div>
           {/* تفاصيل المنتج */}
           <div className="flex-1 space-y-4">
             <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
-            <div className="text-gray-600">{product.category} - {product.type}</div>
+            <div className="text-gray-600">
+              {product.categoryPath ? product.categoryPath.join(" > ") : product.category} - {product.type}
+            </div>
             <div className="text-gray-700">{product.details}</div>
             
             {/* Stock status indicator */}
@@ -101,21 +158,39 @@ const ProductDetails = () => {
               <div>
                 <label className="block font-bold mb-1">اختر اللون:</label>
                 <div className="flex flex-wrap gap-2">
-                  {product.colors.map(color => (
-                    <button
-                      key={color}
-                      type="button"
-                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center focus:outline-none ${selectedColor === color ? 'ring-2 ring-green-600 border-green-600' : 'border-gray-300'}`}
-                      style={{ background: colorMap[color] || color, color: color === 'أبيض' ? '#111' : '#fff' }}
-                      title={color}
-                      onClick={() => setSelectedColor(color)}
-                    >
-                      {selectedColor === color && <span className="text-xs font-bold">✓</span>}
-                    </button>
-                  ))}
+                  {product.colors.map(color => {
+                    // Find color image
+                    const colorImg = product.colorImages?.find(ci => ci.color === color)?.imageUrl;
+                    
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center overflow-hidden focus:outline-none ${selectedColor === color ? 'ring-2 ring-green-600 border-green-600' : 'border-gray-300'}`}
+                        title={color}
+                        onClick={() => setSelectedColor(color)}
+                      >
+                        {colorImg ? (
+                          <img src={colorImg} alt={color} className="object-cover w-full h-full" />
+                        ) : (
+                          <div 
+                            className="w-full h-full" 
+                            style={{ background: colorMap[color] || color }}
+                          ></div>
+                        )}
+                        {selectedColor === color && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+                            <span className="text-xs text-white font-bold">✓</span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
+                <p className="text-sm text-gray-500 mt-1">{selectedColor}</p>
               </div>
             )}
+            
             {/* اختيار المقاس */}
             {availableSizes.length > 0 && (
               <div>
@@ -125,14 +200,16 @@ const ProductDetails = () => {
                   onChange={e => setSelectedSize(e.target.value)}
                   className="border rounded px-2 py-1 w-full"
                 >
+                  <option value="">اختر المقاس</option>
                   {availableSizes.map(size => (
                     <option key={size.size} value={size.size}>
-                      {size.size} - {size.price} EGP {size.stock === 0 ? '(غير متوفر)' : ''}
+                      {size.size} - {size.price} EGP {size.stock <= 0 ? '(غير متوفر)' : ''}
                     </option>
                   ))}
                 </select>
               </div>
             )}
+            
             <Button
               className="w-full bg-green-600 hover:bg-green-700 mt-4"
               disabled={isOutOfStock || !selectedSize || !selectedColor}

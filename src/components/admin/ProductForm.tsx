@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-// import ImageUploader from "./ImageUploader"; // Removed as we will implement directly or use standard input
+
+import React, { useState, useEffect } from "react";
 import SizeManager, { SizeItem } from "./SizeManager";
 import { Product, SizeWithStock, ColorImage } from "@/models/Product";
 
@@ -13,60 +13,46 @@ interface ProductFormProps {
 const categoryStructure = {
   "رجالي": {
     "أحذية": null,
-    "ملابس": {
-      "تيشيرتات": null,
-      "بناطيل": null,
-    }
+    "تيشيرتات": null,
+    "بناطيل": null
   },
   "حريمي": {
     "فساتين": null,
-    "بلوزات": null,
     "أحذية": null,
+    "بلوزات": null
   },
   "أطفال": {
     "أولاد": {
       "تيشيرتات": null,
       "بناطيل": null,
-      "أحذية": null,
+      "أحذية": null
     },
     "بنات": {
-      "فساتير": null,
-      "تيشيرتات": null,
-      "أحذية": null,
+      "فساتين": null,
+      "تيشيرتات": null, 
+      "أحذية": null
     }
   }
 };
 
-// Convert nested categories to flat paths for select dropdown
-const flattenCategories = (obj: any, prefix: string[] = []): string[][] => {
-  return Object.entries(obj || {}).flatMap(([key, value]) => {
-    const path = [...prefix, key];
-    return value === null 
-      ? [path] 
-      : [path, ...flattenCategories(value, path)];
-  });
-};
-
-// Note: availableCategories might not be needed if using nested selects dynamically
-// const availableCategories = flattenCategories(categoryStructure);
-
 const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, submitLabel = "حفظ المنتج" }) => {
   const [name, setName] = useState(initialData.name || "");
-  const [categoryPath, setCategoryPath] = useState<string[]>(initialData.categoryPath || ["رجالي"]);
+  const [categoryPath, setCategoryPath] = useState<string[]>(initialData.categoryPath || []);
   const [type, setType] = useState(initialData.type || "");
   const [colors, setColors] = useState<string[]>(initialData.colors || []);
   const [details, setDetails] = useState(initialData.details || "");
   const [hasDiscount, setHasDiscount] = useState(initialData.hasDiscount || false);
   const [discount, setDiscount] = useState(initialData.discount || 0);
-  const [images, setImages] = useState<string[]>(initialData.mainImage ? [initialData.mainImage] : (initialData.images || []));
+  const [mainImage, setMainImage] = useState(initialData.mainImage || "");
+  const [additionalImages, setAdditionalImages] = useState<string[]>(initialData.images || []);
   const [colorImages, setColorImages] = useState<ColorImage[]>(initialData.colorImages || []);
   const [sizes, setSizes] = useState<SizeItem[]>(
     initialData.sizes 
       ? initialData.sizes.map(s => ({ 
           size: s.size,
-          price: s.price, // Assuming price is per size
+          price: s.price,
           stock: s.stock,
-          image: "" // Image per size might not be needed based on schema, clarify?
+          image: ""
         })) 
       : []
   );
@@ -79,10 +65,28 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImages([reader.result as string]); // Assuming only one main image for now
+        setMainImage(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // Handle additional images upload
+  const handleAdditionalImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setAdditionalImages(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeAdditionalImage = (indexToRemove: number) => {
+    setAdditionalImages(additionalImages.filter((_, index) => index !== indexToRemove));
   };
 
   // Handle color image file upload
@@ -107,10 +111,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   // Handle color name change
   const handleColorNameChange = (index: number, value: string) => {
     const newColors = [...colors];
+    const oldColor = newColors[index];
     newColors[index] = value;
     setColors(newColors);
-    // Also update colorImages if the color name changes
-    const updatedColorImages = colorImages.map(ci => ci.color === colors[index] ? { ...ci, color: value } : ci);
+    
+    // Update colorImages if the color name changes
+    const updatedColorImages = colorImages.map(ci => ci.color === oldColor ? { ...ci, color: value } : ci);
     setColorImages(updatedColorImages);
   };
 
@@ -128,15 +134,22 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
     e.preventDefault();
 
     // Simple validation check
-    if (!name.trim() || !type.trim() || categoryPath.length === 0 || sizes.length === 0 || images.length === 0 || colors.length === 0) {
-       setError("يرجى ملء جميع الحقول المطلوبة (الاسم، القسم، النوع، صورة المنتج الرئيسية، الألوان، المقاسات)");
-       return;
+    if (!name.trim() || categoryPath.length === 0 || !type.trim() || (!mainImage && additionalImages.length === 0) || colors.length === 0 || sizes.length === 0) {
+      setError("يرجى ملء جميع الحقول المطلوبة (الاسم، القسم، النوع، صور المنتج، الألوان، المقاسات)");
+      return;
     }
-     // Basic check for color names and images
-     if (colors.some(color => !color.trim()) || (colors.length > 0 && colorImages.length < colors.length)) {
-       setError("يرجى إدخال اسم لكل لون وتحميل صورة لكل لون مضاف.");
-       return;
-     }
+    
+    // Basic check for color names and images
+    if (colors.some(color => !color.trim())) {
+      setError("يرجى إدخال اسم لكل لون");
+      return;
+    }
+    
+    // Check that each color has a corresponding image
+    if (colors.some(color => !colorImages.find(ci => ci.color === color))) {
+      setError("يرجى تحميل صورة لكل لون مضاف");
+      return;
+    }
 
     const formattedSizes: SizeWithStock[] = sizes.map(sizeItem => ({
       size: sizeItem.size,
@@ -146,10 +159,16 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
     
     setError(""); // Clear error on successful validation
     
+    // Combine all images
+    const allImages = [...additionalImages];
+    if (mainImage) {
+      allImages.unshift(mainImage);
+    }
+    
     // Construct the product object to be submitted
     onSubmit({
       name: name.trim(),
-      category: categoryPath[categoryPath.length - 1] as Product["category"], // Use the last part of categoryPath
+      category: categoryPath[categoryPath.length - 1] || "", // Use the last part of categoryPath
       categoryPath,
       type: type.trim(),
       colors,
@@ -157,49 +176,123 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       details,
       hasDiscount,
       discount: hasDiscount ? discount : 0,
-      mainImage: images[0], // Assuming the first uploaded image is the main one
-      images, // Include all uploaded images
+      mainImage: mainImage || additionalImages[0] || "", // Use the first image as main if no main image was uploaded
+      images: allImages,
       sizes: formattedSizes,
       description: details, // Use details as description
-      price: formattedSizes.length > 0 ? formattedSizes[0].price : 0, // Assuming base price is from the first size, or clarify?
+      price: formattedSizes.length > 0 ? formattedSizes[0].price : 0, // Use first size price as base price
       inventory: formattedSizes.reduce((sum, item) => sum + item.stock, 0),
       createdAt: initialData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
   };
 
-  // Function to render nested category selects
-  const renderCategorySelects = (structure: any, currentPath: string[]): JSX.Element[] => {
-    const level = currentPath.length;
-    const currentLevelOptions = level === 0 ? Object.keys(structure) : Object.keys(structure[currentPath[level - 1]] || {});
-
-    if (currentLevelOptions.length === 0) return [];
-
-    const nextLevelStructure = structure[currentPath[level]];
-
-    return [
-      <div key={`category-select-${level}`}>
-        <label className="block text-sm font-medium mb-1">{level === 0 ? "القسم الرئيسي*" : `الفئة الفرعية ${level}`}</label>
-        <select
-          value={currentPath[level] || ""}
-          onChange={e => {
-            const newPath = currentPath.slice(0, level);
-            newPath[level] = e.target.value;
-            setCategoryPath(newPath);
-          }}
-          className="w-full p-2 border rounded text-sm"
-          required={level === 0} // Only the main category is strictly required
-        >
-          <option value="">{level === 0 ? "اختر القسم الرئيسي" : "اختر فئة فرعية"}</option>
-          {currentLevelOptions.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-      </div>,
-      ...(currentPath[level] && nextLevelStructure !== null ? renderCategorySelects(structure[currentPath[level]], currentPath.slice(0, level + 1)) : []) // Recursive call for next level
-    ];
+  // Get current level options for category selection
+  const getCategoryOptions = (path: string[] = [], level: number = 0) => {
+    let current = categoryStructure;
+    
+    // Traverse the path to get to the current level
+    for (let i = 0; i < level; i++) {
+      if (!path[i] || !current[path[i]]) {
+        return [];
+      }
+      current = current[path[i]];
+    }
+    
+    if (current === null) return [];
+    return Object.keys(current);
   };
 
+  // Render category selectors based on the current path
+  const renderCategorySelectors = () => {
+    const selectors = [];
+    
+    // First level (main categories)
+    const mainCategories = getCategoryOptions();
+    selectors.push(
+      <div key="level-0" className="mb-4">
+        <label className="block text-sm font-medium mb-1">القسم الرئيسي*</label>
+        <select
+          value={categoryPath[0] || ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (value) {
+              setCategoryPath([value]);
+            } else {
+              setCategoryPath([]);
+            }
+          }}
+          className="w-full p-2 border rounded text-sm"
+          required
+        >
+          <option value="">اختر القسم الرئيسي</option>
+          {mainCategories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+      </div>
+    );
+    
+    // Render subcategory selectors if a main category is selected
+    if (categoryPath[0]) {
+      const subCategories = getCategoryOptions(categoryPath, 1);
+      selectors.push(
+        <div key="level-1" className="mb-4">
+          <label className="block text-sm font-medium mb-1">القسم الفرعي*</label>
+          <select
+            value={categoryPath[1] || ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value) {
+                setCategoryPath([categoryPath[0], value]);
+              } else {
+                setCategoryPath([categoryPath[0]]);
+              }
+            }}
+            className="w-full p-2 border rounded text-sm"
+            required
+          >
+            <option value="">اختر القسم الفرعي</option>
+            {subCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+    
+    // Render third level if applicable (e.g., for Kids > Boys > T-shirts)
+    if (categoryPath[0] === "أطفال" && categoryPath[1]) {
+      const subSubCategories = getCategoryOptions(categoryPath, 2);
+      if (subSubCategories.length > 0) {
+        selectors.push(
+          <div key="level-2" className="mb-4">
+            <label className="block text-sm font-medium mb-1">النوع*</label>
+            <select
+              value={categoryPath[2] || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value) {
+                  setCategoryPath([categoryPath[0], categoryPath[1], value]);
+                } else {
+                  setCategoryPath([categoryPath[0], categoryPath[1]]);
+                }
+              }}
+              className="w-full p-2 border rounded text-sm"
+              required
+            >
+              <option value="">اختر النوع</option>
+              {subSubCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+        );
+      }
+    }
+    
+    return selectors;
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto p-4">
@@ -215,8 +308,11 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
             required
           />
         </div>
-         {/* Dynamic Category Selects */}
-         {renderCategorySelects(categoryStructure, categoryPath)}
+        
+        {/* Render dynamic category selectors */}
+        <div className="space-y-4">
+          {renderCategorySelectors()}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -228,10 +324,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
             onChange={e => setType(e.target.value)}
             className="w-full p-2 border rounded text-sm"
             required
+            placeholder="مثل: قميص كاجوال، بدلة رسمية، إلخ"
           />
         </div>
-        {/* Placeholder for other potential 2-column fields */}
-        <div></div> 
+        <div></div> {/* Placeholder for layout */}
       </div>
 
       {/* Description */}
@@ -243,37 +339,61 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
           className="w-full p-2 border rounded text-sm"
           rows={4}
           required
+          placeholder="وصف تفصيلي للمنتج..."
         />
       </div>
 
-      {/* Main Images Upload */}
+      {/* Main Image Upload */}
       <div>
-        <label className="block text-sm font-medium mb-1">صور المنتج الرئيسية*</label>
+        <label className="block text-sm font-medium mb-1">صورة المنتج الرئيسية*</label>
         <input
           type="file"
           accept="image/*"
           onChange={handleMainImageUpload}
           className="w-full p-2 border rounded text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-          // required // Make required if at least one image is mandatory
         />
-        {images.length > 0 && (
+        {mainImage && (
+          <div className="mt-2">
+            <div className="relative inline-block">
+              <img src={mainImage} alt="main product" className="h-20 w-20 object-cover rounded" />
+              <button
+                type="button"
+                onClick={() => setMainImage("")}
+                className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-600 text-white rounded-full p-1 text-xs"
+              >
+                X
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Additional Images Upload */}
+      <div>
+        <label className="block text-sm font-medium mb-1">صور إضافية للمنتج</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleAdditionalImagesUpload}
+          className="w-full p-2 border rounded text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+        />
+        {additionalImages.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-2">
-            {images.map((image, index) => (
+            {additionalImages.map((image, index) => (
               <div key={index} className="relative group">
-                 <img src={image} alt="main product" className="h-20 w-20 object-cover rounded" />
-                 <button
-                    type="button"
-                    onClick={() => setImages(images.filter((_, i) => i !== index))}
-                    className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                 >
-                    X
-                 </button>
+                <img src={image} alt={`product ${index + 1}`} className="h-20 w-20 object-cover rounded" />
+                <button
+                  type="button"
+                  onClick={() => removeAdditionalImage(index)}
+                  className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+                >
+                  X
+                </button>
               </div>
             ))}
           </div>
         )}
-         {/* Option to add more main images if needed, similar to colors */}
-         {/* For now, assuming only one main image handled by the file input */}
       </div>
 
       {/* Color and Color Images */}
@@ -283,33 +403,33 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
           {colors.map((color, index) => (
             <div key={index} className="flex flex-col md:flex-row items-start md:items-center gap-3 p-3 border rounded-md">
               <div className="flex-1 w-full md:w-auto">
-                 <label className="block text-sm font-medium mb-1">اسم اللون</label>
-                 <input
-                   type="text"
-                   value={color}
-                   onChange={e => handleColorNameChange(index, e.target.value)}
-                   className="w-full p-2 border rounded text-sm"
-                   placeholder="اسم اللون (مثال: أحمر)"
-                   required
-                 />
+                <label className="block text-sm font-medium mb-1">اسم اللون*</label>
+                <input
+                  type="text"
+                  value={color}
+                  onChange={e => handleColorNameChange(index, e.target.value)}
+                  className="w-full p-2 border rounded text-sm"
+                  placeholder="اسم اللون (مثال: أحمر)"
+                  required
+                />
               </div>
-               <div className="flex-1 w-full md:w-auto">
-                  <label className="block text-sm font-medium mb-1">صورة اللون</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={e => handleColorImageUpload(index, e)}
-                    className="w-full p-2 border rounded text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                    required // Make required if image per color is mandatory
+              <div className="flex-1 w-full md:w-auto">
+                <label className="block text-sm font-medium mb-1">صورة اللون*</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => handleColorImageUpload(index, e)}
+                  className="w-full p-2 border rounded text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  required={!colorImages.find(ci => ci.color === color)}
+                />
+                {colorImages.find(ci => ci.color === color)?.imageUrl && (
+                  <img
+                    src={colorImages.find(ci => ci.color === color)?.imageUrl}
+                    alt={`Image for ${color}`}
+                    className="h-16 w-16 object-cover rounded mt-2"
                   />
-                  {colorImages.find(ci => ci.color === color)?.imageUrl && (
-                    <img
-                       src={colorImages.find(ci => ci.color === color)?.imageUrl}
-                       alt={`Image for ${color}`}
-                       className="h-16 w-16 object-cover rounded mt-2"
-                    />
-                  )}
-               </div>
+                )}
+              </div>
               
               <button
                 type="button"

@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -52,8 +53,10 @@ export interface OrderItem {
 
 // Define the SizeItem interface used in Product model
 export interface SizeItem {
-  value: string;
-  label: string;
+  size: string;
+  price: number;
+  stock: number;
+  image?: string;
 }
 
 // Define SizeWithStock interface for sizes with stock and price

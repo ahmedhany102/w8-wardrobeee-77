@@ -1,3 +1,4 @@
+
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/models/User';
@@ -22,6 +23,7 @@ class UserDatabase {
   }
 
   private initDB(): void {
+    // Use IndexedDB for cross-browser storage consistency
     const request = indexedDB.open(this.DB_NAME, 1);
 
     request.onerror = (event) => {
@@ -53,12 +55,27 @@ class UserDatabase {
       if (this.users.length === 0) {
         this.createDefaultAdmin();
       }
+      
+      // Also sync with localStorage for backward compatibility
+      this.syncWithLocalStorage();
     };
 
     request.onerror = (event) => {
       console.error('Error loading users:', event);
       this.createDefaultAdmin();
     };
+  }
+
+  // Sync IndexedDB data with localStorage for backward compatibility
+  private syncWithLocalStorage(): void {
+    const mockUsers = this.users.map(user => ({
+      id: user.id,
+      email: user.email,
+      password: user.password,
+      name: user.name,
+      role: user.isAdmin ? "ADMIN" : "USER"
+    }));
+    localStorage.setItem("mock_users", JSON.stringify(mockUsers));
   }
 
   private createDefaultAdmin(): void {
@@ -94,6 +111,11 @@ class UserDatabase {
       store.add(user);
     });
 
+    transaction.oncomplete = () => {
+      // Sync with localStorage for backward compatibility
+      this.syncWithLocalStorage();
+    };
+
     transaction.onerror = (event) => {
       console.error('Error saving users:', event);
     };
@@ -117,14 +139,10 @@ class UserDatabase {
     return emailRegex.test(email);
   }
 
-  public async registerUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<boolean> {
+  public async addUser(userData: Omit<User, 'id' | 'createdAt' | 'lastLogin' | 'ipAddress'>): Promise<User | null> {
     try {
       if (!this.validateEmail(userData.email)) {
         throw new Error('Invalid email format');
-      }
-
-      if (!this.validatePassword(userData.password)) {
-        throw new Error('Password does not meet security requirements');
       }
 
       const existingUser = this.users.find(user => user.email === userData.email);
@@ -132,11 +150,9 @@ class UserDatabase {
         throw new Error('Email already registered');
       }
 
-      const hashedPassword = await this.hashPassword(userData.password);
       const newUser: User = {
         ...userData,
-        id: uuidv4(),
-        password: hashedPassword,
+        id: userData.id || uuidv4(),
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         ipAddress: '0.0.0.0',
@@ -148,10 +164,13 @@ class UserDatabase {
 
       this.users.push(newUser);
       this.saveUsers();
-      return true;
+      
+      // Return without password
+      const { password, ...userWithoutPassword } = newUser;
+      return userWithoutPassword as User;
     } catch (error) {
       console.error('Error registering user:', error);
-      return false;
+      return null;
     }
   }
 
@@ -163,7 +182,25 @@ class UserDatabase {
         return null;
       }
 
-      const isValid = await this.verifyPassword(password, user.password);
+      // Check if it's a simple password or hashed
+      let isValid = false;
+      if (user.password === password) {
+        // Direct comparison for non-hashed passwords
+        isValid = true;
+      } else {
+        // Try bcrypt comparison for hashed passwords
+        try {
+          isValid = await this.verifyPassword(password, user.password);
+        } catch (e) {
+          // If bcrypt fails, try base64 decode for legacy passwords
+          try {
+            isValid = atob(user.password) === password;
+          } catch (e2) {
+            isValid = false;
+          }
+        }
+      }
+
       if (!isValid) {
         console.log('Invalid password for user:', email);
         return null;
@@ -191,7 +228,7 @@ class UserDatabase {
     return userWithoutPassword;
   }
 
-  public async updateUser(id: string, updates: Partial<Omit<User, 'id' | 'password'>>): Promise<boolean> {
+  public async updateUser(id: string, updates: Partial<Omit<User, 'id'>>): Promise<boolean> {
     try {
       const userIndex = this.users.findIndex(u => u.id === id);
       if (userIndex === -1) return false;
@@ -204,18 +241,35 @@ class UserDatabase {
         throw new Error('Email already in use');
       }
 
+      // Handle password change specially
+      if (updates.password) {
+        // Store password directly - we'll handle hashing later if needed
+        this.users[userIndex] = {
+          ...this.users[userIndex],
+          ...updates
+        };
+        
+        // Also update in localStorage for backward compatibility
+        const mockUsers = JSON.parse(localStorage.getItem("mock_users") || "[]");
+        const mockUserIndex = mockUsers.findIndex((u: any) => u.id === id);
+        if (mockUserIndex >= 0) {
+          mockUsers[mockUserIndex].password = updates.password;
+          localStorage.setItem("mock_users", JSON.stringify(mockUsers));
+        }
+      } else {
+        this.users[userIndex] = {
+          ...this.users[userIndex],
+          ...updates
+        };
+      }
+
       if (updates.role) {
-        updates.isAdmin = updates.role === 'ADMIN';
+        this.users[userIndex].isAdmin = updates.role === 'ADMIN';
       }
 
       if (updates.status) {
-        updates.isBlocked = updates.status === 'BLOCKED';
+        this.users[userIndex].isBlocked = updates.status === 'BLOCKED';
       }
-
-      this.users[userIndex] = {
-        ...this.users[userIndex],
-        ...updates
-      };
 
       this.saveUsers();
       return true;
