@@ -18,6 +18,7 @@ import UserDatabase from '@/models/UserDatabase';
 import { User } from '@/models/User';
 import DOMPurify from 'dompurify';
 import AdminContactSettings from '@/components/admin/AdminContactSettings';
+import ContactMessages from '@/components/admin/ContactMessages';
 
 // Use a different interface name to avoid conflict with imported User
 interface UserView {
@@ -401,10 +402,15 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
               >
                 Contact
               </TabsTrigger>
+              <TabsTrigger 
+                value="messages" 
+                className="flex-1 data-[state=active]:bg-green-200 data-[state=active]:text-green-800"
+              >
+                Messages
+              </TabsTrigger>
             </TabsList>
           </div>
 
-          
           <TabsContent value="dashboard">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3 md:gap-6 mb-6">
               <Card className="hover:shadow-lg transition-all">
@@ -708,14 +714,16 @@ const Admin = ({ activeTab = "dashboard" }: AdminProps) => {
             <CouponManagement />
           </TabsContent>
           
-          
           <TabsContent value="ads">
             <AdManagement />
           </TabsContent>
           
-          
           <TabsContent value="contact">
             <AdminContactSettings />
+          </TabsContent>
+          
+          <TabsContent value="messages">
+            <ContactMessages />
           </TabsContent>
         </Tabs>
       </div>

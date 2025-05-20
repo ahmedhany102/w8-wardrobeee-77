@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Layout from '@/components/Layout';
 import { Input } from '@/components/ui/input';
@@ -7,30 +6,60 @@ import { Button } from '@/components/ui/button';
 import { Phone, Mail, MapPin, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
+import { Loader2 } from '@/components/ui/loader';
 
 const Contact = () => {
-  const [formData, setFormData] = React.useState({
+  const [form, setForm] = React.useState({
     name: '',
     email: '',
     subject: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    toast.success('Message sent successfully! We will get back to you soon.');
-    setFormData({
-      name: '',
-      email: '',
-      subject: '',
-      message: ''
-    });
+    setIsSubmitting(true);
+
+    try {
+      // Prepare the message object
+      const newMessage = {
+        id: `msg-${Date.now()}`,
+        name: form.name,
+        email: form.email,
+        subject: form.subject,
+        message: form.message,
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      
+      // Get existing messages or create empty array
+      let existingMessages = [];
+      const storedMessages = localStorage.getItem('contactMessages');
+      if (storedMessages) {
+        existingMessages = JSON.parse(storedMessages);
+      }
+      
+      // Add new message to beginning of array
+      existingMessages.unshift(newMessage);
+      
+      // Save back to localStorage
+      localStorage.setItem('contactMessages', JSON.stringify(existingMessages));
+      
+      // Show success toast and reset form
+      toast.success("تم إرسال رسالتك بنجاح! سوف نتواصل معك قريباً");
+      setForm({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      console.error("Error saving contact message:", error);
+      toast.error("حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -44,62 +73,88 @@ const Contact = () => {
             <Card className="p-6 shadow-md">
               <h2 className="text-xl font-semibold mb-4">Send Us a Message</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Name field */}
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium mb-1">Full Name</label>
-                  <Input
+                  <label htmlFor="name" className="block text-sm font-medium mb-1">
+                    الاسم
+                  </label>
+                  <input
+                    type="text"
                     id="name"
                     name="name"
-                    value={formData.name}
+                    value={form.name}
                     onChange={handleChange}
-                    placeholder="Your name"
+                    className="w-full p-2 border rounded focus:ring focus:ring-green-200 focus:border-green-500"
+                    placeholder="الاسم الكامل"
                     required
-                    className="w-full"
                   />
                 </div>
-                
+
+                {/* Email field */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-1">Email Address</label>
-                  <Input
+                  <label htmlFor="email" className="block text-sm font-medium mb-1">
+                    البريد الإلكتروني
+                  </label>
+                  <input
+                    type="email"
                     id="email"
                     name="email"
-                    type="email"
-                    value={formData.email}
+                    value={form.email}
                     onChange={handleChange}
-                    placeholder="your@email.com"
+                    className="w-full p-2 border rounded focus:ring focus:ring-green-200 focus:border-green-500"
+                    placeholder="example@email.com"
                     required
-                    className="w-full"
                   />
                 </div>
-                
+
+                {/* Subject field */}
                 <div>
-                  <label htmlFor="subject" className="block text-sm font-medium mb-1">Subject</label>
-                  <Input
+                  <label htmlFor="subject" className="block text-sm font-medium mb-1">
+                    الموضوع
+                  </label>
+                  <input
+                    type="text"
                     id="subject"
                     name="subject"
-                    value={formData.subject}
+                    value={form.subject}
                     onChange={handleChange}
-                    placeholder="How can we help?"
+                    className="w-full p-2 border rounded focus:ring focus:ring-green-200 focus:border-green-500"
+                    placeholder="موضوع الرسالة"
                     required
-                    className="w-full"
                   />
                 </div>
-                
+
+                {/* Message field */}
                 <div>
-                  <label htmlFor="message" className="block text-sm font-medium mb-1">Your Message</label>
-                  <Textarea
+                  <label htmlFor="message" className="block text-sm font-medium mb-1">
+                    الرسالة
+                  </label>
+                  <textarea
                     id="message"
                     name="message"
-                    value={formData.message}
+                    value={form.message}
                     onChange={handleChange}
-                    placeholder="Type your message here..."
                     rows={5}
+                    className="w-full p-2 border rounded focus:ring focus:ring-green-200 focus:border-green-500"
+                    placeholder="اكتب رسالتك هنا..."
                     required
-                    className="w-full resize-none"
-                  />
+                  ></textarea>
                 </div>
-                
-                <Button type="submit" className="w-full bg-green-700 hover:bg-green-800">
-                  <Send className="h-4 w-4 mr-2" /> Send Message
+
+                {/* Submit button */}
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="w-full bg-green-700 hover:bg-green-800 text-white py-2"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center justify-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      جاري الإرسال...
+                    </span>
+                  ) : (
+                    "إرسال الرسالة"
+                  )}
                 </Button>
               </form>
             </Card>
@@ -184,7 +239,7 @@ const Contact = () => {
                   className="bg-white/20 p-3 rounded-full hover:bg-white/30 transition-all"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058 1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
                   </svg>
                 </a>
                 <a 

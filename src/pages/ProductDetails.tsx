@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Product } from '@/models/Product';
@@ -6,6 +5,9 @@ import ProductDatabase from '@/models/Product';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
+import { Plus, Minus, ShoppingCart, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import AspectRatio from '@/components/ui/aspect-ratio';
 
 // Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
@@ -25,87 +27,119 @@ const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
-  const [currentImage, setCurrentImage] = useState('');
-  const [imgIdx, setImgIdx] = useState(0);
-  const [availableSizes, setAvailableSizes] = useState<any[]>([]);
-
+  const [loading, setLoading] = useState(true);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [activeImage, setActiveImage] = useState<string>('');
+  const [colorImages, setColorImages] = useState<Record<string, string[]>>({});
+  
   useEffect(() => {
     const fetchProduct = async () => {
       const db = ProductDatabase.getInstance();
-      const prod = await db.getProductById(id);
-      if (prod) {
-        setProduct(prod);
+      const foundProduct = await db.getProductById(id);
+      if (foundProduct) {
+        setProduct(foundProduct);
         
-        // Set first available color if there are color variations
-        if (prod.colors && prod.colors.length > 0) {
-          setSelectedColor(prod.colors[0]);
+        // Set up color-based images mapping if available
+        const colorImagesMap: Record<string, string[]> = {};
+        
+        if (foundProduct.colorImages && Object.keys(foundProduct.colorImages).length > 0) {
+          // If we have specific images for each color
+          setColorImages(foundProduct.colorImages);
           
-          // Find image for selected color
-          const colorImage = prod.colorImages?.find(ci => ci.color === prod.colors?.[0]);
-          if (colorImage) {
-            setCurrentImage(colorImage.imageUrl);
-          } else {
-            setCurrentImage(prod.mainImage || (prod.images?.[0] || ''));
-          }
-          
-          // Get available sizes for this color (in this version, all sizes are available for all colors)
-          const prodSizes = prod.sizes?.filter(s => s.stock > 0) || [];
-          setAvailableSizes(prodSizes);
+          // Set default color and its images
+          const defaultColor = Object.keys(foundProduct.colorImages)[0];
+          setSelectedColor(defaultColor);
+          setActiveImage(foundProduct.colorImages[defaultColor][0] || foundProduct.mainImage || '/placeholder.svg');
         } else {
-          // No color variations, just use main image
-          setCurrentImage(prod.mainImage || (prod.images?.[0] || ''));
-          
-          // Get all available sizes
-          const prodSizes = prod.sizes?.filter(s => s.stock > 0) || [];
-          setAvailableSizes(prodSizes);
+          // If we don't have color-specific images, use the general product images
+          setActiveImage(foundProduct.mainImage || (foundProduct.images && foundProduct.images[0]) || '/placeholder.svg');
         }
+        
+        // Find the first available size
+        if (foundProduct.sizes && foundProduct.sizes.length > 0) {
+          const availableSize = foundProduct.sizes.find(size => size && size.stock > 0);
+          if (availableSize) {
+            setSelectedSize(availableSize.size);
+          }
+        }
+        
+        setLoading(false);
+      } else {
+        navigate('/not-found');
       }
     };
     
     fetchProduct();
-  }, [id]);
-
-  // Update available sizes when color changes
-  useEffect(() => {
-    if (product && selectedColor) {
-      // Find image for the selected color
-      const colorImage = product.colorImages?.find(ci => ci.color === selectedColor);
-      if (colorImage) {
-        setCurrentImage(colorImage.imageUrl);
-        // Reset image index since we're viewing a color-specific image now
-        setImgIdx(0);
-      } else {
-        setCurrentImage(product.mainImage || (product.images?.[0] || ''));
-      }
-
-      // For now, we'll show all sizes since we don't have color-specific sizes yet
-      // In a real implementation, you would filter sizes based on color
-      const prodSizes = product.sizes?.filter(s => s.stock > 0) || [];
-      setAvailableSizes(prodSizes);
-      
-      // Reset selected size when color changes
-      setSelectedSize('');
+  }, [id, navigate]);
+  
+  // Handle color selection
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+    
+    // Update images based on the selected color
+    if (colorImages[color] && colorImages[color].length > 0) {
+      setActiveImage(colorImages[color][0]);
+    } else if (product?.mainImage) {
+      setActiveImage(product.mainImage);
     }
-  }, [selectedColor, product]);
-
-  if (!product) return <Layout><div className="text-center py-20">جاري تحميل المنتج...</div></Layout>;
-
-  const isOutOfStock = availableSizes.length === 0;
+    
+    // Reset selected size when color changes
+    setSelectedSize(null);
+  };
   
-  // Collect images for display - start with the current color image or main image
-  let images = [currentImage];
-  // Add other images if available (but avoid duplicates)
-  if (product.images && product.images.length > 0) {
-    product.images.forEach(img => {
-      if (!images.includes(img)) {
-        images.push(img);
-      }
-    });
-  }
+  // Set the active image
+  const handleImageClick = (imageUrl: string) => {
+    setActiveImage(imageUrl);
+  };
+
+  const getSizesForCurrentColor = () => {
+    if (!product || !product.sizes) return [];
+    
+    if (selectedColor && product.colorSizes && product.colorSizes[selectedColor]) {
+      // Return sizes specific to the selected color
+      return product.colorSizes[selectedColor];
+    }
+    
+    // Return all sizes if no color specific sizes
+    return product.sizes;
+  };
   
-  // Handle add to cart
+  const isOutOfStock = !getSizesForCurrentColor().some(size => size && size.stock > 0);
+  const sizesForCurrentColor = getSizesForCurrentColor();
+
+  const getCurrentImages = () => {
+    if (selectedColor && colorImages[selectedColor]) {
+      return colorImages[selectedColor];
+    }
+    return product?.images || [];
+  };
+
+  const getColorHex = (color: string) => {
+    return colorMap[color] || color;
+  };
+
+  const getStockForSize = (size: string) => {
+    if (product && product.sizes) {
+      const sizeObj = product.sizes.find(s => s.size === size);
+      return sizeObj ? sizeObj.stock : 0;
+    }
+    return 0;
+  };
+
+  const getSizePrice = (size: string) => {
+    if (product && product.sizes) {
+      const sizeObj = product.sizes.find(s => s.size === size);
+      return sizeObj ? sizeObj.price : 0;
+    }
+    return 0;
+  };
+
+  const getColorBorder = (color: string) => {
+    return colorMap[color] ? `1px solid ${colorMap[color]}` : '1px solid #ccc';
+  };
+
   const handleAddToCart = () => {
     if (isOutOfStock) {
       toast.error('المنتج غير متوفر حالياً');
@@ -120,137 +154,219 @@ const ProductDetails = () => {
     // Use CartDatabase to add the product with color and size
     import('@/models/CartDatabase').then(async ({ default: CartDatabase }) => {
       const cartDb = CartDatabase.getInstance();
-      await cartDb.addToCart(product, selectedSize, selectedColor, 1);
+      await cartDb.addToCart(product, selectedSize, selectedColor, quantity);
       toast.success('تم إضافة المنتج للعربة!');
       navigate('/cart');
     });
   };
 
+  if (loading) {
+    return <Layout><div className="text-center py-20">جاري تحميل المنتج...</div></Layout>;
+  }
+
+  if (!product) {
+    return <Layout><div className="text-center py-20">المنتج غير موجود</div></Layout>;
+  }
+
   return (
     <Layout>
-      <div className="container max-w-3xl mx-auto px-4 py-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Product Image Slider */}
-          <div className="flex flex-col items-center md:w-1/2">
-            <div className="relative w-full flex justify-center">
-              <img 
-                src={images[imgIdx]} 
-                alt={product.name} 
-                className="rounded-lg object-contain w-full h-80 bg-white border" 
-              />
-              {images.length > 1 && (
-                <div className="absolute top-1/2 left-0 right-0 flex justify-between items-center px-2">
-                  <button 
-                    onClick={() => setImgIdx((imgIdx - 1 + images.length) % images.length)} 
-                    className="bg-gray-200 rounded-full p-1"
-                  >◀</button>
-                  <button 
-                    onClick={() => setImgIdx((imgIdx + 1) % images.length)} 
-                    className="bg-gray-200 rounded-full p-1"
-                  >▶</button>
-                </div>
-              )}
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Product Images */}
+          <div>
+            {/* Main Image */}
+            <div className="mb-4 border rounded overflow-hidden">
+              <AspectRatio ratio={1}>
+                <img
+                  src={activeImage}
+                  alt={product?.name || "Product"}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '/placeholder.svg';
+                  }}
+                />
+              </AspectRatio>
             </div>
-            {images.length > 1 && (
-              <div className="flex gap-2 mt-2 overflow-x-auto">
-                {images.map((img, idx) => (
-                  <img 
-                    key={idx} 
-                    src={img} 
-                    alt="thumb" 
-                    className={`h-12 w-12 object-cover rounded border cursor-pointer ${imgIdx === idx ? 'ring-2 ring-green-600' : ''}`} 
-                    onClick={() => setImgIdx(idx)} 
+
+            {/* Thumbnails */}
+            <div className="flex overflow-x-auto gap-2 pb-2">
+              {getCurrentImages().map((image, index) => (
+                <div
+                  key={index}
+                  className={`border rounded cursor-pointer flex-shrink-0 w-16 h-16 overflow-hidden ${
+                    activeImage === image ? "ring-2 ring-blue-500" : ""
+                  }`}
+                  onClick={() => handleImageClick(image)}
+                >
+                  <img
+                    src={image}
+                    alt={`Thumbnail ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
                   />
-                ))}
-              </div>
-            )}
-          </div>
-          
-          {/* Product Details */}
-          <div className="flex-1 space-y-4">
-            <h1 className="text-2xl font-bold mb-2">{product.name}</h1>
-            <div className="text-gray-600">
-              {product.categoryPath ? product.categoryPath.join(" > ") : product.category} - {product.type}
-            </div>
-            <div className="text-gray-700">{product.details || product.description}</div>
-            
-            {/* Stock status indicator */}
-            <div className={`text-sm font-bold ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
-              {isOutOfStock ? 'غير متوفر حالياً' : 'متوفر'}
-            </div>
-            
-            {/* Color selection */}
-            {product.colors && product.colors.length > 0 && (
-              <div>
-                <label className="block font-bold mb-1">اختر اللون:</label>
-                <div className="flex flex-wrap gap-2">
-                  {product.colors.map(color => {
-                    // Find color image
-                    const colorImg = product.colorImages?.find(ci => ci.color === color)?.imageUrl;
-                    
-                    return (
-                      <button
-                        key={color}
-                        type="button"
-                        className={`relative w-12 h-12 rounded-full border-2 flex items-center justify-center overflow-hidden focus:outline-none ${selectedColor === color ? 'ring-2 ring-green-600 border-green-600' : 'border-gray-300'}`}
-                        title={color}
-                        onClick={() => setSelectedColor(color)}
-                      >
-                        {colorImg ? (
-                          <img src={colorImg} alt={color} className="object-cover w-full h-full" />
-                        ) : (
-                          <div 
-                            className="w-full h-full" 
-                            style={{ background: colorMap[color] || color }}
-                          ></div>
-                        )}
-                        {selectedColor === color && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
-                            <span className="text-xs text-white font-bold">✓</span>
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
                 </div>
-                <p className="text-sm text-gray-500 mt-1">{selectedColor}</p>
+              ))}
+            </div>
+          </div>
+
+          {/* Product Details */}
+          <div className="space-y-4">
+            {/* Title and Price */}
+            <div>
+              <h1 className="text-2xl font-bold">{product?.name}</h1>
+              <div className="flex items-center gap-2 mt-2">
+                {product?.hasDiscount && product?.discount && product?.discount > 0 ? (
+                  <>
+                    <span className="text-gray-500 line-through">
+                      {product.originalPrice || (selectedSize && getSizePrice(selectedSize) * (1 + product.discount / 100))} جنيه
+                    </span>
+                    <span className="text-xl font-bold text-green-600">
+                      {selectedSize ? getSizePrice(selectedSize) : product?.price} جنيه
+                    </span>
+                    <Badge className="bg-red-600">خصم {product.discount}%</Badge>
+                  </>
+                ) : (
+                  <span className="text-xl font-bold text-green-600">
+                    {selectedSize ? getSizePrice(selectedSize) : product?.price} جنيه
+                  </span>
+                )}
               </div>
-            )}
-            
-            {/* Size selection */}
-            {availableSizes.length > 0 && (
+            </div>
+
+            {/* Colors */}
+            {product?.colors && product.colors.length > 0 && (
               <div>
-                <label className="block font-bold mb-1">اختر المقاس:</label>
+                <h3 className="text-sm font-medium mb-2">اللون:</h3>
                 <div className="flex flex-wrap gap-2">
-                  {availableSizes.map(size => (
+                  {product.colors.map((color) => (
                     <button
-                      key={size.size}
-                      type="button"
-                      className={`px-3 py-1 border rounded-full ${selectedSize === size.size ? 'bg-green-600 text-white' : 'bg-gray-100'}`}
-                      onClick={() => setSelectedSize(size.size)}
-                    >
-                      {size.size} - {size.price} EGP
-                    </button>
+                      key={color}
+                      className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                        selectedColor === color
+                          ? "ring-2 ring-offset-2 ring-blue-500"
+                          : ""
+                      }`}
+                      style={{
+                        backgroundColor: getColorHex(color),
+                        border: getColorBorder(color),
+                      }}
+                      onClick={() => handleColorChange(color)}
+                      aria-label={`Select ${color} color`}
+                    />
                   ))}
                 </div>
               </div>
             )}
-            
-            {/* Add to cart button */}
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700 mt-4"
-              disabled={isOutOfStock || !selectedSize || (product.colors && product.colors.length > 0 && !selectedColor)}
-              onClick={handleAddToCart}
-            >
-              {isOutOfStock ? 'غير متوفر' : 'أضف للعربة'}
-            </Button>
-            
-            {/* Discount information */}
-            {product.hasDiscount && product.discount && product.discount > 0 && (
-              <div className="bg-red-50 border border-red-100 rounded p-2 text-center">
-                <span className="text-red-600 font-bold">خصم {product.discount}%</span>
+
+            {/* Sizes */}
+            {sizesForCurrentColor.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium mb-2">المقاس:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {sizesForCurrentColor.map((size) => {
+                    if (!size) return null;
+                    const isAvailable = size.stock > 0;
+                    return (
+                      <button
+                        key={size.size}
+                        className={`px-3 py-1 border rounded-md ${
+                          selectedSize === size.size
+                            ? "bg-green-600 text-white border-green-600"
+                            : isAvailable
+                            ? "bg-white hover:bg-gray-100"
+                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        }`}
+                        onClick={() => isAvailable && setSelectedSize(size.size)}
+                        disabled={!isAvailable}
+                      >
+                        {size.size}
+                        {!isAvailable && <span className="block text-xs">نفذت الكمية</span>}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
+
+            {/* Quantity */}
+            {!isOutOfStock && (
+              <div>
+                <h3 className="text-sm font-medium mb-2">الكمية:</h3>
+                <div className="flex items-center">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => quantity > 1 && setQuantity(quantity - 1)}
+                    disabled={quantity <= 1}
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="mx-4 w-8 text-center">{quantity}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity(quantity + 1)}
+                    disabled={selectedSize && getStockForSize(selectedSize) <= quantity}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Add to cart button */}
+            <Button
+              className="w-full bg-blue-600 hover:bg-blue-700"
+              disabled={isOutOfStock || !selectedSize}
+              onClick={handleAddToCart}
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> جاري الإضافة...
+                </span>
+              ) : isOutOfStock ? (
+                "نفذت الكمية"
+              ) : !selectedSize ? (
+                "برجاء اختيار المقاس"
+              ) : (
+                <span className="flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4" /> إضافة إلى العربة
+                </span>
+              )}
+            </Button>
+
+            {/* Description */}
+            <div>
+              <h3 className="text-md font-medium mb-2">وصف المنتج:</h3>
+              {product?.description ? (
+                <p className="text-gray-600 whitespace-pre-line">{product.description}</p>
+              ) : (
+                <p className="text-gray-400 italic">لا يوجد وصف متاح لهذا المنتج.</p>
+              )}
+            </div>
+
+            {/* Additional information */}
+            <div>
+              <h3 className="text-md font-medium mb-2">معلومات إضافية:</h3>
+              <div className="text-sm text-gray-600 space-y-1">
+                {product?.categoryPath && (
+                  <p>
+                    <span className="font-semibold">التصنيف: </span>
+                    {product.categoryPath.join(" > ")}
+                  </p>
+                )}
+                <p>
+                  <span className="font-semibold">الكود: </span>
+                  {product?.sku || product?.id?.substring(0, 8) || "-"}
+                </p>
+                <p>
+                  <span className="font-semibold">الحالة: </span>
+                  {isOutOfStock ? "غير متوفر" : "متوفر"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

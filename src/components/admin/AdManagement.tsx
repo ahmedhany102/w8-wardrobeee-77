@@ -3,15 +3,21 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Trash, Pencil, Plus, Image, Link, ExternalLink } from 'lucide-react';
+import { Trash, Pencil, Plus, Image, Link, ExternalLink, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from '@/components/ui/label';
 
 interface Ad {
   id: string;
   imageUrl: string;
   link?: string;
   title?: string;
+  placement?: 'home' | 'sidebar' | 'product';
+  active: boolean;
+  order?: number;
 }
 
 const AdManagement = () => {
@@ -23,6 +29,8 @@ const AdManagement = () => {
   const [newAdImage, setNewAdImage] = useState<string>('');
   const [newAdTitle, setNewAdTitle] = useState<string>('');
   const [newAdLink, setNewAdLink] = useState<string>('');
+  const [newAdPlacement, setNewAdPlacement] = useState<'home' | 'sidebar' | 'product'>('home');
+  const [newAdActive, setNewAdActive] = useState<boolean>(true);
   
   // Load ads from localStorage
   useEffect(() => {
@@ -32,6 +40,7 @@ const AdManagement = () => {
         setAds(JSON.parse(storedAds));
       } catch (error) {
         console.error('Error parsing ads:', error);
+        toast.error('Failed to load advertisements');
       }
     }
   }, []);
@@ -41,9 +50,16 @@ const AdManagement = () => {
     try {
       localStorage.setItem('homeAds', JSON.stringify(updatedAds));
       setAds(updatedAds);
+      
+      // Trigger event for components like AdCarousel to refresh
+      const event = new Event('adsUpdated');
+      window.dispatchEvent(event);
+      
+      return true;
     } catch (error) {
       console.error('Error saving ads:', error);
-      toast.error('فشل في حفظ الإعلانات');
+      toast.error('Failed to save advertisements');
+      return false;
     }
   };
   
@@ -51,6 +67,11 @@ const AdManagement = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error('Image size should be less than 2MB');
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewAdImage(reader.result as string);
@@ -62,7 +83,7 @@ const AdManagement = () => {
   // Add new ad
   const handleAddAd = () => {
     if (!newAdImage) {
-      toast.error('يرجى تحميل صورة للإعلان');
+      toast.error('Please upload an image for the advertisement');
       return;
     }
     
@@ -70,41 +91,52 @@ const AdManagement = () => {
       id: `ad-${Date.now()}`,
       imageUrl: newAdImage,
       title: newAdTitle,
-      link: newAdLink || '#'
+      link: newAdLink || '#',
+      placement: newAdPlacement,
+      active: newAdActive,
+      order: ads.length + 1
     };
     
     const updatedAds = [...ads, newAd];
-    saveAds(updatedAds);
-    toast.success('تم إضافة الإعلان بنجاح');
-    
-    // Reset form
-    setNewAdImage('');
-    setNewAdTitle('');
-    setNewAdLink('');
-    setIsAddDialogOpen(false);
+    if (saveAds(updatedAds)) {
+      toast.success('Advertisement added successfully');
+      
+      // Reset form
+      setNewAdImage('');
+      setNewAdTitle('');
+      setNewAdLink('');
+      setNewAdPlacement('home');
+      setNewAdActive(true);
+      setIsAddDialogOpen(false);
+    }
   };
   
   // Edit ad
   const handleEditAd = () => {
     if (!currentAd) return;
     
-    const updatedAd = {
+    const updatedAd: Ad = {
       ...currentAd,
       imageUrl: newAdImage || currentAd.imageUrl,
       title: newAdTitle,
-      link: newAdLink || '#'
+      link: newAdLink || '#',
+      placement: newAdPlacement,
+      active: newAdActive
     };
     
     const updatedAds = ads.map(ad => ad.id === currentAd.id ? updatedAd : ad);
-    saveAds(updatedAds);
-    toast.success('تم تحديث الإعلان بنجاح');
-    
-    // Reset form
-    setIsEditDialogOpen(false);
-    setCurrentAd(null);
-    setNewAdImage('');
-    setNewAdTitle('');
-    setNewAdLink('');
+    if (saveAds(updatedAds)) {
+      toast.success('Advertisement updated successfully');
+      
+      // Reset form
+      setIsEditDialogOpen(false);
+      setCurrentAd(null);
+      setNewAdImage('');
+      setNewAdTitle('');
+      setNewAdLink('');
+      setNewAdPlacement('home');
+      setNewAdActive(true);
+    }
   };
   
   // Delete ad
@@ -112,11 +144,49 @@ const AdManagement = () => {
     if (!currentAd) return;
     
     const updatedAds = ads.filter(ad => ad.id !== currentAd.id);
-    saveAds(updatedAds);
-    toast.success('تم حذف الإعلان بنجاح');
+    if (saveAds(updatedAds)) {
+      toast.success('Advertisement deleted successfully');
+      setIsDeleteDialogOpen(false);
+      setCurrentAd(null);
+    }
+  };
+  
+  // Toggle ad active status
+  const toggleAdStatus = (adId: string) => {
+    const updatedAds = ads.map(ad => 
+      ad.id === adId ? { ...ad, active: !ad.active } : ad
+    );
     
-    setIsDeleteDialogOpen(false);
-    setCurrentAd(null);
+    if (saveAds(updatedAds)) {
+      toast.success('Advertisement status updated');
+    }
+  };
+  
+  // Reorder ads
+  const moveAd = (adId: string, direction: 'up' | 'down') => {
+    const adIndex = ads.findIndex(ad => ad.id === adId);
+    if (
+      (direction === 'up' && adIndex === 0) ||
+      (direction === 'down' && adIndex === ads.length - 1)
+    ) {
+      return;
+    }
+    
+    const newAds = [...ads];
+    const targetIndex = direction === 'up' ? adIndex - 1 : adIndex + 1;
+    
+    // Swap ads
+    [newAds[adIndex], newAds[targetIndex]] = [newAds[targetIndex], newAds[adIndex]];
+    
+    // Update order values
+    const reorderedAds = newAds.map((ad, index) => ({
+      ...ad,
+      order: index + 1
+    }));
+    
+    if (saveAds(reorderedAds)) {
+      toast.success('Advertisement order updated');
+    }
   };
   
   // Open edit dialog
@@ -125,6 +195,8 @@ const AdManagement = () => {
     setNewAdImage(ad.imageUrl);
     setNewAdTitle(ad.title || '');
     setNewAdLink(ad.link || '');
+    setNewAdPlacement(ad.placement || 'home');
+    setNewAdActive(ad.active !== false);
     setIsEditDialogOpen(true);
   };
   
@@ -133,11 +205,17 @@ const AdManagement = () => {
     setCurrentAd(ad);
     setIsDeleteDialogOpen(true);
   };
+
+  // Filter ads by placement
+  const filterAdsByPlacement = (placement?: 'home' | 'sidebar' | 'product') => {
+    if (!placement) return ads;
+    return ads.filter(ad => ad.placement === placement);
+  };
   
   return (
     <Card className="border-green-100">
       <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white">
-        <CardTitle className="text-xl">إدارة إعلانات الصفحة الرئيسية</CardTitle>
+        <CardTitle className="text-xl">إدارة الإعلانات</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <div className="mb-4 flex justify-between items-center">
@@ -163,46 +241,105 @@ const AdManagement = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {ads.map((ad) => (
-              <div key={ad.id} className="border rounded-md overflow-hidden">
-                <AspectRatio ratio={16/9}>
-                  <img 
-                    src={ad.imageUrl} 
-                    alt={ad.title || 'Ad'} 
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.svg';
-                    }}
-                  />
-                </AspectRatio>
-                <div className="p-3">
-                  <h4 className="font-medium truncate">{ad.title || 'إعلان بدون عنوان'}</h4>
-                  {ad.link && ad.link !== '#' && (
-                    <p className="text-sm text-blue-600 flex items-center gap-1 truncate">
-                      <Link className="w-4 h-4" />
-                      {ad.link}
-                    </p>
-                  )}
-                  <div className="flex justify-end gap-2 mt-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => openEditDialog(ad)}
-                    >
-                      <Pencil className="w-4 h-4 mr-1" /> تعديل
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm" 
-                      onClick={() => openDeleteDialog(ad)}
-                    >
-                      <Trash className="w-4 h-4 mr-1" /> حذف
-                    </Button>
+          <div>
+            <div className="mb-4">
+              <Label className="mb-2 block">عرض الإعلانات حسب المكان:</Label>
+              <Select defaultValue="all">
+                <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="جميع الإعلانات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">جميع الإعلانات</SelectItem>
+                  <SelectItem value="home">الصفحة الرئيسية</SelectItem>
+                  <SelectItem value="sidebar">الشريط الجانبي</SelectItem>
+                  <SelectItem value="product">صفحة المنتج</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {ads.map((ad, index) => (
+                <div key={ad.id} className={`border rounded-md overflow-hidden ${!ad.active ? 'opacity-60' : ''}`}>
+                  <AspectRatio ratio={16/9}>
+                    <img 
+                      src={ad.imageUrl} 
+                      alt={ad.title || 'Ad'} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                      }}
+                    />
+                    {!ad.active && (
+                      <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-md">
+                        غير نشط
+                      </div>
+                    )}
+                    {ad.placement && (
+                      <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-md">
+                        {ad.placement === 'home' ? 'الرئيسية' : 
+                         ad.placement === 'sidebar' ? 'الجانب' : 'المنتج'}
+                      </div>
+                    )}
+                  </AspectRatio>
+                  <div className="p-3">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium truncate">{ad.title || 'إعلان بدون عنوان'}</h4>
+                      <div className="flex items-center">
+                        <Switch 
+                          checked={ad.active !== false}
+                          onCheckedChange={() => toggleAdStatus(ad.id)}
+                        />
+                      </div>
+                    </div>
+                    {ad.link && ad.link !== '#' && (
+                      <p className="text-sm text-blue-600 flex items-center gap-1 truncate mb-2">
+                        <Link className="w-4 h-4" />
+                        {ad.link}
+                      </p>
+                    )}
+                    <div className="flex justify-between gap-2 mt-2">
+                      <div className="space-x-1 rtl:space-x-reverse">
+                        {index > 0 && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => moveAd(ad.id, 'up')}
+                            className="h-8 w-8 p-0"
+                          >
+                            ↑
+                          </Button>
+                        )}
+                        {index < ads.length - 1 && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => moveAd(ad.id, 'down')}
+                            className="h-8 w-8 p-0"
+                          >
+                            ↓
+                          </Button>
+                        )}
+                      </div>
+                      <div className="space-x-1 rtl:space-x-reverse">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => openEditDialog(ad)}
+                        >
+                          <Pencil className="w-4 h-4 mr-1" /> تعديل
+                        </Button>
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          onClick={() => openDeleteDialog(ad)}
+                        >
+                          <Trash className="w-4 h-4 mr-1" /> حذف
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
         
@@ -252,6 +389,30 @@ const AdManagement = () => {
                   className="w-full p-2 border rounded"
                   placeholder="مثال: /products/summer-sale"
                 />
+              </div>
+              <div>
+                <label className="block font-medium mb-1">مكان الإعلان</label>
+                <Select
+                  value={newAdPlacement}
+                  onValueChange={(value: 'home' | 'sidebar' | 'product') => setNewAdPlacement(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="اختر مكان الإعلان" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="home">الصفحة الرئيسية</SelectItem>
+                    <SelectItem value="sidebar">الشريط الجانبي</SelectItem>
+                    <SelectItem value="product">صفحة المنتج</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                <Switch 
+                  id="ad-status" 
+                  checked={newAdActive} 
+                  onCheckedChange={setNewAdActive}
+                />
+                <Label htmlFor="ad-status">فعّال</Label>
               </div>
             </div>
             <DialogFooter>
@@ -316,6 +477,30 @@ const AdManagement = () => {
                   className="w-full p-2 border rounded"
                   placeholder="مثال: /products/summer-sale"
                 />
+              </div>
+              <div>
+                <label className="block font-medium mb-1">مكان الإعلان</label>
+                <Select
+                  value={newAdPlacement}
+                  onValueChange={(value: 'home' | 'sidebar' | 'product') => setNewAdPlacement(value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="اختر مكان الإعلان" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="home">الصفحة الرئيسية</SelectItem>
+                    <SelectItem value="sidebar">الشريط الجانبي</SelectItem>
+                    <SelectItem value="product">صفحة المنتج</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                <Switch 
+                  id="edit-ad-status" 
+                  checked={newAdActive} 
+                  onCheckedChange={setNewAdActive}
+                />
+                <Label htmlFor="edit-ad-status">فعّال</Label>
               </div>
             </div>
             <DialogFooter>
