@@ -47,6 +47,7 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
     try {
       // Get the first available size if product has sizes
       let size = "";
+      let color = "";
       if (product.sizes && product.sizes.length > 0) {
         const availableSize = product.sizes.find(s => s && s.stock > 0);
         if (availableSize) {
@@ -54,17 +55,14 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         }
       }
       
-      // Add to cart
+      // Get the first available color or empty string
+      if (product.colors && product.colors.length > 0) {
+        color = product.colors[0];
+      }
+      
+      // Add to cart - fixing by passing all required arguments: product, size, color, quantity
       const cartDb = await CartDatabase.getInstance();
-      await cartDb.addToCart({
-        productId: product.id,
-        name: product.name,
-        price: minPrice,
-        quantity: 1,
-        size: size,
-        color: product.colors && product.colors.length > 0 ? product.colors[0] : undefined,
-        imageUrl: mainImage
-      });
+      await cartDb.addToCart(product, size, color, 1);
       
       toast.success("تمت إضافة المنتج إلى سلة التسوق");
     } catch (error) {
