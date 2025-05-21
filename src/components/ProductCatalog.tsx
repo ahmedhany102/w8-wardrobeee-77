@@ -79,9 +79,11 @@ const ProductCatalog: React.FC = () => {
       const lowercaseQuery = query.toLowerCase();
       
       const searchResults = products.filter(product => {
+        if (!product) return false; // Skip undefined products
+        
         const matchesSearch = 
-          product.name.toLowerCase().includes(lowercaseQuery) || 
-          product.description.toLowerCase().includes(lowercaseQuery);
+          (product.name?.toLowerCase().includes(lowercaseQuery) || false) || 
+          (product.description?.toLowerCase().includes(lowercaseQuery) || false);
         
         const matchesCategory = activeTab === 'ALL' || product.category === activeTab;
         
@@ -97,7 +99,7 @@ const ProductCatalog: React.FC = () => {
     if (category === 'ALL') {
       setFilteredProducts(products);
     } else {
-      const filtered = products.filter(product => product.category === category);
+      const filtered = products.filter(product => product && product.category === category);
       setFilteredProducts(filtered);
     }
   };
@@ -259,7 +261,7 @@ const ProductCatalog: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-            {filteredProducts.map((product) => (
+            {filteredProducts.filter(product => product).map((product) => (
               <ProductCard 
                 key={product.id} 
                 product={product} 
@@ -286,8 +288,8 @@ const ProductCatalog: React.FC = () => {
                   {cart.map((item) => (
                     <div key={item.product.id} className="flex justify-between items-center p-2 border-b border-green-800">
                       <div>
-                        <p className="font-medium">{item.product.name}</p>
-                        <p className="text-sm text-gray-300">{item.product.price.toFixed(2)} EGP × {item.quantity}</p>
+                        <p className="font-medium">{item.product?.name || 'Unknown Product'}</p>
+                        <p className="text-sm text-gray-300">{item.product?.price?.toFixed(2) || '0.00'} EGP × {item.quantity}</p>
                       </div>
                       <div className="flex items-center space-x-2">
                         <button 
