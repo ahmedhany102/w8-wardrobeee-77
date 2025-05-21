@@ -1,9 +1,11 @@
 
-import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { Map, Phone, Mail, Clock, Globe, Instagram, Facebook, Twitter, Youtube } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ContactSettings {
   address: string;
@@ -16,37 +18,33 @@ interface ContactSettings {
   instagram: string;
   twitter: string;
   youtube: string;
+  termsAndConditions: string;
 }
 
+const defaultSettings: ContactSettings = {
+  address: '',
+  mapUrl: '',
+  email: '',
+  phone: '',
+  workingHours: '',
+  website: '',
+  facebook: '',
+  instagram: '',
+  twitter: '',
+  youtube: '',
+  termsAndConditions: '',
+};
+
 const AdminContactSettings = () => {
-  const [settings, setSettings] = useState<ContactSettings>({
-    address: "",
-    mapUrl: "",
-    email: "",
-    phone: "",
-    workingHours: "",
-    website: "",
-    facebook: "",
-    instagram: "",
-    twitter: "",
-    youtube: ""
-  });
-  const [loading, setLoading] = useState(false);
+  const [settings, setSettings] = useState<ContactSettings>(defaultSettings);
+  const [activeTab, setActiveTab] = useState('contact');
 
   useEffect(() => {
-    // Load existing contact settings
-    const loadSettings = () => {
-      try {
-        const savedSettings = localStorage.getItem("contactSettings");
-        if (savedSettings) {
-          setSettings(JSON.parse(savedSettings));
-        }
-      } catch (error) {
-        console.error("Error loading contact settings:", error);
-      }
-    };
-    
-    loadSettings();
+    // Load settings from localStorage
+    const savedSettings = localStorage.getItem('contactSettings');
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings));
+    }
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -54,195 +52,182 @@ const AdminContactSettings = () => {
     setSettings(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      localStorage.setItem("contactSettings", JSON.stringify(settings));
-      toast.success("تم حفظ إعدادات الاتصال بنجاح");
-    } catch (error) {
-      console.error("Error saving contact settings:", error);
-      toast.error("حدث خطأ أثناء حفظ الإعدادات");
-    } finally {
-      setLoading(false);
-    }
+  const saveSettings = () => {
+    localStorage.setItem('contactSettings', JSON.stringify(settings));
+    toast.success('تم حفظ الإعدادات بنجاح');
   };
 
   return (
-    <Card className="border-green-100">
-      <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white">
-        <CardTitle className="text-xl">إعدادات صفحة الاتصال بنا</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Map className="inline-block w-4 h-4 mr-1" />
-                العنوان
-              </label>
-              <input
-                type="text"
-                name="address"
-                value={settings.address}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="عنوان المتجر الفعلي"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Globe className="inline-block w-4 h-4 mr-1" />
-                رابط الخريطة
-              </label>
-              <input
-                type="text"
-                name="mapUrl"
-                value={settings.mapUrl}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="رابط Google Maps"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Mail className="inline-block w-4 h-4 mr-1" />
-                البريد الإلكتروني
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={settings.email}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="example@store.com"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Phone className="inline-block w-4 h-4 mr-1" />
-                رقم الهاتف
-              </label>
-              <input
-                type="text"
-                name="phone"
-                value={settings.phone}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="+201234567890"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Clock className="inline-block w-4 h-4 mr-1" />
-                ساعات العمل
-              </label>
-              <input
-                type="text"
-                name="workingHours"
-                value={settings.workingHours}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="من الإثنين إلى الجمعة: 9 صباحاً - 5 مساءً"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Globe className="inline-block w-4 h-4 mr-1" />
-                الموقع الإلكتروني
-              </label>
-              <input
-                type="text"
-                name="website"
-                value={settings.website}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="https://www.example.com"
-              />
-            </div>
-          </div>
+    <div className="space-y-6">
+      <Tabs defaultValue="contact" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-2">
+          <TabsTrigger value="contact">معلومات التواصل</TabsTrigger>
+          <TabsTrigger value="terms">الشروط والأحكام</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="contact" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>معلومات التواصل الأساسية</CardTitle>
+              <CardDescription>أدخل معلومات التواصل التي ستظهر للزوار</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="address" className="text-sm font-medium">العنوان</label>
+                  <Input
+                    id="address"
+                    name="address"
+                    value={settings.address}
+                    onChange={handleChange}
+                    placeholder="العنوان الكامل"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="mapUrl" className="text-sm font-medium">رابط الخريطة</label>
+                  <Input
+                    id="mapUrl"
+                    name="mapUrl"
+                    value={settings.mapUrl}
+                    onChange={handleChange}
+                    placeholder="رابط Google Maps"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="email" className="text-sm font-medium">البريد الإلكتروني</label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={settings.email}
+                    onChange={handleChange}
+                    placeholder="البريد الإلكتروني للتواصل"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="phone" className="text-sm font-medium">رقم الهاتف</label>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={settings.phone}
+                    onChange={handleChange}
+                    placeholder="رقم الهاتف للتواصل"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="workingHours" className="text-sm font-medium">ساعات العمل</label>
+                <Input
+                  id="workingHours"
+                  name="workingHours"
+                  value={settings.workingHours}
+                  onChange={handleChange}
+                  placeholder="مثال: من السبت إلى الخميس 9 صباحًا - 5 مساءً"
+                />
+              </div>
+            </CardContent>
+          </Card>
           
-          <h3 className="text-lg font-semibold mt-4">روابط التواصل الاجتماعي</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Facebook className="inline-block w-4 h-4 mr-1" />
-                فيسبوك
-              </label>
-              <input
-                type="text"
-                name="facebook"
-                value={settings.facebook}
+          <Card>
+            <CardHeader>
+              <CardTitle>روابط التواصل الاجتماعي</CardTitle>
+              <CardDescription>أضف روابط حسابات التواصل الاجتماعي الخاصة بمتجرك</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="website" className="text-sm font-medium">الموقع الإلكتروني</label>
+                  <Input
+                    id="website"
+                    name="website"
+                    value={settings.website}
+                    onChange={handleChange}
+                    placeholder="رابط الموقع الإلكتروني"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="facebook" className="text-sm font-medium">فيسبوك</label>
+                  <Input
+                    id="facebook"
+                    name="facebook"
+                    value={settings.facebook}
+                    onChange={handleChange}
+                    placeholder="رابط صفحة الفيسبوك"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="instagram" className="text-sm font-medium">انستغرام</label>
+                  <Input
+                    id="instagram"
+                    name="instagram"
+                    value={settings.instagram}
+                    onChange={handleChange}
+                    placeholder="رابط حساب انستغرام"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="twitter" className="text-sm font-medium">تويتر</label>
+                  <Input
+                    id="twitter"
+                    name="twitter"
+                    value={settings.twitter}
+                    onChange={handleChange}
+                    placeholder="رابط حساب تويتر"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="youtube" className="text-sm font-medium">يوتيوب</label>
+                <Input
+                  id="youtube"
+                  name="youtube"
+                  value={settings.youtube}
+                  onChange={handleChange}
+                  placeholder="رابط قناة اليوتيوب"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="terms">
+          <Card>
+            <CardHeader>
+              <CardTitle>الشروط والأحكام</CardTitle>
+              <CardDescription>أدخل الشروط والأحكام الخاصة بالمتجر</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="termsAndConditions"
+                name="termsAndConditions"
+                value={settings.termsAndConditions}
                 onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="رابط صفحة الفيسبوك"
+                placeholder="أدخل الشروط والأحكام هنا..."
+                className="min-h-[300px]"
               />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Instagram className="inline-block w-4 h-4 mr-1" />
-                انستغرام
-              </label>
-              <input
-                type="text"
-                name="instagram"
-                value={settings.instagram}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="رابط حساب الانستغرام"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Twitter className="inline-block w-4 h-4 mr-1" />
-                تويتر
-              </label>
-              <input
-                type="text"
-                name="twitter"
-                value={settings.twitter}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="رابط حساب تويتر"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">
-                <Youtube className="inline-block w-4 h-4 mr-1" />
-                يوتيوب
-              </label>
-              <input
-                type="text"
-                name="youtube"
-                value={settings.youtube}
-                onChange={handleChange}
-                className="w-full p-2 border rounded"
-                placeholder="رابط قناة اليوتيوب"
-              />
-            </div>
-          </div>
-          
-          <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              disabled={loading}
-              className="bg-green-700 hover:bg-green-800 text-white"
-            >
-              {loading ? "جاري الحفظ..." : "حفظ الإعدادات"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <CardFooter className="flex justify-end">
+        <Button onClick={saveSettings} className="bg-green-600 hover:bg-green-700">
+          حفظ التغييرات
+        </Button>
+      </CardFooter>
+    </div>
   );
 };
 

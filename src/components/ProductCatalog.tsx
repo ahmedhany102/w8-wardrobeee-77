@@ -73,11 +73,7 @@ const ProductCatalog: React.FC = () => {
     setSearchQuery(query);
     if (!query.trim()) {
       // If search is empty, reset to all products in current category
-      setFilteredProducts(
-        activeTab === 'ALL' 
-          ? products 
-          : products.filter(product => product.category === activeTab)
-      );
+      filterProductsByCategory(activeTab);
     } else {
       // Filter products based on search query and current category
       const lowercaseQuery = query.toLowerCase();
@@ -96,19 +92,24 @@ const ProductCatalog: React.FC = () => {
     }
   };
 
+  // Filter products by category
+  const filterProductsByCategory = (category: string) => {
+    if (category === 'ALL') {
+      setFilteredProducts(products);
+    } else {
+      const filtered = products.filter(product => product.category === category);
+      setFilteredProducts(filtered);
+    }
+  };
+
   // Reset filtered products when changing tabs
   const handleTabChange = (value: string) => {
     setActiveTab(value);
+    filterProductsByCategory(value);
     
-    // Reset search when changing tabs
+    // Apply search filter if there is a search query
     if (searchQuery) {
       handleSearch(searchQuery);
-    } else {
-      setFilteredProducts(
-        value === 'ALL' 
-          ? products 
-          : products.filter(product => product.category === value)
-      );
     }
   };
 
@@ -124,7 +125,7 @@ const ProductCatalog: React.FC = () => {
       return;
     }
     const cartDb = (await import('@/models/CartDatabase')).default.getInstance();
-    const success = await cartDb.addToCart(product, size.toString(), quantity.toString());
+    const success = await cartDb.addToCart(product, size.toString(), product.colors?.[0] || "", quantity);
     if (success) {
       window.dispatchEvent(new Event('cartUpdated'));
       toast.success(`${product.name} تمت إضافته للعربة`);
@@ -271,8 +272,8 @@ const ProductCatalog: React.FC = () => {
 
       {/* Shopping Cart Dialog - Only Cash on Delivery */}
       <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
-        <DialogContent className="sm:max-w-md bg-gradient-to-b from-green-900 to-black text-white">
-          <div className="space-y-4">
+        <DialogContent className="sm:max-w-md bg-gradient-to-b from-green-900 to-black text-white" aria-describedby="cart-contents">
+          <div className="space-y-4" id="cart-contents">
             <h2 className="text-xl font-bold text-white border-b border-green-800 pb-2">Shopping Cart</h2>
             
             {cart.length === 0 ? (

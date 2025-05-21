@@ -34,6 +34,11 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
     ? Math.min(...product.sizes.filter(s => s && s.stock > 0).map(s => s.price)) 
     : (product.price || 0);
 
+  // Calculate original price if there is a discount
+  const originalPrice = product.hasDiscount && product.discount 
+    ? minPrice * (100 / (100 - product.discount)) 
+    : minPrice;
+
   // Quick add to cart handler
   const handleQuickAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -87,7 +92,7 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
             />
             {product.hasDiscount && product.discount && product.discount > 0 && (
               <span className="absolute top-1 left-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded shadow-lg z-10">
-                {product.discount}%
+                خصم {product.discount}%
               </span>
             )}
             {isOutOfStock && (
@@ -106,10 +111,13 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
           {product?.categoryPath ? product.categoryPath.join(" > ") : (product?.category || "-")}
         </p>
         <div className="mt-1">
-          {minPrice > 0 ? (
-            <span className="text-xs font-bold text-green-700">{minPrice} EGP</span>
+          {product.hasDiscount && product.discount && product.discount > 0 ? (
+            <div className="flex items-center gap-1">
+              <span className="text-xs font-bold text-green-700">{minPrice.toFixed(2)} EGP</span>
+              <span className="text-xs text-gray-400 line-through">{originalPrice.toFixed(2)} EGP</span>
+            </div>
           ) : (
-            <span className="text-xs font-bold text-gray-400">غير متوفر</span>
+            <span className="text-xs font-bold text-green-700">{minPrice.toFixed(2)} EGP</span>
           )}
         </div>
       </CardContent>

@@ -30,8 +30,8 @@ const BottomNavigation: React.FC = () => {
     };
   }, []);
 
-  // Don't show bottom navigation on admin pages or when user isn't logged in
-  if (isOnAdminPages || !user) {
+  // Don't show bottom navigation on admin pages
+  if (isOnAdminPages) {
     return null;
   }
 

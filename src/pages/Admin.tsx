@@ -8,11 +8,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import ProductManagement from "@/components/admin/ProductManagement";
 import OrdersPanel from "@/components/admin/OrdersPanel";
 import CouponManagement from "@/components/admin/CouponManagement";
-import FeaturedProductsManagement from "@/components/admin/FeaturedProductsManagement";
 import AdminContactSettings from "@/components/admin/AdminContactSettings";
-import ContactMessages from "@/components/admin/ContactMessages";
 import AdManagement from "@/components/admin/AdManagement";
-import { Home, LogOut, Package, Settings, Ticket, Users, MessageSquare, Image } from "lucide-react";
+import { Home, LogOut, Package, Settings, Ticket, Users } from "lucide-react";
 import UsersPanel from "@/components/admin/UsersPanel";
 
 const Admin = ({ activeTab = "dashboard" }) => {
@@ -74,20 +72,12 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <span className="hidden sm:inline">الكوبونات</span>
             </TabsTrigger>
             <TabsTrigger value="contact" onClick={() => navigate("/admin/contact")}>
-              <MessageSquare className="w-4 h-4 mr-2" />
+              <Settings className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">بيانات التواصل</span>
             </TabsTrigger>
-            <TabsTrigger value="messages" onClick={() => navigate("/admin/messages")}>
-              <MessageSquare className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">الرسائل</span>
-            </TabsTrigger>
             <TabsTrigger value="ads" onClick={() => navigate("/admin/ads")}>
-              <Image className="w-4 h-4 mr-2" />
+              <Settings className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الإعلانات</span>
-            </TabsTrigger>
-            <TabsTrigger value="featured" onClick={() => navigate("/admin/featured")}>
-              <Package className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">المنتجات المميزة</span>
             </TabsTrigger>
             <TabsTrigger value="users" onClick={() => navigate("/admin/users")}>
               <Users className="w-4 h-4 mr-2" />
@@ -123,16 +113,8 @@ const Admin = ({ activeTab = "dashboard" }) => {
             <AdminContactSettings />
           </TabsContent>
 
-          <TabsContent value="messages">
-            <ContactMessages />
-          </TabsContent>
-
           <TabsContent value="ads">
             <AdManagement />
-          </TabsContent>
-
-          <TabsContent value="featured">
-            <FeaturedProductsManagement />
           </TabsContent>
           
           <TabsContent value="users">

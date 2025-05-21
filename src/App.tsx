@@ -14,6 +14,7 @@ import Cart from './pages/Cart';
 import NotFound from './pages/NotFound';
 import OrderTracking from './pages/OrderTracking';
 import ProductDetails from './pages/ProductDetails';
+import Terms from './pages/Terms';
 
 import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/toaster';
@@ -42,20 +43,21 @@ function App() {
       <ThemeProvider defaultTheme="dark" attribute="class">
         <AuthProvider>
           <Router>
-            <div className="flex flex-col min-h-screen w-full">
+            <div className="flex flex-col min-h-screen w-full pb-16 md:pb-0">
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route path="/product/:id" element={<ProductDetails />} />
 
                 {/* Protected routes */}
                 <Route element={<RequireAuth adminOnly={false} />}>
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/cart" element={<Cart />} />
-                  <Route path="/tracking" element={<OrderTracking />} />
+                  <Route path="/order-tracking" element={<OrderTracking />} />
                   <Route path="/orders" element={<OrderTracking />} />
                 </Route>
 

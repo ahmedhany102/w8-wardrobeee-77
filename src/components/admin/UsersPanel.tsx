@@ -3,8 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import UserDatabase from '@/models/UserDatabase';
+import { Plus } from 'lucide-react';
 
 interface User {
   id?: string;
@@ -20,6 +24,12 @@ interface User {
 const UsersPanel = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showAddAdminDialog, setShowAddAdminDialog] = useState(false);
+  const [newAdmin, setNewAdmin] = useState({
+    name: '',
+    email: '',
+    password: ''
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -58,11 +68,61 @@ const UsersPanel = () => {
     }
   };
 
+  const handleAddAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
+      toast.error('يرجى تعبئة جميع الحقول');
+      return;
+    }
+    
+    try {
+      const db = UserDatabase.getInstance();
+      
+      // Check if email already exists
+      const existingUser = await db.getUserByEmail(newAdmin.email);
+      if (existingUser) {
+        toast.error('البريد الإلكتروني مستخدم بالفعل');
+        return;
+      }
+      
+      // Create new admin user
+      await db.register(newAdmin.name, newAdmin.email, newAdmin.password, true);
+      
+      toast.success('تم إنشاء حساب المسؤول بنجاح');
+      setShowAddAdminDialog(false);
+      setNewAdmin({ name: '', email: '', password: '' });
+      
+      // Refresh user list
+      fetchUsers();
+      
+    } catch (error) {
+      console.error('Error creating admin user:', error);
+      toast.error('حدث خطأ أثناء إنشاء حساب المسؤول');
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewAdmin(prev => ({ ...prev, [name]: value }));
+  };
+
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">إدارة المستخدمين</h2>
+        <Button 
+          onClick={() => setShowAddAdminDialog(true)}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          إضافة مسؤول جديد
+        </Button>
+      </div>
+      
       <Card>
         <CardHeader>
-          <CardTitle>إدارة المستخدمين</CardTitle>
+          <CardTitle>المستخدمين</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -123,6 +183,57 @@ const UsersPanel = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Admin Dialog */}
+      <Dialog open={showAddAdminDialog} onOpenChange={setShowAddAdminDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>إضافة مسؤول جديد</DialogTitle>
+            <DialogDescription>
+              أدخل بيانات المسؤول الجديد. سوف يتمكن من الوصول إلى لوحة التحكم.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAddAdmin}>
+            <div className="grid gap-4 py-4">
+              <div>
+                <Label htmlFor="name">الاسم</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={newAdmin.name}
+                  onChange={handleInputChange}
+                  placeholder="اسم المسؤول"
+                />
+              </div>
+              <div>
+                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={newAdmin.email}
+                  onChange={handleInputChange}
+                  placeholder="example@example.com"
+                />
+              </div>
+              <div>
+                <Label htmlFor="password">كلمة المرور</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={newAdmin.password}
+                  onChange={handleInputChange}
+                  placeholder="******"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700">إضافة</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

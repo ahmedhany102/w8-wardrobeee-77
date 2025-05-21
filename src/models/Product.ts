@@ -90,6 +90,8 @@ export class ProductDatabase {
 
     request.onerror = (event) => {
       console.error('Error opening database:', event);
+      // Fallback to localStorage if IndexedDB fails
+      this.loadProductsFromLocalStorage();
     };
 
     request.onsuccess = (event) => {
@@ -105,8 +107,24 @@ export class ProductDatabase {
     };
   }
 
+  private loadProductsFromLocalStorage(): void {
+    try {
+      const savedProducts = localStorage.getItem('products');
+      if (savedProducts) {
+        this.products = JSON.parse(savedProducts);
+      }
+      window.dispatchEvent(new Event('productsUpdated'));
+    } catch (error) {
+      console.error('Error loading products from localStorage:', error);
+      this.products = [];
+    }
+  }
+
   private loadProducts(): void {
-    if (!this.db) return;
+    if (!this.db) {
+      this.loadProductsFromLocalStorage();
+      return;
+    }
 
     const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
     const store = transaction.objectStore(this.STORE_NAME);
@@ -114,36 +132,49 @@ export class ProductDatabase {
 
     request.onsuccess = () => {
       this.products = request.result || [];
+      // Also sync with localStorage for cross-browser compatibility
+      localStorage.setItem('products', JSON.stringify(this.products));
       window.dispatchEvent(new Event('productsUpdated'));
     };
 
     request.onerror = (event) => {
-      console.error('Error loading products:', event);
-      this.products = [];
+      console.error('Error loading products from IndexedDB:', event);
+      this.loadProductsFromLocalStorage();
     };
   }
 
   private saveProducts(): void {
-    if (!this.db) return;
+    // Always save to localStorage for cross-browser compatibility
+    localStorage.setItem('products', JSON.stringify(this.products));
 
-    const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(this.STORE_NAME);
-
-    // Clear existing products
-    store.clear();
-
-    // Add all products
-    this.products.forEach(product => {
-      store.add(product);
-    });
-
-    transaction.oncomplete = () => {
+    if (!this.db) {
       window.dispatchEvent(new Event('productsUpdated'));
-    };
+      return;
+    }
 
-    transaction.onerror = (event) => {
-      console.error('Error saving products:', event);
-    };
+    try {
+      const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(this.STORE_NAME);
+
+      // Clear existing products
+      store.clear();
+
+      // Add all products
+      this.products.forEach(product => {
+        store.add(product);
+      });
+
+      transaction.oncomplete = () => {
+        window.dispatchEvent(new Event('productsUpdated'));
+      };
+
+      transaction.onerror = (event) => {
+        console.error('Error saving products to IndexedDB:', event);
+      };
+    } catch (error) {
+      console.error('Transaction error:', error);
+      window.dispatchEvent(new Event('productsUpdated'));
+    }
   }
 
   public async getAllProducts(): Promise<Product[]> {
