@@ -6,7 +6,12 @@ import Footer from './Footer';
 import CustomFooter from './CustomFooter';
 import BottomNavigation from './BottomNavigation';
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
+interface LayoutProps {
+  children: React.ReactNode;
+  hideFooter?: boolean;
+}
+
+const Layout = ({ children, hideFooter = false }: LayoutProps) => {
   const location = useLocation();
   const isAdminPage = location.pathname.includes('/admin');
 
@@ -14,7 +19,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     <div className="flex flex-col min-h-screen">
       <AppHeader />
       <main className="flex-grow">{children}</main>
-      {isAdminPage ? <Footer /> : <CustomFooter />}
+      {!hideFooter && (isAdminPage ? <Footer /> : <CustomFooter />)}
       <BottomNavigation />
     </div>
   );

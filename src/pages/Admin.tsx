@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { Navigate, useParams, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,24 +13,24 @@ import FeaturedProductsManagement from "@/components/admin/FeaturedProductsManag
 import AdminContactSettings from "@/components/admin/AdminContactSettings";
 import ContactMessages from "@/components/admin/ContactMessages";
 import AdManagement from "@/components/admin/AdManagement";
-import { Home, LogOut, Package, Settings, Ticket, Users, Mail, Mail1, MessageSquare, Image } from "lucide-react";
+import { Home, LogOut, Package, Settings, Ticket, Users, MessageSquare, Image } from "lucide-react";
 
 interface AdminProps {
   activeTab?: string;
 }
 
 const Admin: React.FC<AdminProps> = ({ activeTab = "dashboard" }) => {
-  const { user, signOut } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(activeTab);
 
   // Check if user exists and is admin
-  if (!user || !user.isAdmin) {
+  if (!user || (user.role !== "ADMIN" && !user.isSuperAdmin)) {
     return <Navigate to="/admin-login" />;
   }
 
   const handleLogout = async () => {
-    await signOut();
+    logout();
     navigate("/");
   };
 
@@ -41,7 +41,7 @@ const Admin: React.FC<AdminProps> = ({ activeTab = "dashboard" }) => {
           <div>
             <h1 className="text-2xl font-bold mb-2">لوحة التحكم</h1>
             <p className="text-gray-600">
-              مرحباً {user.displayName || user.email}، يمكنك إدارة المتجر من هنا.
+              مرحباً {user.displayName || user.name || user.email}، يمكنك إدارة المتجر من هنا.
             </p>
           </div>
           <Button 

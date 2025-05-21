@@ -9,7 +9,8 @@ interface User {
   email: string;
   name: string;
   role: string;
-  isSuperAdmin: boolean; // Make isSuperAdmin required
+  isSuperAdmin: boolean;
+  displayName?: string; // Add displayName as optional property
 }
 
 interface AuthContextType {
