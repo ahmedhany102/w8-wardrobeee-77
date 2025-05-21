@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -160,9 +159,15 @@ export class ProductDatabase {
     
     // Ensure we sync data across browsers
     navigator.serviceWorker?.ready.then(registration => {
-      registration.sync?.register('syncProducts').catch(err => {
-        console.log('Cannot sync products across browsers:', err);
-      });
+      // Fix: Check if the sync API is available before using it
+      if ('sync' in registration) {
+        // Use type assertion to tell TypeScript this is safe
+        (registration as any).sync.register('syncProducts').catch(err => {
+          console.log('Cannot sync products across browsers:', err);
+        });
+      } else {
+        console.log('Background Sync API not available in this browser');
+      }
     }).catch(err => {
       console.log('Service Worker not available for sync:', err);
     });
