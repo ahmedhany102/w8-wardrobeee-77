@@ -137,13 +137,18 @@ const ProductCatalog: React.FC = () => {
   };
 
   const handleUpdateCartItem = (productId: string, quantity: number) => {
+    if (!productId) {
+      console.error("Invalid productId provided to handleUpdateCartItem");
+      return;
+    }
+    
     if (quantity <= 0) {
-      const updatedCart = cart.filter(item => item.product.id !== productId);
+      const updatedCart = cart.filter(item => item.product && item.product.id !== productId);
       setCart(updatedCart);
       localStorage.setItem('cart', JSON.stringify(updatedCart));
     } else {
       const updatedCart = cart.map(item => 
-        item.product.id === productId 
+        item.product && item.product.id === productId 
           ? { 
               ...item, 
               quantity,
@@ -158,7 +163,13 @@ const ProductCatalog: React.FC = () => {
   };
 
   const calculateTotal = () => {
-    return cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+    return cart.reduce((sum, item) => {
+      // Check if item.product exists and has a price before calculating
+      if (item.product && typeof item.product.price === 'number') {
+        return sum + (item.product.price * item.quantity);
+      }
+      return sum;
+    }, 0);
   };
 
   const handleClearCart = () => {
@@ -285,7 +296,7 @@ const ProductCatalog: React.FC = () => {
             ) : (
               <>
                 <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                  {cart.map((item) => (
+                  {cart.filter(item => item && item.product && item.product.id).map((item) => (
                     <div key={item.product.id} className="flex justify-between items-center p-2 border-b border-green-800">
                       <div>
                         <p className="font-medium">{item.product?.name || 'Unknown Product'}</p>
