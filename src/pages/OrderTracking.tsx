@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -281,7 +280,7 @@ const OrderTracking = () => {
                         {selectedOrder.items.map((item, index) => (
                           <tr key={index}>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
-                              {item.productName || item.name}
+                              {item.productName}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700">
                               {(item.color || item.size) ? (
@@ -298,7 +297,7 @@ const OrderTracking = () => {
                               {item.quantity}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-700">
-                              ${(item.unitPrice || item.price).toFixed(2)}
+                              ${item.unitPrice.toFixed(2)}
                             </td>
                           </tr>
                         ))}
