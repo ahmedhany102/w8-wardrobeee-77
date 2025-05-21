@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -191,15 +190,23 @@ const AdManagement = () => {
     }
   };
   
-  // Delete ad
-  const handleDeleteAd = () => {
-    if (!currentAd) return;
+  // Apply responsive size changes immediately
+  const handleResponsiveSizeChange = (device: 'desktop' | 'tablet' | 'mobile', value: number) => {
+    setNewAdResponsiveSize({...newAdResponsiveSize, [device]: value});
     
-    const updatedAds = ads.filter(ad => ad.id !== currentAd.id);
-    if (saveAds(updatedAds)) {
-      toast.success('Advertisement deleted successfully');
-      setIsDeleteDialogOpen(false);
-      setCurrentAd(null);
+    // If we're editing an ad, apply changes in real-time
+    if (currentAd && isEditDialogOpen) {
+      const previewAd = {
+        ...currentAd,
+        responsiveSize: {...newAdResponsiveSize, [device]: value}
+      };
+      
+      // Update the preview without saving to database yet
+      const tempUpdatedAds = ads.map(ad => ad.id === currentAd.id ? previewAd : ad);
+      localStorage.setItem('homeAds', JSON.stringify(tempUpdatedAds));
+      
+      // Trigger refresh event
+      window.dispatchEvent(new Event('adsUpdated'));
     }
   };
   
@@ -540,14 +547,14 @@ const AdManagement = () => {
               <TabsContent value="responsive" className="mt-4">
                 <div className="space-y-6">
                   <div>
-                    <label className="block font-medium mb-2">Desktop Size (%)</label>
+                    <label className="block font-medium mb-2">Desktop Size (%) - Large screens</label>
                     <div className="flex items-center gap-4">
                       <Slider
                         min={20}
                         max={100}
                         step={1}
                         value={[newAdResponsiveSize.desktop]}
-                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, desktop: values[0]})}
+                        onValueChange={(values) => handleResponsiveSizeChange('desktop', values[0])}
                         className="flex-grow"
                       />
                       <span className="w-12 text-center">{newAdResponsiveSize.desktop}%</span>
@@ -555,14 +562,14 @@ const AdManagement = () => {
                   </div>
                   
                   <div>
-                    <label className="block font-medium mb-2">Tablet Size (%)</label>
+                    <label className="block font-medium mb-2">Tablet Size (%) - Medium screens</label>
                     <div className="flex items-center gap-4">
                       <Slider
                         min={20}
                         max={100}
                         step={1}
                         value={[newAdResponsiveSize.tablet]}
-                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, tablet: values[0]})}
+                        onValueChange={(values) => handleResponsiveSizeChange('tablet', values[0])}
                         className="flex-grow"
                       />
                       <span className="w-12 text-center">{newAdResponsiveSize.tablet}%</span>
@@ -570,14 +577,14 @@ const AdManagement = () => {
                   </div>
                   
                   <div>
-                    <label className="block font-medium mb-2">Mobile Size (%)</label>
+                    <label className="block font-medium mb-2">Mobile Size (%) - Small screens</label>
                     <div className="flex items-center gap-4">
                       <Slider
                         min={20}
                         max={100}
                         step={1}
                         value={[newAdResponsiveSize.mobile]}
-                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, mobile: values[0]})}
+                        onValueChange={(values) => handleResponsiveSizeChange('mobile', values[0])}
                         className="flex-grow"
                       />
                       <span className="w-12 text-center">{newAdResponsiveSize.mobile}%</span>
@@ -586,7 +593,7 @@ const AdManagement = () => {
                   
                   <div className="p-4 bg-gray-50 rounded border">
                     <p className="text-sm text-gray-600 mb-2">
-                      These settings control how large the ad appears on different devices:
+                      These settings control how large the ad appears on different devices. Changes will update in real-time when editing.
                     </p>
                     <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
                       <li>Desktop: screens larger than 1024px</li>
@@ -735,14 +742,14 @@ const AdManagement = () => {
               <TabsContent value="responsive" className="mt-4">
                 <div className="space-y-6">
                   <div>
-                    <label className="block font-medium mb-2">Desktop Size (%)</label>
+                    <label className="block font-medium mb-2">Desktop Size (%) - Large screens</label>
                     <div className="flex items-center gap-4">
                       <Slider
                         min={20}
                         max={100}
                         step={1}
                         value={[newAdResponsiveSize.desktop]}
-                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, desktop: values[0]})}
+                        onValueChange={(values) => handleResponsiveSizeChange('desktop', values[0])}
                         className="flex-grow"
                       />
                       <span className="w-12 text-center">{newAdResponsiveSize.desktop}%</span>
@@ -750,14 +757,14 @@ const AdManagement = () => {
                   </div>
                   
                   <div>
-                    <label className="block font-medium mb-2">Tablet Size (%)</label>
+                    <label className="block font-medium mb-2">Tablet Size (%) - Medium screens</label>
                     <div className="flex items-center gap-4">
                       <Slider
                         min={20}
                         max={100}
                         step={1}
                         value={[newAdResponsiveSize.tablet]}
-                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, tablet: values[0]})}
+                        onValueChange={(values) => handleResponsiveSizeChange('tablet', values[0])}
                         className="flex-grow"
                       />
                       <span className="w-12 text-center">{newAdResponsiveSize.tablet}%</span>
@@ -765,29 +772,27 @@ const AdManagement = () => {
                   </div>
                   
                   <div>
-                    <label className="block font-medium mb-2">Mobile Size (%)</label>
+                    <label className="block font-medium mb-2">Mobile Size (%) - Small screens</label>
                     <div className="flex items-center gap-4">
                       <Slider
                         min={20}
                         max={100}
                         step={1}
                         value={[newAdResponsiveSize.mobile]}
-                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, mobile: values[0]})}
+                        onValueChange={(values) => handleResponsiveSizeChange('mobile', values[0])}
                         className="flex-grow"
                       />
                       <span className="w-12 text-center">{newAdResponsiveSize.mobile}%</span>
                     </div>
                   </div>
                   
-                  <div className="p-4 bg-gray-50 rounded border">
-                    <p className="text-sm text-gray-600 mb-2">
-                      These settings control how large the ad appears on different devices:
+                  <div className="p-4 bg-blue-50 rounded border border-blue-100">
+                    <p className="text-sm text-blue-700 font-medium mb-2">
+                      Changes Applied in Real-Time
                     </p>
-                    <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
-                      <li>Desktop: screens larger than 1024px</li>
-                      <li>Tablet: screens between 768px and 1024px</li>
-                      <li>Mobile: screens smaller than 768px</li>
-                    </ul>
+                    <p className="text-xs text-blue-600">
+                      Adjustments to these sliders will immediately update the ad preview. This helps you see exactly how your ad will look across different devices before saving.
+                    </p>
                   </div>
                 </div>
               </TabsContent>

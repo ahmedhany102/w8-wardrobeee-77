@@ -1,3 +1,4 @@
+
 /**
  * Function to ensure consistent behavior across different browsers
  * Call this on app startup to apply compatibility fixes

@@ -18,7 +18,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   // Adding properties referenced elsewhere in the codebase
-  type?: string;
+  type?: string;  // Used for subcategories (T-shirts, Pants, Shoes, Jackets)
   details?: string;
   mainImage?: string;
   colors?: string[];
@@ -43,12 +43,12 @@ export interface OrderItem {
   productId: string;
   quantity: number;
   price: number;
-  name: string;
+  name?: string;
   color?: string;
   size?: string;
   // Additional properties referenced in OrdersPanel
-  productName?: string;
-  unitPrice?: number;
+  productName: string;
+  unitPrice: number;
   totalPrice?: number;
   imageUrl?: string;
 }
@@ -113,13 +113,23 @@ export class ProductDatabase {
     try {
       const savedProducts = localStorage.getItem('products');
       if (savedProducts) {
-        // Filter out women's products
+        // Only retain Men's products and normalize categories
         const allProducts = JSON.parse(savedProducts);
-        this.products = allProducts.filter((product: Product) => 
-          product && product.category !== 'Women' && 
-          product.category !== 'Girls' &&
-          product.category !== 'Female'
-        );
+        this.products = allProducts
+          .filter((product: Product) => 
+            product && 
+            (product.category === 'رجالي' || 
+             product.category === 'Men' || 
+             product.category === "Men's")
+          )
+          .map((product: Product) => {
+            // Ensure product has the correct category structure
+            return {
+              ...product,
+              category: 'Men',  // Normalize all to just "Men"
+              type: product.type || 'T-shirts'  // Default to T-shirts if no subcategory
+            };
+          });
       }
       window.dispatchEvent(new Event('productsUpdated'));
     } catch (error) {
@@ -139,13 +149,23 @@ export class ProductDatabase {
     const request = store.getAll();
 
     request.onsuccess = () => {
-      // Filter out women's products
+      // Only retain Men's products and normalize categories
       const allProducts = request.result || [];
-      this.products = allProducts.filter((product: Product) => 
-        product && product.category !== 'Women' && 
-        product.category !== 'Girls' &&
-        product.category !== 'Female'
-      );
+      this.products = allProducts
+        .filter((product: Product) => 
+          product && 
+          (product.category === 'رجالي' || 
+           product.category === 'Men' || 
+           product.category === "Men's")
+        )
+        .map((product: Product) => {
+          // Ensure product has the correct category structure
+          return {
+            ...product,
+            category: 'Men',  // Normalize all to just "Men"
+            type: product.type || 'T-shirts'  // Default to T-shirts if no subcategory
+          };
+        });
       
       // Also sync with localStorage for cross-browser compatibility
       localStorage.setItem('products', JSON.stringify(this.products));
@@ -164,12 +184,16 @@ export class ProductDatabase {
     
     // Ensure we sync data across browsers
     navigator.serviceWorker?.ready.then(registration => {
-      // Fix: Check if the sync API is available before using it
-      if ('sync' in registration) {
-        // Use type assertion to tell TypeScript this is safe
-        (registration as any).sync.register('syncProducts').catch(err => {
-          console.log('Cannot sync products across browsers:', err);
-        });
+      // Check if the sync API is available before using it
+      if (registration && 'sync' in registration) {
+        // Use background sync for cross-browser consistency
+        try {
+          (registration as any).sync.register('syncProducts').catch((err: Error) => {
+            console.log('Cannot sync products across browsers:', err);
+          });
+        } catch (error) {
+          console.log('Sync API error:', error);
+        }
       } else {
         console.log('Background Sync API not available in this browser');
       }
@@ -208,12 +232,12 @@ export class ProductDatabase {
   }
 
   public async getAllProducts(): Promise<Product[]> {
-    // Filter out women's products
+    // Only return Men's products
     return this.products.filter(product => 
       product && 
-      product.category !== 'Women' && 
-      product.category !== 'Girls' &&
-      product.category !== 'Female'
+      (product.category === 'رجالي' || 
+       product.category === 'Men' || 
+       product.category === "Men's")
     );
   }
 
@@ -224,13 +248,20 @@ export class ProductDatabase {
   }
 
   public async addProduct(productData: Omit<Product, "id">): Promise<Product> {
-    const newProduct: Product = {
+    // Ensure proper category classification
+    const normalizedData = {
       ...productData,
+      category: 'Men',  // Always set to Men
+      type: productData.type || 'T-shirts' // Default subcategory
+    };
+    
+    const newProduct: Product = {
+      ...normalizedData,
       id: uuidv4(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      description: productData.description || '',
-      inventory: productData.inventory || 0,
+      description: normalizedData.description || '',
+      inventory: normalizedData.inventory || 0,
     };
     
     this.products.push(newProduct);
@@ -242,9 +273,15 @@ export class ProductDatabase {
     const index = this.products.findIndex(p => p.id === id);
     if (index === -1) return false;
     
+    // Ensure proper category normalization
+    const normalizedUpdates = {
+      ...updates,
+      category: 'Men'  // Always enforce Men's category
+    };
+    
     this.products[index] = {
       ...this.products[index],
-      ...updates,
+      ...normalizedUpdates,
       updatedAt: new Date().toISOString(),
     };
     
@@ -255,17 +292,31 @@ export class ProductDatabase {
   // Update stock quantity after purchase
   public async updateProductStock(productId: string, size: string, quantity: number): Promise<boolean> {
     const product = this.products.find(p => p.id === productId);
-    if (!product || !product.sizes) return false;
+    if (!product) return false;
     
-    const sizeIndex = product.sizes.findIndex(s => s.size === size);
-    if (sizeIndex === -1) return false;
+    // Handle case when product has sizes array
+    if (product.sizes) {
+      const sizeIndex = product.sizes.findIndex(s => s.size === size);
+      if (sizeIndex === -1) return false;
+      
+      // Ensure we don't go below 0
+      const newStock = Math.max(0, product.sizes[sizeIndex].stock - quantity);
+      product.sizes[sizeIndex].stock = newStock;
+      
+      this.saveProducts();
+      return true;
+    } 
+    // Handle case when product has a single stock value
+    else if (product.stock !== undefined) {
+      // Ensure we don't go below 0
+      const newStock = Math.max(0, product.stock - quantity);
+      product.stock = newStock;
+      
+      this.saveProducts();
+      return true;
+    }
     
-    // Ensure we don't go below 0
-    const newStock = Math.max(0, product.sizes[sizeIndex].stock - quantity);
-    product.sizes[sizeIndex].stock = newStock;
-    
-    this.saveProducts();
-    return true;
+    return false;
   }
 
   public async deleteProduct(id: string): Promise<boolean> {

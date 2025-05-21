@@ -10,11 +10,15 @@ import { Button } from './ui/button';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
 
+// Define subcategories
+const MEN_SUBCATEGORIES = ['All', 'T-shirts', 'Pants', 'Shoes', 'Jackets'];
+
 const ProductCatalog: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('ALL');
+  const [activeSubcategory, setActiveSubcategory] = useState('All');
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [showCartDialog, setShowCartDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -58,12 +62,15 @@ const ProductCatalog: React.FC = () => {
     try {
       const productDb = ProductDatabase.getInstance();
       const allProducts = await productDb.getAllProducts();
-      // Filter out products in حريمي category (Women)
-      const filteredByGender = allProducts.filter(
-        product => product && product.category !== 'حريمي'
+      // Filter for men's products only (no Kids, no Women's)
+      const menOnly = allProducts.filter(
+        product => product && 
+          product.category === 'رجالي' || 
+          product.category === 'Men' || 
+          product.category === "Men's"
       );
-      setProducts(filteredByGender);
-      setFilteredProducts(filteredByGender);
+      setProducts(menOnly);
+      setFilteredProducts(menOnly);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
@@ -75,48 +82,42 @@ const ProductCatalog: React.FC = () => {
   // Handle search functionality
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    if (!query.trim()) {
-      // If search is empty, reset to all products in current category
-      filterProductsByCategory(activeTab);
-    } else {
-      // Filter products based on search query and current category
-      const lowercaseQuery = query.toLowerCase();
-      
-      const searchResults = products.filter(product => {
-        if (!product) return false; // Skip undefined products
-        
-        const matchesSearch = 
-          (product.name?.toLowerCase().includes(lowercaseQuery) || false) || 
-          (product.description?.toLowerCase().includes(lowercaseQuery) || false);
-        
-        const matchesCategory = activeTab === 'ALL' || product.category === activeTab;
-        
-        return matchesSearch && matchesCategory;
-      });
-      
-      setFilteredProducts(searchResults);
-    }
+    filterProducts(activeSubcategory, query);
   };
 
-  // Filter products by category
-  const filterProductsByCategory = (category: string) => {
-    if (category === 'ALL') {
-      setFilteredProducts(products);
-    } else {
-      const filtered = products.filter(product => product && product.category === category);
-      setFilteredProducts(filtered);
-    }
-  };
-
-  // Reset filtered products when changing tabs
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    filterProductsByCategory(value);
+  // Main filter function that combines category, subcategory, and search filtering
+  const filterProducts = (subcategory: string, query: string = searchQuery) => {
+    const lowercaseQuery = query.toLowerCase();
     
-    // Apply search filter if there is a search query
-    if (searchQuery) {
-      handleSearch(searchQuery);
+    let filtered = products;
+    
+    // Filter by subcategory if not "All"
+    if (subcategory !== 'All') {
+      filtered = filtered.filter(product => 
+        product && product.type && product.type.toLowerCase() === subcategory.toLowerCase()
+      );
     }
+    
+    // Apply search filter if there's a query
+    if (lowercaseQuery) {
+      filtered = filtered.filter(product => {
+        if (!product) return false;
+        
+        return (
+          (product.name?.toLowerCase().includes(lowercaseQuery) || false) || 
+          (product.description?.toLowerCase().includes(lowercaseQuery) || false) ||
+          (product.type?.toLowerCase().includes(lowercaseQuery) || false)
+        );
+      });
+    }
+    
+    setFilteredProducts(filtered);
+  };
+
+  // Handle subcategory change
+  const handleSubcategoryChange = (subcategory: string) => {
+    setActiveSubcategory(subcategory);
+    filterProducts(subcategory);
   };
 
   const handleAddToCart = async (product: Product, size: string, quantity: number = 1) => {
@@ -144,9 +145,9 @@ const ProductCatalog: React.FC = () => {
     const success = await cartDb.addToCart(product, size.toString(), product.colors?.[0] || "", quantity);
     if (success) {
       window.dispatchEvent(new Event('cartUpdated'));
-      toast.success(`${product.name} تمت إضافته للعربة`);
+      toast.success(`${product.name} added to cart`);
     } else {
-      toast.error('فشل في إضافة المنتج للعربة');
+      toast.error('Failed to add product to cart');
     }
   };
 
@@ -216,7 +217,7 @@ const ProductCatalog: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-4">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-green-500">Our Products</h2>
+        <h2 className="text-3xl font-bold text-green-500">Men's Products</h2>
         {showCartButton && (
           <div className="relative">
             <Button
@@ -237,59 +238,57 @@ const ProductCatalog: React.FC = () => {
       {/* Search Bar */}
       <SearchBar onSearch={handleSearch} />
       
-      <Tabs defaultValue="ALL" value={activeTab} onValueChange={handleTabChange} className="w-full">
+      {/* Subcategories */}
+      <div className="mb-8">
         <div className="flex justify-center overflow-x-auto pb-4">
-          <TabsList className="mb-8 bg-gradient-to-r from-green-900 to-black flex justify-between space-x-8 px-4 w-auto">
-            <TabsTrigger 
-              value="ALL" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
-            >
-              All
-            </TabsTrigger>
-            <TabsTrigger 
-              value="رجالي" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
-            >
-              رجالي
-            </TabsTrigger>
-            <TabsTrigger 
-              value="أطفال" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
-            >
-              أطفال
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-800"></div>
-          </div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-xl text-gray-500 mb-4">No products found</p>
-            <Button 
-              onClick={() => {
-                setSearchQuery('');
-                handleSearch('');
-              }}
-              className="bg-green-800 hover:bg-green-900 interactive-button"
-            >
-              Clear Search
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-            {filteredProducts.filter(product => product).map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                onAddToCart={handleAddToCart} 
-              />
+          <div className="bg-gradient-to-r from-green-900 to-black inline-flex rounded-md p-1">
+            {MEN_SUBCATEGORIES.map(subcategory => (
+              <button
+                key={subcategory}
+                onClick={() => handleSubcategoryChange(subcategory)}
+                className={`px-4 py-2 text-sm rounded-md transition-colors ${
+                  activeSubcategory === subcategory 
+                    ? 'bg-green-200 text-green-800' 
+                    : 'text-white hover:text-green-200'
+                }`}
+              >
+                {subcategory}
+              </button>
             ))}
           </div>
-        )}
-      </Tabs>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-800"></div>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <p className="text-xl text-gray-500 mb-4">No products found</p>
+          <Button 
+            onClick={() => {
+              setSearchQuery('');
+              handleSearch('');
+              setActiveSubcategory('All');
+              filterProducts('All', '');
+            }}
+            className="bg-green-800 hover:bg-green-900 interactive-button"
+          >
+            Clear Filters
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+          {filteredProducts.filter(product => product).map((product) => (
+            <ProductCard 
+              key={product.id} 
+              product={product} 
+              onAddToCart={handleAddToCart} 
+            />
+          ))}
+        </div>
+      )}
 
       {/* Shopping Cart Dialog - Only Cash on Delivery */}
       <Dialog open={showCartDialog} onOpenChange={setShowCartDialog}>
