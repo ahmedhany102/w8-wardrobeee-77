@@ -43,7 +43,7 @@ function App() {
       <ThemeProvider defaultTheme="dark" attribute="class">
         <AuthProvider>
           <Router>
-            <div className="flex flex-col min-h-screen w-full pb-16 md:pb-0">
+            <div className="flex flex-col min-h-screen w-full">
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />

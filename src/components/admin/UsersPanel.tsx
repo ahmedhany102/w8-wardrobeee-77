@@ -80,14 +80,14 @@ const UsersPanel = () => {
       const db = UserDatabase.getInstance();
       
       // Check if email already exists
-      const existingUser = await db.getUserByEmail(newAdmin.email);
+      const existingUser = await db.getUserById(newAdmin.email);
       if (existingUser) {
         toast.error('البريد الإلكتروني مستخدم بالفعل');
         return;
       }
       
       // Create new admin user
-      await db.register(newAdmin.name, newAdmin.email, newAdmin.password, true);
+      await db.createAdminUser(newAdmin.name, newAdmin.email, newAdmin.password);
       
       toast.success('تم إنشاء حساب المسؤول بنجاح');
       setShowAddAdminDialog(false);

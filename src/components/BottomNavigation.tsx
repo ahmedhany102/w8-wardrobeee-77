@@ -15,10 +15,17 @@ const BottomNavigation: React.FC = () => {
 
   // Update cart count
   useEffect(() => {
+    console.log("BottomNavigation mounted");
+    
     const updateCartCount = async () => {
-      const cartDb = await CartDatabase.getInstance();
-      const cartItems = await cartDb.getCartItems();
-      setCartItemCount(cartItems.length);
+      try {
+        const cartDb = await CartDatabase.getInstance();
+        const cartItems = await cartDb.getCartItems();
+        setCartItemCount(cartItems.length);
+        console.log("Cart items updated:", cartItems.length);
+      } catch (error) {
+        console.error("Error updating cart count:", error);
+      }
     };
 
     updateCartCount();
@@ -32,15 +39,16 @@ const BottomNavigation: React.FC = () => {
 
   // Don't show bottom navigation on admin pages
   if (isOnAdminPages) {
+    console.log("On admin page - hiding bottom navigation");
     return null;
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg md:hidden z-40">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg md:hidden z-50">
       <div className="flex justify-between items-center">
         <Link 
           to="/" 
-          className={`flex flex-1 flex-col items-center py-2 ${
+          className={`flex flex-1 flex-col items-center py-3 ${
             location.pathname === '/' ? 'text-green-700' : 'text-gray-500'
           }`}
         >
@@ -50,7 +58,7 @@ const BottomNavigation: React.FC = () => {
         
         <Link 
           to="/cart" 
-          className={`flex flex-1 flex-col items-center py-2 relative ${
+          className={`flex flex-1 flex-col items-center py-3 relative ${
             location.pathname === '/cart' ? 'text-green-700' : 'text-gray-500'
           }`}
         >
@@ -65,7 +73,7 @@ const BottomNavigation: React.FC = () => {
         
         <Link 
           to="/profile" 
-          className={`flex flex-1 flex-col items-center py-2 ${
+          className={`flex flex-1 flex-col items-center py-3 ${
             location.pathname === '/profile' ? 'text-green-700' : 'text-gray-500'
           }`}
         >
@@ -75,8 +83,8 @@ const BottomNavigation: React.FC = () => {
         
         <Link 
           to="/orders" 
-          className={`flex flex-1 flex-col items-center py-2 ${
-            location.pathname === '/orders' ? 'text-green-700' : 'text-gray-500'
+          className={`flex flex-1 flex-col items-center py-3 ${
+            location.pathname.includes('/orders') ? 'text-green-700' : 'text-gray-500'
           }`}
         >
           <Package className="w-5 h-5" />
@@ -85,7 +93,7 @@ const BottomNavigation: React.FC = () => {
         
         <Link 
           to="/order-tracking" 
-          className={`flex flex-1 flex-col items-center py-2 ${
+          className={`flex flex-1 flex-col items-center py-3 ${
             location.pathname === '/order-tracking' ? 'text-green-700' : 'text-gray-500'
           }`}
         >
