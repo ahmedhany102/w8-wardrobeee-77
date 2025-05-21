@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,6 +72,7 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
     }
   };
 
+  
   return (
     <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className} h-full`}>
       <CardHeader className="p-0">

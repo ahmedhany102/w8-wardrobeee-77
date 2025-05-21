@@ -1,4 +1,3 @@
-
 // src/context/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { toast } from "sonner";
@@ -183,6 +182,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return true;
   };
 
+  // Ensure the logout function is defined correctly without requiring arguments
   const logout = () => {
     localStorage.removeItem("currentUser");
     setUser(null);
