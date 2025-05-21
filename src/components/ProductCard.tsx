@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,6 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
       toast.error("حدث خطأ أثناء إضافة المنتج إلى سلة التسوق");
     }
   };
-
   
   return (
     <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className} h-full`}>

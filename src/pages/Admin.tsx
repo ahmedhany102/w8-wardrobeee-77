@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -12,19 +13,20 @@ import AdminContactSettings from "@/components/admin/AdminContactSettings";
 import ContactMessages from "@/components/admin/ContactMessages";
 import AdManagement from "@/components/admin/AdManagement";
 import { Home, LogOut, Package, Settings, Ticket, Users, MessageSquare, Image } from "lucide-react";
+import UsersPanel from "@/components/admin/UsersPanel";
 
 const Admin = ({ activeTab = "dashboard" }) => {
-  const { user, logout } = useAuth(); // Using logout instead of signOut
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(activeTab);
 
   // Check if user exists and is admin
-  if (!user || !user.role !== "ADMIN") {
+  if (!user || user.role !== "ADMIN") {
     return <Navigate to="/admin-login" />;
   }
 
   const handleLogout = () => {
-    logout(); // Updated this to use logout instead of signOut
+    logout(); // Using logout instead of signOut
     navigate("/");
   };
 
@@ -87,6 +89,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <Package className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">المنتجات المميزة</span>
             </TabsTrigger>
+            <TabsTrigger value="users" onClick={() => navigate("/admin/users")}>
+              <Users className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">المستخدمين</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="dashboard" className="mt-4">
@@ -127,6 +133,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
           <TabsContent value="featured">
             <FeaturedProductsManagement />
+          </TabsContent>
+          
+          <TabsContent value="users">
+            <UsersPanel />
           </TabsContent>
         </Tabs>
       </div>
