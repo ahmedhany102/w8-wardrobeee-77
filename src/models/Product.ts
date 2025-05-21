@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -115,7 +116,9 @@ export class ProductDatabase {
         // Filter out women's products
         const allProducts = JSON.parse(savedProducts);
         this.products = allProducts.filter((product: Product) => 
-          product && product.category !== 'حريمي'
+          product && product.category !== 'Women' && 
+          product.category !== 'Girls' &&
+          product.category !== 'Female'
         );
       }
       window.dispatchEvent(new Event('productsUpdated'));
@@ -139,7 +142,9 @@ export class ProductDatabase {
       // Filter out women's products
       const allProducts = request.result || [];
       this.products = allProducts.filter((product: Product) => 
-        product && product.category !== 'حريمي'
+        product && product.category !== 'Women' && 
+        product.category !== 'Girls' &&
+        product.category !== 'Female'
       );
       
       // Also sync with localStorage for cross-browser compatibility
@@ -205,7 +210,10 @@ export class ProductDatabase {
   public async getAllProducts(): Promise<Product[]> {
     // Filter out women's products
     return this.products.filter(product => 
-      product && product.category !== 'حريمي'
+      product && 
+      product.category !== 'Women' && 
+      product.category !== 'Girls' &&
+      product.category !== 'Female'
     );
   }
 

@@ -3,12 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Trash, Pencil, Plus, Image, Link, ExternalLink, LayoutDashboard } from 'lucide-react';
+import { Trash, Pencil, Plus, Image, Link as LinkIcon, ExternalLink, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Slider } from '@/components/ui/slider';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProductDatabase } from '@/models/Product';
 
 interface Ad {
   id: string;
@@ -18,6 +22,25 @@ interface Ad {
   placement?: 'home' | 'sidebar' | 'product';
   active: boolean;
   order?: number;
+  productId?: string;
+  imageCrop?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  responsiveSize?: {
+    desktop: number;
+    tablet: number;
+    mobile: number;
+  };
+}
+
+interface Product {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  mainImage?: string;
 }
 
 const AdManagement = () => {
@@ -31,6 +54,10 @@ const AdManagement = () => {
   const [newAdLink, setNewAdLink] = useState<string>('');
   const [newAdPlacement, setNewAdPlacement] = useState<'home' | 'sidebar' | 'product'>('home');
   const [newAdActive, setNewAdActive] = useState<boolean>(true);
+  const [newAdProductId, setNewAdProductId] = useState<string>('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filterPlacement, setFilterPlacement] = useState<string>('all');
+  const [newAdResponsiveSize, setNewAdResponsiveSize] = useState({ desktop: 100, tablet: 100, mobile: 100 });
   
   // Load ads from localStorage
   useEffect(() => {
@@ -43,8 +70,25 @@ const AdManagement = () => {
         toast.error('Failed to load advertisements');
       }
     }
+
+    // Load products for linking
+    loadProducts();
   }, []);
   
+  const loadProducts = async () => {
+    try {
+      const db = ProductDatabase.getInstance();
+      const allProducts = await db.getAllProducts();
+      setProducts(allProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        imageUrl: product.imageUrl || product.mainImage || product.images?.[0]
+      })));
+    } catch (error) {
+      console.error('Error loading products for ad linking:', error);
+    }
+  };
+
   // Save ads to localStorage
   const saveAds = (updatedAds: Ad[]) => {
     try {
@@ -67,8 +111,8 @@ const AdManagement = () => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error('Image size should be less than 2MB');
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size should be less than 5MB');
         return;
       }
       
@@ -94,7 +138,9 @@ const AdManagement = () => {
       link: newAdLink || '#',
       placement: newAdPlacement,
       active: newAdActive,
-      order: ads.length + 1
+      order: ads.length + 1,
+      productId: newAdProductId,
+      responsiveSize: newAdResponsiveSize
     };
     
     const updatedAds = [...ads, newAd];
@@ -107,6 +153,8 @@ const AdManagement = () => {
       setNewAdLink('');
       setNewAdPlacement('home');
       setNewAdActive(true);
+      setNewAdProductId('');
+      setNewAdResponsiveSize({ desktop: 100, tablet: 100, mobile: 100 });
       setIsAddDialogOpen(false);
     }
   };
@@ -121,7 +169,9 @@ const AdManagement = () => {
       title: newAdTitle,
       link: newAdLink || '#',
       placement: newAdPlacement,
-      active: newAdActive
+      active: newAdActive,
+      productId: newAdProductId,
+      responsiveSize: newAdResponsiveSize
     };
     
     const updatedAds = ads.map(ad => ad.id === currentAd.id ? updatedAd : ad);
@@ -136,6 +186,8 @@ const AdManagement = () => {
       setNewAdLink('');
       setNewAdPlacement('home');
       setNewAdActive(true);
+      setNewAdProductId('');
+      setNewAdResponsiveSize({ desktop: 100, tablet: 100, mobile: 100 });
     }
   };
   
@@ -197,6 +249,8 @@ const AdManagement = () => {
     setNewAdLink(ad.link || '');
     setNewAdPlacement(ad.placement || 'home');
     setNewAdActive(ad.active !== false);
+    setNewAdProductId(ad.productId || '');
+    setNewAdResponsiveSize(ad.responsiveSize || { desktop: 100, tablet: 100, mobile: 100 });
     setIsEditDialogOpen(true);
   };
   
@@ -206,58 +260,74 @@ const AdManagement = () => {
     setIsDeleteDialogOpen(true);
   };
 
-  // Filter ads by placement
-  const filterAdsByPlacement = (placement?: 'home' | 'sidebar' | 'product') => {
-    if (!placement) return ads;
-    return ads.filter(ad => ad.placement === placement);
+  // Handle product selection for ad linking
+  const handleProductSelect = (productId: string) => {
+    setNewAdProductId(productId);
+    
+    // If product selected, automatically set link to product page
+    if (productId) {
+      setNewAdLink(`/product/${productId}`);
+    }
   };
+
+  // Get product name by ID
+  const getProductNameById = (productId: string) => {
+    const product = products.find(p => p.id === productId);
+    return product ? product.name : 'Unknown Product';
+  };
+
+  // Filter ads by placement
+  const filteredAds = ads.filter(ad => {
+    if (filterPlacement === 'all') return true;
+    return ad.placement === filterPlacement;
+  });
   
   return (
     <Card className="border-green-100">
       <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white">
-        <CardTitle className="text-xl">إدارة الإعلانات</CardTitle>
+        <CardTitle className="text-xl">Ad Management</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <div className="mb-4 flex justify-between items-center">
-          <h3 className="text-lg font-semibold">الإعلانات الحالية ({ads.length})</h3>
+          <h3 className="text-lg font-semibold">Current Ads ({ads.length})</h3>
           <Button 
             onClick={() => setIsAddDialogOpen(true)} 
             className="bg-green-700 hover:bg-green-800"
           >
-            <Plus className="w-4 h-4 mr-2" /> إضافة إعلان جديد
+            <Plus className="w-4 h-4 mr-2" /> Add New Ad
           </Button>
         </div>
         
         {ads.length === 0 ? (
           <div className="text-center py-10 bg-gray-50 rounded-md">
             <Image className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-500">لا يوجد إعلانات</p>
+            <p className="text-gray-500">No ads available</p>
             <Button 
               onClick={() => setIsAddDialogOpen(true)} 
               variant="outline" 
               className="mt-4"
             >
-              إضافة الإعلان الأول
+              Add First Ad
             </Button>
           </div>
         ) : (
           <div>
             <div className="mb-4">
-              <Label className="mb-2 block">عرض الإعلانات حسب المكان:</Label>
-              <Select defaultValue="all">
+              <Label className="mb-2 block">Filter Ads by Placement:</Label>
+              <Select value={filterPlacement} onValueChange={setFilterPlacement}>
                 <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="جميع الإعلانات" />
+                  <SelectValue placeholder="All Ads" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">جميع الإعلانات</SelectItem>
-                  <SelectItem value="home">الصفحة الرئيسية</SelectItem>
-                  <SelectItem value="sidebar">الشريط الجانبي</SelectItem>
-                  <SelectItem value="product">صفحة المنتج</SelectItem>
+                  <SelectItem value="all">All Ads</SelectItem>
+                  <SelectItem value="home">Home Page</SelectItem>
+                  <SelectItem value="sidebar">Sidebar</SelectItem>
+                  <SelectItem value="product">Product Page</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {ads.map((ad, index) => (
+              {filteredAds.map((ad, index) => (
                 <div key={ad.id} className={`border rounded-md overflow-hidden ${!ad.active ? 'opacity-60' : ''}`}>
                   <AspectRatio ratio={16/9}>
                     <img 
@@ -270,19 +340,19 @@ const AdManagement = () => {
                     />
                     {!ad.active && (
                       <div className="absolute top-2 right-2 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-md">
-                        غير نشط
+                        Inactive
                       </div>
                     )}
                     {ad.placement && (
                       <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-1.5 py-0.5 rounded-md">
-                        {ad.placement === 'home' ? 'الرئيسية' : 
-                         ad.placement === 'sidebar' ? 'الجانب' : 'المنتج'}
+                        {ad.placement === 'home' ? 'Home' : 
+                         ad.placement === 'sidebar' ? 'Sidebar' : 'Product'}
                       </div>
                     )}
                   </AspectRatio>
                   <div className="p-3">
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium truncate">{ad.title || 'إعلان بدون عنوان'}</h4>
+                      <h4 className="font-medium truncate">{ad.title || 'Untitled Ad'}</h4>
                       <div className="flex items-center">
                         <Switch 
                           checked={ad.active !== false}
@@ -292,8 +362,14 @@ const AdManagement = () => {
                     </div>
                     {ad.link && ad.link !== '#' && (
                       <p className="text-sm text-blue-600 flex items-center gap-1 truncate mb-2">
-                        <Link className="w-4 h-4" />
+                        <LinkIcon className="w-4 h-4" />
                         {ad.link}
+                      </p>
+                    )}
+                    {ad.productId && (
+                      <p className="text-sm text-green-600 flex items-center gap-1 truncate mb-2">
+                        <LayoutDashboard className="w-4 h-4" />
+                        Linked to: {getProductNameById(ad.productId)}
                       </p>
                     )}
                     <div className="flex justify-between gap-2 mt-2">
@@ -308,7 +384,7 @@ const AdManagement = () => {
                             ↑
                           </Button>
                         )}
-                        {index < ads.length - 1 && (
+                        {index < filteredAds.length - 1 && (
                           <Button 
                             variant="outline" 
                             size="sm" 
@@ -325,14 +401,14 @@ const AdManagement = () => {
                           size="sm" 
                           onClick={() => openEditDialog(ad)}
                         >
-                          <Pencil className="w-4 h-4 mr-1" /> تعديل
+                          <Pencil className="w-4 h-4 mr-1" /> Edit
                         </Button>
                         <Button 
                           variant="destructive" 
                           size="sm" 
                           onClick={() => openDeleteDialog(ad)}
                         >
-                          <Trash className="w-4 h-4 mr-1" /> حذف
+                          <Trash className="w-4 h-4 mr-1" /> Delete
                         </Button>
                       </div>
                     </div>
@@ -345,167 +421,381 @@ const AdManagement = () => {
         
         {/* Add Ad Dialog */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>إضافة إعلان جديد</DialogTitle>
+              <DialogTitle>Add New Ad</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="block font-medium mb-1">صورة الإعلان*</label>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageUpload}
-                  className="w-full p-2 border rounded"
-                />
-                {newAdImage && (
-                  <div className="mt-2">
-                    <AspectRatio ratio={16/9}>
-                      <img 
-                        src={newAdImage} 
-                        alt="Ad preview" 
-                        className="w-full h-full object-cover rounded"
-                      />
-                    </AspectRatio>
+            
+            <Tabs defaultValue="basic">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="product">Product Link</TabsTrigger>
+                <TabsTrigger value="responsive">Responsive Settings</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic" className="space-y-4 mt-4">
+                <div>
+                  <label className="block font-medium mb-1">Ad Image*</label>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleImageUpload}
+                    className="w-full p-2 border rounded"
+                  />
+                  {newAdImage && (
+                    <div className="mt-2">
+                      <AspectRatio ratio={16/9}>
+                        <img 
+                          src={newAdImage} 
+                          alt="Ad preview" 
+                          className="w-full h-full object-cover rounded"
+                        />
+                      </AspectRatio>
+                    </div>
+                  )}
+                </div>
+                
+                <div>
+                  <label className="block font-medium mb-1">Ad Title</label>
+                  <Input 
+                    type="text" 
+                    value={newAdTitle}
+                    onChange={(e) => setNewAdTitle(e.target.value)}
+                    placeholder="Example: Summer Sale"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block font-medium mb-1">Ad Link</label>
+                  <Input 
+                    type="text" 
+                    value={newAdLink}
+                    onChange={(e) => setNewAdLink(e.target.value)}
+                    placeholder="Example: /products/summer-sale"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block font-medium mb-1">Ad Placement</label>
+                  <Select
+                    value={newAdPlacement}
+                    onValueChange={(value: 'home' | 'sidebar' | 'product') => setNewAdPlacement(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose ad placement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="home">Home Page</SelectItem>
+                      <SelectItem value="sidebar">Sidebar</SelectItem>
+                      <SelectItem value="product">Product Page</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                  <Switch 
+                    id="ad-status" 
+                    checked={newAdActive} 
+                    onCheckedChange={setNewAdActive}
+                  />
+                  <Label htmlFor="ad-status">Active</Label>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="product" className="mt-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-medium mb-2">Link to Product</label>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Select a product to link this ad to. The ad will redirect to the selected product page.
+                    </p>
+                    
+                    <Select value={newAdProductId} onValueChange={handleProductSelect}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a product" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        <SelectItem value="">None</SelectItem>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {newAdProductId && (
+                      <div className="mt-4 p-3 border rounded bg-gray-50">
+                        <p className="font-medium">Selected Product:</p>
+                        <p>{getProductNameById(newAdProductId)}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Ad will link to: /product/{newAdProductId}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div>
-                <label className="block font-medium mb-1">عنوان الإعلان</label>
-                <input 
-                  type="text" 
-                  value={newAdTitle}
-                  onChange={(e) => setNewAdTitle(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  placeholder="مثال: عروض الصيف"
-                />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">رابط الإعلان</label>
-                <input 
-                  type="text" 
-                  value={newAdLink}
-                  onChange={(e) => setNewAdLink(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  placeholder="مثال: /products/summer-sale"
-                />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">مكان الإعلان</label>
-                <Select
-                  value={newAdPlacement}
-                  onValueChange={(value: 'home' | 'sidebar' | 'product') => setNewAdPlacement(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="اختر مكان الإعلان" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="home">الصفحة الرئيسية</SelectItem>
-                    <SelectItem value="sidebar">الشريط الجانبي</SelectItem>
-                    <SelectItem value="product">صفحة المنتج</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                <Switch 
-                  id="ad-status" 
-                  checked={newAdActive} 
-                  onCheckedChange={setNewAdActive}
-                />
-                <Label htmlFor="ad-status">فعّال</Label>
-              </div>
-            </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="responsive" className="mt-4">
+                <div className="space-y-6">
+                  <div>
+                    <label className="block font-medium mb-2">Desktop Size (%)</label>
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={[newAdResponsiveSize.desktop]}
+                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, desktop: values[0]})}
+                        className="flex-grow"
+                      />
+                      <span className="w-12 text-center">{newAdResponsiveSize.desktop}%</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block font-medium mb-2">Tablet Size (%)</label>
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={[newAdResponsiveSize.tablet]}
+                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, tablet: values[0]})}
+                        className="flex-grow"
+                      />
+                      <span className="w-12 text-center">{newAdResponsiveSize.tablet}%</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block font-medium mb-2">Mobile Size (%)</label>
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={[newAdResponsiveSize.mobile]}
+                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, mobile: values[0]})}
+                        className="flex-grow"
+                      />
+                      <span className="w-12 text-center">{newAdResponsiveSize.mobile}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 rounded border">
+                    <p className="text-sm text-gray-600 mb-2">
+                      These settings control how large the ad appears on different devices:
+                    </p>
+                    <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
+                      <li>Desktop: screens larger than 1024px</li>
+                      <li>Tablet: screens between 768px and 1024px</li>
+                      <li>Mobile: screens smaller than 768px</li>
+                    </ul>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+            
             <DialogFooter>
-              <Button onClick={() => setIsAddDialogOpen(false)} variant="outline">إلغاء</Button>
-              <Button onClick={handleAddAd} className="bg-green-700 hover:bg-green-800">إضافة الإعلان</Button>
+              <Button onClick={() => setIsAddDialogOpen(false)} variant="outline">Cancel</Button>
+              <Button onClick={handleAddAd} className="bg-green-700 hover:bg-green-800">Add Ad</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
         
         {/* Edit Ad Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-4xl">
             <DialogHeader>
-              <DialogTitle>تعديل الإعلان</DialogTitle>
+              <DialogTitle>Edit Ad</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <label className="block font-medium mb-1">صورة الإعلان*</label>
-                <div className="flex items-center gap-2">
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleImageUpload}
-                    className="flex-1 p-2 border rounded"
-                  />
-                  {currentAd?.imageUrl && (
-                    <a href={currentAd.imageUrl} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm">
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
-                    </a>
+            
+            <Tabs defaultValue="basic">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="product">Product Link</TabsTrigger>
+                <TabsTrigger value="responsive">Responsive Settings</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="basic" className="space-y-4 mt-4">
+                <div>
+                  <label className="block font-medium mb-1">Ad Image*</label>
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleImageUpload}
+                      className="flex-1 p-2 border rounded"
+                    />
+                    {currentAd?.imageUrl && (
+                      <a href={currentAd.imageUrl} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm">
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </a>
+                    )}
+                  </div>
+                  {newAdImage && (
+                    <div className="mt-2">
+                      <AspectRatio ratio={16/9}>
+                        <img 
+                          src={newAdImage} 
+                          alt="Ad preview" 
+                          className="w-full h-full object-cover rounded"
+                        />
+                      </AspectRatio>
+                    </div>
                   )}
                 </div>
-                {newAdImage && (
-                  <div className="mt-2">
-                    <AspectRatio ratio={16/9}>
-                      <img 
-                        src={newAdImage} 
-                        alt="Ad preview" 
-                        className="w-full h-full object-cover rounded"
-                      />
-                    </AspectRatio>
+                
+                <div>
+                  <label className="block font-medium mb-1">Ad Title</label>
+                  <Input 
+                    type="text" 
+                    value={newAdTitle}
+                    onChange={(e) => setNewAdTitle(e.target.value)}
+                    placeholder="Example: Summer Sale"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block font-medium mb-1">Ad Link</label>
+                  <Input 
+                    type="text" 
+                    value={newAdLink}
+                    onChange={(e) => setNewAdLink(e.target.value)}
+                    placeholder="Example: /products/summer-sale"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block font-medium mb-1">Ad Placement</label>
+                  <Select
+                    value={newAdPlacement}
+                    onValueChange={(value: 'home' | 'sidebar' | 'product') => setNewAdPlacement(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Choose ad placement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="home">Home Page</SelectItem>
+                      <SelectItem value="sidebar">Sidebar</SelectItem>
+                      <SelectItem value="product">Product Page</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                  <Switch 
+                    id="edit-ad-status" 
+                    checked={newAdActive} 
+                    onCheckedChange={setNewAdActive}
+                  />
+                  <Label htmlFor="edit-ad-status">Active</Label>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="product" className="mt-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block font-medium mb-2">Link to Product</label>
+                    <p className="text-sm text-gray-500 mb-2">
+                      Select a product to link this ad to. The ad will redirect to the selected product page.
+                    </p>
+                    
+                    <Select value={newAdProductId} onValueChange={handleProductSelect}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a product" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        <SelectItem value="">None</SelectItem>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    
+                    {newAdProductId && (
+                      <div className="mt-4 p-3 border rounded bg-gray-50">
+                        <p className="font-medium">Selected Product:</p>
+                        <p>{getProductNameById(newAdProductId)}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Ad will link to: /product/{newAdProductId}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              <div>
-                <label className="block font-medium mb-1">عنوان الإعلان</label>
-                <input 
-                  type="text" 
-                  value={newAdTitle}
-                  onChange={(e) => setNewAdTitle(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  placeholder="مثال: عروض الصيف"
-                />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">رابط الإعلان</label>
-                <input 
-                  type="text" 
-                  value={newAdLink}
-                  onChange={(e) => setNewAdLink(e.target.value)}
-                  className="w-full p-2 border rounded"
-                  placeholder="مثال: /products/summer-sale"
-                />
-              </div>
-              <div>
-                <label className="block font-medium mb-1">مكان الإعلان</label>
-                <Select
-                  value={newAdPlacement}
-                  onValueChange={(value: 'home' | 'sidebar' | 'product') => setNewAdPlacement(value)}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="اختر مكان الإعلان" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="home">الصفحة الرئيسية</SelectItem>
-                    <SelectItem value="sidebar">الشريط الجانبي</SelectItem>
-                    <SelectItem value="product">صفحة المنتج</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2 rtl:space-x-reverse">
-                <Switch 
-                  id="edit-ad-status" 
-                  checked={newAdActive} 
-                  onCheckedChange={setNewAdActive}
-                />
-                <Label htmlFor="edit-ad-status">فعّال</Label>
-              </div>
-            </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="responsive" className="mt-4">
+                <div className="space-y-6">
+                  <div>
+                    <label className="block font-medium mb-2">Desktop Size (%)</label>
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={[newAdResponsiveSize.desktop]}
+                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, desktop: values[0]})}
+                        className="flex-grow"
+                      />
+                      <span className="w-12 text-center">{newAdResponsiveSize.desktop}%</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block font-medium mb-2">Tablet Size (%)</label>
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={[newAdResponsiveSize.tablet]}
+                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, tablet: values[0]})}
+                        className="flex-grow"
+                      />
+                      <span className="w-12 text-center">{newAdResponsiveSize.tablet}%</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block font-medium mb-2">Mobile Size (%)</label>
+                    <div className="flex items-center gap-4">
+                      <Slider
+                        min={20}
+                        max={100}
+                        step={1}
+                        value={[newAdResponsiveSize.mobile]}
+                        onValueChange={(values) => setNewAdResponsiveSize({...newAdResponsiveSize, mobile: values[0]})}
+                        className="flex-grow"
+                      />
+                      <span className="w-12 text-center">{newAdResponsiveSize.mobile}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-gray-50 rounded border">
+                    <p className="text-sm text-gray-600 mb-2">
+                      These settings control how large the ad appears on different devices:
+                    </p>
+                    <ul className="list-disc list-inside text-xs text-gray-500 space-y-1">
+                      <li>Desktop: screens larger than 1024px</li>
+                      <li>Tablet: screens between 768px and 1024px</li>
+                      <li>Mobile: screens smaller than 768px</li>
+                    </ul>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+            
             <DialogFooter>
-              <Button onClick={() => setIsEditDialogOpen(false)} variant="outline">إلغاء</Button>
-              <Button onClick={handleEditAd} className="bg-green-700 hover:bg-green-800">حفظ التغييرات</Button>
+              <Button onClick={() => setIsEditDialogOpen(false)} variant="outline">Cancel</Button>
+              <Button onClick={handleEditAd} className="bg-green-700 hover:bg-green-800">Save Changes</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -514,12 +804,12 @@ const AdManagement = () => {
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>حذف الإعلان</DialogTitle>
+              <DialogTitle>Delete Ad</DialogTitle>
             </DialogHeader>
-            <p>هل أنت متأكد من حذف هذا الإعلان؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            <p>Are you sure you want to delete this ad? This action cannot be undone.</p>
             <DialogFooter>
-              <Button onClick={() => setIsDeleteDialogOpen(false)} variant="outline">إلغاء</Button>
-              <Button onClick={handleDeleteAd} variant="destructive">حذف الإعلان</Button>
+              <Button onClick={() => setIsDeleteDialogOpen(false)} variant="outline">Cancel</Button>
+              <Button onClick={handleDeleteAd} variant="destructive">Delete Ad</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
