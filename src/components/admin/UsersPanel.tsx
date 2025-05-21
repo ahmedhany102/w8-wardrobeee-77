@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import UserDatabase from '@/models/UserDatabase';
-import { Plus } from 'lucide-react';
+import { Plus, Trash } from 'lucide-react';
 
 interface User {
   id?: string;
@@ -25,6 +25,8 @@ const UsersPanel = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showAddAdminDialog, setShowAddAdminDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | undefined>(null);
   const [newAdmin, setNewAdmin] = useState({
     name: '',
     email: '',
@@ -65,6 +67,30 @@ const UsersPanel = () => {
     } catch (error) {
       console.error('Error toggling user block status:', error);
       toast.error('حدث خطأ أثناء تحديث حالة المستخدم');
+    }
+  };
+
+  const deleteUser = async () => {
+    if (!userToDelete) return;
+    
+    try {
+      const db = UserDatabase.getInstance();
+      const success = await db.deleteUser(userToDelete);
+      
+      if (success) {
+        // Remove the user from the local state
+        setUsers(users.filter(user => user.id !== userToDelete));
+        toast.success('تم حذف المستخدم بنجاح');
+      } else {
+        toast.error('فشل حذف المستخدم');
+      }
+      
+      setShowDeleteDialog(false);
+      setUserToDelete(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('حدث خطأ أثناء حذف المستخدم');
+      setShowDeleteDialog(false);
     }
   };
 
@@ -165,15 +191,30 @@ const UsersPanel = () => {
                         </span>
                       </TableCell>
                       <TableCell>
-                        {!user.isSuperAdmin && (
-                          <Button 
-                            onClick={() => toggleBlockUser(user.id, user.isBlocked)}
-                            variant={user.isBlocked ? "outline" : "destructive"}
-                            size="sm"
-                          >
-                            {user.isBlocked ? 'إلغاء الحظر' : 'حظر'}
-                          </Button>
-                        )}
+                        <div className="flex space-x-2">
+                          {!user.isSuperAdmin && (
+                            <>
+                              <Button 
+                                onClick={() => toggleBlockUser(user.id, user.isBlocked)}
+                                variant={user.isBlocked ? "outline" : "destructive"}
+                                size="sm"
+                              >
+                                {user.isBlocked ? 'إلغاء الحظر' : 'حظر'}
+                              </Button>
+                              <Button
+                                onClick={() => {
+                                  setUserToDelete(user.id);
+                                  setShowDeleteDialog(true);
+                                }}
+                                variant="destructive"
+                                size="sm"
+                                className="ml-2 bg-red-600 hover:bg-red-700"
+                              >
+                                <Trash className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -232,6 +273,33 @@ const UsersPanel = () => {
               <Button type="submit" className="bg-green-600 hover:bg-green-700">إضافة</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>تأكيد حذف المستخدم</DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من أنك تريد حذف هذا المستخدم بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              onClick={() => setShowDeleteDialog(false)} 
+              variant="outline"
+            >
+              إلغاء
+            </Button>
+            <Button 
+              onClick={deleteUser}
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700"
+            >
+              حذف نهائياً
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

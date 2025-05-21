@@ -23,6 +23,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
 import './autoScroll.css';
 import BottomNavigation from './components/BottomNavigation';
+import CustomFooter from './components/CustomFooter';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -75,6 +76,7 @@ function App() {
                 {/* 404 */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <CustomFooter />
             </div>
             <BottomNavigation />
             <SonnerToaster position="top-right" richColors closeButton />

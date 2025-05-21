@@ -1,3 +1,4 @@
+
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/models/User';
@@ -330,6 +331,13 @@ class UserDatabase {
 
   public deleteUser(id: string): boolean {
     try {
+      // Don't allow deleting super admin
+      const userToDelete = this.users.find(u => u.id === id);
+      if (userToDelete && userToDelete.isSuperAdmin) {
+        console.error('Cannot delete super admin user');
+        return false;
+      }
+      
       const initialLength = this.users.length;
       this.users = this.users.filter(u => u.id !== id);
       

@@ -149,13 +149,29 @@ const ProductDetails = () => {
   const getSizePrice = (size: string) => {
     if (product && product.sizes) {
       const sizeObj = product.sizes.find(s => s.size === size);
-      return sizeObj ? sizeObj.price : 0;
+      return sizeObj ? sizeObj.price : product?.price || 0;
     }
-    return 0;
+    return product?.price || 0;
   };
 
   const getColorBorder = (color: string) => {
     return colorMap[color] ? `1px solid ${colorMap[color]}` : '1px solid #ccc';
+  };
+
+  const displayStockMessage = (stock: number) => {
+    if (stock === 0) {
+      return <Badge variant="destructive">نفذت الكمية</Badge>;
+    } else if (stock === 1) {
+      return <Badge variant="destructive">بقي قطعة واحدة فقط!</Badge>;
+    } else if (stock <= 5) {
+      return <Badge variant="outline" className="text-yellow-600 border-yellow-600">بقي {stock} قطع فقط</Badge>;
+    }
+    return null;
+  };
+
+  const calculateDiscountedPrice = (originalPrice: number, discount: number) => {
+    if (!discount) return originalPrice;
+    return originalPrice - (originalPrice * (discount / 100));
   };
 
   const handleAddToCart = () => {
@@ -166,6 +182,13 @@ const ProductDetails = () => {
     
     if (!selectedSize || (!selectedColor && product.colors && product.colors.length > 0)) {
       toast.error('يرجى اختيار المقاس واللون');
+      return;
+    }
+    
+    // Check stock quantity
+    const currentStock = getStockForSize(selectedSize);
+    if (currentStock < quantity) {
+      toast.error(`عذراً، المتاح فقط ${currentStock} قطعة من هذا المنتج`);
       return;
     }
     
@@ -185,6 +208,12 @@ const ProductDetails = () => {
   if (!product) {
     return <Layout><div className="text-center py-20">المنتج غير موجود</div></Layout>;
   }
+
+  // Calculate correct original and discounted prices
+  const currentPrice = selectedSize ? getSizePrice(selectedSize) : product.price;
+  const originalPrice = product.hasDiscount && product.discount ? 
+    Math.round(currentPrice / (1 - product.discount / 100)) : 
+    currentPrice;
 
   return (
     <Layout>
@@ -238,20 +267,27 @@ const ProductDetails = () => {
                 {product?.hasDiscount && product?.discount && product?.discount > 0 ? (
                   <>
                     <span className="text-gray-500 line-through">
-                      {product.originalPrice || (selectedSize && getSizePrice(selectedSize) * (1 + product.discount / 100))} جنيه
+                      {originalPrice} جنيه
                     </span>
                     <span className="text-xl font-bold text-green-600">
-                      {selectedSize ? getSizePrice(selectedSize) : product?.price} جنيه
+                      {currentPrice} جنيه
                     </span>
                     <Badge className="bg-red-600">خصم {product.discount}%</Badge>
                   </>
                 ) : (
                   <span className="text-xl font-bold text-green-600">
-                    {selectedSize ? getSizePrice(selectedSize) : product?.price} جنيه
+                    {currentPrice} جنيه
                   </span>
                 )}
               </div>
             </div>
+
+            {/* Stock Status */}
+            {selectedSize && (
+              <div>
+                {displayStockMessage(getStockForSize(selectedSize))}
+              </div>
+            )}
 
             {/* Colors */}
             {product?.colors && product.colors.length > 0 && (
@@ -301,6 +337,9 @@ const ProductDetails = () => {
                       >
                         {size.size}
                         {!isAvailable && <span className="block text-xs">نفذت الكمية</span>}
+                        {isAvailable && size.stock === 1 && (
+                          <span className="block text-xs text-red-500">آخر قطعة!</span>
+                        )}
                       </button>
                     );
                   })}
@@ -359,7 +398,7 @@ const ProductDetails = () => {
             <div>
               <h3 className="text-md font-medium mb-2">وصف المنتج:</h3>
               {product?.description ? (
-                <p className="text-gray-600 whitespace-pre-line">{product.description}</p>
+                <p className="text-gray-600 whitespace-pre-line bg-gray-50 p-3 rounded-md border">{product.description}</p>
               ) : (
                 <p className="text-gray-400 italic">لا يوجد وصف متاح لهذا المنتج.</p>
               )}
@@ -368,11 +407,11 @@ const ProductDetails = () => {
             {/* Additional information */}
             <div>
               <h3 className="text-md font-medium mb-2">معلومات إضافية:</h3>
-              <div className="text-sm text-gray-600 space-y-1">
-                {product?.categoryPath && (
+              <div className="text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-md border">
+                {product?.category && (
                   <p>
                     <span className="font-semibold">التصنيف: </span>
-                    {product.categoryPath.join(" > ")}
+                    {product.category}
                   </p>
                 )}
                 <p>

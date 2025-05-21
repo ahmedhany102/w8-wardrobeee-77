@@ -58,8 +58,12 @@ const ProductCatalog: React.FC = () => {
     try {
       const productDb = ProductDatabase.getInstance();
       const allProducts = await productDb.getAllProducts();
-      setProducts(allProducts);
-      setFilteredProducts(allProducts);
+      // Filter out products in حريمي category (Women)
+      const filteredByGender = allProducts.filter(
+        product => product && product.category !== 'حريمي'
+      );
+      setProducts(filteredByGender);
+      setFilteredProducts(filteredByGender);
     } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
@@ -126,6 +130,16 @@ const ProductCatalog: React.FC = () => {
       toast.error("Admin accounts cannot make purchases");
       return;
     }
+    
+    // Check stock before adding to cart
+    if (product.sizes) {
+      const sizeObj = product.sizes.find(s => s && s.size === size);
+      if (sizeObj && sizeObj.stock <= 0) {
+        toast.error('This product is out of stock');
+        return;
+      }
+    }
+    
     const cartDb = (await import('@/models/CartDatabase')).default.getInstance();
     const success = await cartDb.addToCart(product, size.toString(), product.colors?.[0] || "", quantity);
     if (success) {
@@ -143,7 +157,7 @@ const ProductCatalog: React.FC = () => {
     }
     
     if (quantity <= 0) {
-      const updatedCart = cart.filter(item => item.product && item.product.id !== productId);
+      const updatedCart = cart.filter(item => item && item.product && item.product.id !== productId);
       setCart(updatedCart);
       localStorage.setItem('cart', JSON.stringify(updatedCart));
     } else {
@@ -209,11 +223,11 @@ const ProductCatalog: React.FC = () => {
               onClick={() => setShowCartDialog(true)}
               className="bg-green-800 hover:bg-green-900 interactive-button"
             >
-              Cart ({cart.reduce((total, item) => total + item.quantity, 0)})
+              Cart ({cart.reduce((total, item) => total + (item.quantity || 0), 0)})
             </Button>
             {cart.length > 0 && (
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                {cart.reduce((sum, item) => sum + (item.quantity || 0), 0)}
               </span>
             )}
           </div>
@@ -237,12 +251,6 @@ const ProductCatalog: React.FC = () => {
               className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
             >
               رجالي
-            </TabsTrigger>
-            <TabsTrigger 
-              value="حريمي" 
-              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
-            >
-              حريمي
             </TabsTrigger>
             <TabsTrigger 
               value="أطفال" 

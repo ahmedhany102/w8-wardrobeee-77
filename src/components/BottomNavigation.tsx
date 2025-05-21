@@ -44,7 +44,7 @@ const BottomNavigation: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg md:hidden z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
       <div className="flex justify-between items-center">
         <Link 
           to="/" 

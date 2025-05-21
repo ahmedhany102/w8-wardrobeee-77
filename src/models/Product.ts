@@ -30,6 +30,8 @@ export interface Product {
   categoryPath?: string[];
   // Adding support for color-specific images
   colorImages?: Record<string, string[]>;
+  // Link to ads
+  adProductId?: string;
 }
 
 export interface ColorImage {
@@ -111,7 +113,11 @@ export class ProductDatabase {
     try {
       const savedProducts = localStorage.getItem('products');
       if (savedProducts) {
-        this.products = JSON.parse(savedProducts);
+        // Filter out women's products
+        const allProducts = JSON.parse(savedProducts);
+        this.products = allProducts.filter((product: Product) => 
+          product && product.category !== 'حريمي'
+        );
       }
       window.dispatchEvent(new Event('productsUpdated'));
     } catch (error) {
@@ -131,7 +137,12 @@ export class ProductDatabase {
     const request = store.getAll();
 
     request.onsuccess = () => {
-      this.products = request.result || [];
+      // Filter out women's products
+      const allProducts = request.result || [];
+      this.products = allProducts.filter((product: Product) => 
+        product && product.category !== 'حريمي'
+      );
+      
       // Also sync with localStorage for cross-browser compatibility
       localStorage.setItem('products', JSON.stringify(this.products));
       window.dispatchEvent(new Event('productsUpdated'));
@@ -146,6 +157,15 @@ export class ProductDatabase {
   private saveProducts(): void {
     // Always save to localStorage for cross-browser compatibility
     localStorage.setItem('products', JSON.stringify(this.products));
+    
+    // Ensure we sync data across browsers
+    navigator.serviceWorker?.ready.then(registration => {
+      registration.sync?.register('syncProducts').catch(err => {
+        console.log('Cannot sync products across browsers:', err);
+      });
+    }).catch(err => {
+      console.log('Service Worker not available for sync:', err);
+    });
 
     if (!this.db) {
       window.dispatchEvent(new Event('productsUpdated'));
@@ -178,7 +198,10 @@ export class ProductDatabase {
   }
 
   public async getAllProducts(): Promise<Product[]> {
-    return this.products;
+    // Filter out women's products
+    return this.products.filter(product => 
+      product && product.category !== 'حريمي'
+    );
   }
 
   public async getProductById(id: string | undefined): Promise<Product | null> {
@@ -211,6 +234,22 @@ export class ProductDatabase {
       ...updates,
       updatedAt: new Date().toISOString(),
     };
+    
+    this.saveProducts();
+    return true;
+  }
+  
+  // Update stock quantity after purchase
+  public async updateProductStock(productId: string, size: string, quantity: number): Promise<boolean> {
+    const product = this.products.find(p => p.id === productId);
+    if (!product || !product.sizes) return false;
+    
+    const sizeIndex = product.sizes.findIndex(s => s.size === size);
+    if (sizeIndex === -1) return false;
+    
+    // Ensure we don't go below 0
+    const newStock = Math.max(0, product.sizes[sizeIndex].stock - quantity);
+    product.sizes[sizeIndex].stock = newStock;
     
     this.saveProducts();
     return true;

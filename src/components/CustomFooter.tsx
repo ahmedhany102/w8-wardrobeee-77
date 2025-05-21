@@ -1,94 +1,31 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
 
-interface ContactSettings {
-  address: string;
-  mapUrl: string;
-  email: string;
-  phone: string;
-  workingHours: string;
-  website: string;
-  facebook: string;
-  instagram: string;
-  twitter: string;
-  youtube: string;
-  termsAndConditions: string;
-}
-
-const CustomFooter: React.FC = () => {
-  const [contactSettings, setContactSettings] = useState<ContactSettings | null>(null);
-
-  useEffect(() => {
-    // Load contact settings
-    try {
-      const savedSettings = localStorage.getItem("contactSettings");
-      if (savedSettings) {
-        setContactSettings(JSON.parse(savedSettings));
-      }
-    } catch (error) {
-      console.error("Error loading contact settings:", error);
-    }
-  }, []);
-
+const CustomFooter = () => {
   return (
-    <footer className="bg-gray-900 text-white py-3">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Store Information */}
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold border-b border-gray-700 pb-1 mb-1">معلومات المتجر</h3>
-            {contactSettings?.address && (
-              <div className="flex items-start gap-2">
-                <MapPin className="h-3 w-3 text-green-500 shrink-0 mt-0.5" />
-                <span className="text-xs">{contactSettings.address}</span>
-              </div>
-            )}
-            {contactSettings?.phone && (
-              <div className="flex items-center gap-2">
-                <Phone className="h-3 w-3 text-green-500" />
-                <a href={`tel:${contactSettings.phone}`} className="text-xs hover:text-green-400">
-                  {contactSettings.phone}
-                </a>
-              </div>
-            )}
-            {contactSettings?.email && (
-              <div className="flex items-center gap-2">
-                <Mail className="h-3 w-3 text-green-500" />
-                <a href={`mailto:${contactSettings.email}`} className="text-xs hover:text-green-400">
-                  {contactSettings.email}
-                </a>
-              </div>
-            )}
-            <div className="mt-1 pt-1 flex gap-3">
-              {contactSettings?.facebook && (
-                <a href={contactSettings.facebook} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-green-400 transition">
-                  <Facebook className="h-3 w-3" />
-                </a>
-              )}
-              {contactSettings?.instagram && (
-                <a href={contactSettings.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-green-400 transition">
-                  <Instagram className="h-3 w-3" />
-                </a>
-              )}
-              {contactSettings?.twitter && (
-                <a href={contactSettings.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-green-400 transition">
-                  <Twitter className="h-3 w-3" />
-                </a>
-              )}
-            </div>
+    <footer className="mt-auto bg-gradient-to-r from-green-900 to-black text-white py-6 px-4 shadow-inner">
+      <div className="container mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+          <div className="flex flex-col items-center md:items-start mb-4 md:mb-0">
+            <h3 className="font-bold text-lg mb-2">W8 للملابس</h3>
+            <p className="text-sm text-gray-300">منتجاتنا فقط للرجال والأطفال</p>
           </div>
-
-          {/* Quick Links */}
-          <div className="text-right">
-            <div className="mb-2">
-              <Link to="/terms" className="text-xs hover:text-green-400">الشروط والأحكام</Link>
-            </div>
-            <p className="text-xs text-gray-400">
-              &copy; {new Date().getFullYear()} W8 Store. جميع الحقوق محفوظة.
-            </p>
+          
+          <div className="flex flex-col items-center">
+            <nav className="flex flex-wrap justify-center gap-4 mb-4">
+              <Link to="/" className="text-sm hover:text-green-300 transition-colors">الرئيسية</Link>
+              <Link to="/profile" className="text-sm hover:text-green-300 transition-colors">حسابي</Link>
+              <Link to="/cart" className="text-sm hover:text-green-300 transition-colors">العربة</Link>
+              <Link to="/orders" className="text-sm hover:text-green-300 transition-colors">طلباتي</Link>
+              <Link to="/contact" className="text-sm hover:text-green-300 transition-colors">اتصل بنا</Link>
+              <Link to="/terms" className="text-sm hover:text-green-300 transition-colors">الشروط والأحكام</Link>
+            </nav>
           </div>
+        </div>
+        
+        <div className="border-t border-green-800 mt-4 pt-4 text-center">
+          <p className="text-xs text-gray-300">© {new Date().getFullYear()} W8 لملابس الرجال والأطفال فقط - تطوير وتصميم <a href="https://ahmedhany.dev" target="_blank" rel="noopener noreferrer" className="text-green-300 hover:underline">أحمد هاني</a></p>
         </div>
       </div>
     </footer>

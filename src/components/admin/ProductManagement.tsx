@@ -18,6 +18,7 @@ const ProductManagement = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
   useEffect(() => {
     fetchProducts();
@@ -28,7 +29,11 @@ const ProductManagement = () => {
     try {
       const productDb = ProductDatabase.getInstance();
       const allProducts = await productDb.getAllProducts();
-      setProducts(allProducts);
+      // Filter out women's products
+      const filteredProducts = allProducts.filter(product => 
+        product && product.category !== 'حريمي'
+      );
+      setProducts(filteredProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
       toast.error("فشل في تحميل المنتجات");
@@ -39,6 +44,12 @@ const ProductManagement = () => {
 
   const handleAddProduct = async (product: Omit<Product, "id">) => {
     try {
+      // Don't allow adding women's products
+      if (product.category === 'حريمي') {
+        toast.error("لا يمكن إضافة منتجات نسائية");
+        return;
+      }
+      
       const productDb = ProductDatabase.getInstance();
       await productDb.addProduct(product);
       toast.success("تمت إضافة المنتج بنجاح");
@@ -52,6 +63,13 @@ const ProductManagement = () => {
 
   const handleEditProduct = async (product: Omit<Product, "id">) => {
     if (!editProduct) return;
+    
+    // Don't allow changing to women's category
+    if (product.category === 'حريمي') {
+      toast.error("لا يمكن تحويل المنتج إلى فئة النساء");
+      return;
+    }
+    
     try {
       const productDb = ProductDatabase.getInstance();
       await productDb.updateProduct(editProduct.id, product);
@@ -80,22 +98,38 @@ const ProductManagement = () => {
     }
   };
 
-  // Filter products by search
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.type && product.type.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (product.category && product.category.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Filter products by search and category
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = 
+      (product.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+      (product.type?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+      (product.category?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+    
+    const matchesCategory = categoryFilter === "ALL" || product.category === categoryFilter;
+    
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <input
-          placeholder="بحث عن منتج..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          className="border px-3 py-2 rounded w-full md:w-64"
-        />
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            placeholder="بحث عن منتج..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="border px-3 py-2 rounded w-full md:w-64"
+          />
+          <select 
+            value={categoryFilter} 
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border px-3 py-2 rounded w-full md:w-48"
+          >
+            <option value="ALL">كل الفئات</option>
+            <option value="رجالي">رجالي</option>
+            <option value="أطفال">أطفال</option>
+          </select>
+        </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button onClick={() => setShowAddDialog(true)} className="bg-green-800 hover:bg-green-900 text-sm">
             <Plus className="h-4 w-4 mr-2" /> إضافة منتج جديد
@@ -134,7 +168,8 @@ const ProductManagement = () => {
                     <TableHead>الاسم</TableHead>
                     <TableHead className="hidden md:table-cell">القسم</TableHead>
                     <TableHead className="hidden md:table-cell">النوع</TableHead>
-                    <TableHead className="hidden lg:table-cell">الألوان</TableHead>
+                    <TableHead className="hidden lg:table-cell">المقاسات</TableHead>
+                    <TableHead className="hidden md:table-cell">المخزون</TableHead>
                     <TableHead className="hidden md:table-cell">الخصم</TableHead>
                     <TableHead className="text-right">إجراءات</TableHead>
                   </TableRow>
@@ -155,8 +190,13 @@ const ProductManagement = () => {
                       <TableCell className="hidden md:table-cell">{product.category}</TableCell>
                       <TableCell className="hidden md:table-cell">{product.type}</TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {product.colors && product.colors.length > 0 ? 
-                          <div className="max-w-[120px] truncate">{product.colors.join(", ")}</div> : "-"}
+                        {product.sizes && product.sizes.length > 0 ? 
+                          <div className="max-w-[120px] truncate">{product.sizes.map(s => s.size).join(", ")}</div> : "-"}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {product.sizes ? 
+                          product.sizes.reduce((total, size) => total + (size?.stock || 0), 0) : 
+                          product.stock || 0}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{product.hasDiscount && product.discount ? `${product.discount}%` : "-"}</TableCell>
                       <TableCell className="text-right space-x-1">
