@@ -75,7 +75,10 @@ const ImprovedProductForm = ({ initialData = {}, onSubmit, submitLabel = "حفظ
       const variations: ColorVariation[] = [];
       
       initialData.colors.forEach(colorName => {
-        const colorImage = initialData.colorImages?.find(ci => ci.color === colorName)?.imageUrl || "";
+        // Get the array of images for this color from the Record
+        const colorImagesArray = initialData.colorImages?.[colorName] || [];
+        // Use the first image as the main color image
+        const colorImage = colorImagesArray.length > 0 ? colorImagesArray[0] : "";
         
         // Filter sizes for this color (in this initial version, we don't have color-specific sizes)
         // so we'll just assign all sizes to all colors
@@ -222,6 +225,7 @@ const ImprovedProductForm = ({ initialData = {}, onSubmit, submitLabel = "حفظ
     return "";
   };
 
+  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -236,17 +240,17 @@ const ImprovedProductForm = ({ initialData = {}, onSubmit, submitLabel = "حفظ
     // Format data for submission
     let formattedSizes: SizeWithStock[] = [];
     let formattedColors: string[] = [];
-    let formattedColorImages: ColorImage[] = [];
+    let formattedColorImages: Record<string, string[]> = {};
     let mainImageUrl = mainImage;
     
     if (hasColorVariations) {
       // Process variations
       formattedColors = colorVariations.map(color => color.colorName);
       
-      formattedColorImages = colorVariations.map(color => ({
-        color: color.colorName,
-        imageUrl: color.image
-      }));
+      // Convert color variations to Record<string, string[]> format
+      colorVariations.forEach(color => {
+        formattedColorImages[color.colorName] = [color.image];
+      });
       
       // If no main image is set, use the first color's image
       if (!mainImage && colorVariations.length > 0 && colorVariations[0].image) {
@@ -291,7 +295,7 @@ const ImprovedProductForm = ({ initialData = {}, onSubmit, submitLabel = "حفظ
       mainImage: mainImageUrl,
       images: [mainImageUrl],
       colors: hasColorVariations ? formattedColors : [],
-      colorImages: hasColorVariations ? formattedColorImages : [],
+      colorImages: hasColorVariations ? formattedColorImages : {},
       sizes: formattedSizes,
       price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
       inventory: calculatedInventory,

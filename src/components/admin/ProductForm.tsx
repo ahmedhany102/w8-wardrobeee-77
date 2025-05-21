@@ -1,12 +1,18 @@
 
 import React, { useState, useEffect } from "react";
 import SizeManager, { SizeItem } from "./SizeManager";
-import { Product, SizeWithStock, ColorImage } from "@/models/Product";
+import { Product, SizeWithStock } from "@/models/Product";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
   onSubmit: (product: Omit<Product, "id">) => void;
   submitLabel?: string;
+}
+
+// Type for color image for internal use in form
+interface ColorImageInternal {
+  color: string;
+  imageUrl: string;
 }
 
 // Define available categories with nested structure
@@ -45,7 +51,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
   const [discount, setDiscount] = useState(initialData.discount || 0);
   const [mainImage, setMainImage] = useState(initialData.mainImage || "");
   const [additionalImages, setAdditionalImages] = useState<string[]>(initialData.images || []);
-  const [colorImages, setColorImages] = useState<ColorImage[]>(initialData.colorImages || []);
+  const [colorImages, setColorImages] = useState<ColorImageInternal[]>([]);
   const [sizes, setSizes] = useState<SizeItem[]>(
     initialData.sizes 
       ? initialData.sizes.map(s => ({ 
@@ -56,6 +62,26 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
         })) 
       : []
   );
+  
+  // Initialize colorImages from initialData if available
+  useEffect(() => {
+    if (initialData.colorImages && initialData.colors) {
+      const colorImagesArray: ColorImageInternal[] = [];
+      
+      initialData.colors.forEach(color => {
+        // Get images for this color
+        const images = initialData.colorImages?.[color];
+        if (images && images.length > 0) {
+          colorImagesArray.push({
+            color,
+            imageUrl: images[0] // Use the first image
+          });
+        }
+      });
+      
+      setColorImages(colorImagesArray);
+    }
+  }, [initialData]);
   
   const [error, setError] = useState<string>("");
 
@@ -165,6 +191,12 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       allImages.unshift(mainImage);
     }
     
+    // Convert colorImages array to Record<string, string[]>
+    const formattedColorImages: Record<string, string[]> = {};
+    colorImages.forEach(ci => {
+      formattedColorImages[ci.color] = [ci.imageUrl];
+    });
+    
     // Construct the product object to be submitted
     onSubmit({
       name: name.trim(),
@@ -172,7 +204,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       categoryPath,
       type: type.trim(),
       colors,
-      colorImages,
+      colorImages: formattedColorImages,
       details,
       hasDiscount,
       discount: hasDiscount ? discount : 0,
