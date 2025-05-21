@@ -1,12 +1,12 @@
+
 import React from 'react';
 import Layout from '@/components/Layout';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { Phone, Mail, MapPin, Send } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
-import { Loader2 } from '@/components/ui/loader';
 
 const Contact = () => {
   const [form, setForm] = React.useState({

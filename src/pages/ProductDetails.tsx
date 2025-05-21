@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Product } from '@/models/Product';
@@ -7,7 +8,7 @@ import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import { Plus, Minus, ShoppingCart, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import AspectRatio from '@/components/ui/aspect-ratio';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 // Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
@@ -22,6 +23,22 @@ const colorMap: Record<string, string> = {
   'بنفسجي': '#B10DC9',
   'بني': '#8B4513',
 };
+
+// Add missing type for colorSizes
+type SizeInfo = {
+  size: string;
+  stock: number;
+  price: number;
+};
+
+// Augment Product type with needed properties
+declare module '@/models/Product' {
+  interface Product {
+    colorSizes?: Record<string, SizeInfo[]>;
+    originalPrice?: number;
+    sku?: string;
+  }
+}
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -322,7 +339,7 @@ const ProductDetails = () => {
               disabled={isOutOfStock || !selectedSize}
               onClick={handleAddToCart}
             >
-              {isLoading ? (
+              {loading ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" /> جاري الإضافة...
                 </span>
