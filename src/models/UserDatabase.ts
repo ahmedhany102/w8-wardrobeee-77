@@ -176,6 +176,45 @@ class UserDatabase {
     }
   }
 
+  public async createAdminUser(name: string, email: string, password: string): Promise<User | null> {
+    try {
+      if (!email || !this.validateEmail(email)) {
+        throw new Error('Invalid email format');
+      }
+
+      const existingUser = this.users.find(user => user.email === email);
+      if (existingUser) {
+        throw new Error('Email already registered');
+      }
+
+      // Create new admin user
+      const newUser: User = {
+        id: uuidv4(),
+        name: name,
+        email: email,
+        password: password, // We'll let addUser handle hashing if needed
+        role: 'ADMIN',
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        ipAddress: '0.0.0.0',
+        status: 'ACTIVE',
+        isAdmin: true,
+        isSuperAdmin: false,
+        isBlocked: false
+      };
+
+      this.users.push(newUser);
+      this.saveUsers();
+      
+      // Return without password
+      const { password: _, ...userWithoutPassword } = newUser;
+      return userWithoutPassword as User;
+    } catch (error) {
+      console.error('Error creating admin user:', error);
+      return null;
+    }
+  }
+
   public async loginUser(email: string, password: string): Promise<User | null> {
     try {
       const user = this.users.find(u => u.email === email);
