@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 
 // Define the Product interface
@@ -29,7 +28,7 @@ export interface Product {
   // Adding support for nested categories
   categoryPath?: string[];
   // Adding support for color-specific images
-  colorImages?: ColorImage[];
+  colorImages?: Record<string, string[]>;
 }
 
 export interface ColorImage {

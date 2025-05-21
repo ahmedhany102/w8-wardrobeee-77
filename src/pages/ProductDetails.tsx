@@ -37,6 +37,7 @@ declare module '@/models/Product' {
     colorSizes?: Record<string, SizeInfo[]>;
     originalPrice?: number;
     sku?: string;
+    colorImages?: Record<string, string[]>;
   }
 }
 
