@@ -21,6 +21,7 @@ import { Toaster as SonnerToaster } from 'sonner';
 import { AuthProvider } from './contexts/AuthContext';
 import './App.css';
 import './autoScroll.css';
+import BottomNavigation from './components/BottomNavigation';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -65,12 +66,15 @@ function App() {
                   <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
                   <Route path="/admin/users" element={<Admin activeTab="users" />} />
                   <Route path="/admin/coupons" element={<Admin activeTab="coupons" />} />
+                  <Route path="/admin/contact" element={<Admin activeTab="contact" />} />
+                  <Route path="/admin/ads" element={<Admin activeTab="ads" />} />
                 </Route>
 
                 {/* 404 */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </div>
+            <BottomNavigation />
             <SonnerToaster position="top-right" richColors closeButton />
             <Toaster />
           </Router>

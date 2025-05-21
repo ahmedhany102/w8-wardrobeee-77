@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Product } from '@/models/Product';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useNavigate } from 'react-router-dom';
+import { ShoppingCart } from 'lucide-react';
+import { toast } from 'sonner';
+import CartDatabase from "@/models/CartDatabase";
 
 interface ProductCardProps {
   product: Product;
@@ -31,10 +34,49 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
     ? Math.min(...product.sizes.filter(s => s && s.stock > 0).map(s => s.price)) 
     : (product.price || 0);
 
+  // Quick add to cart handler
+  const handleQuickAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Don't allow adding if out of stock
+    if (isOutOfStock) {
+      toast.error("المنتج غير متوفر حالياً");
+      return;
+    }
+
+    try {
+      // Get the first available size if product has sizes
+      let size = "";
+      if (product.sizes && product.sizes.length > 0) {
+        const availableSize = product.sizes.find(s => s && s.stock > 0);
+        if (availableSize) {
+          size = availableSize.size;
+        }
+      }
+      
+      // Add to cart
+      const cartDb = await CartDatabase.getInstance();
+      await cartDb.addToCart({
+        productId: product.id,
+        name: product.name,
+        price: minPrice,
+        quantity: 1,
+        size: size,
+        color: product.colors && product.colors.length > 0 ? product.colors[0] : undefined,
+        imageUrl: mainImage
+      });
+      
+      toast.success("تمت إضافة المنتج إلى سلة التسوق");
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      toast.error("حدث خطأ أثناء إضافة المنتج إلى سلة التسوق");
+    }
+  };
+
   return (
     <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className} h-full`}>
       <CardHeader className="p-0">
-        <div className="relative">
+        <div className="relative cursor-pointer" onClick={() => navigate(`/product/${product.id}`)}>
           <AspectRatio ratio={1/1} className="bg-gray-100 min-h-[100px]">
             <img 
               src={mainImage}
@@ -59,7 +101,9 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         </div>
       </CardHeader>
       <CardContent className="p-1 sm:p-2">
-        <h3 className="font-medium truncate text-xs">{product?.name || "منتج بدون اسم"}</h3>
+        <h3 className="font-medium truncate text-xs cursor-pointer" onClick={() => navigate(`/product/${product.id}`)}>
+          {product?.name || "منتج بدون اسم"}
+        </h3>
         <p className="text-gray-500 text-xs truncate">
           {product?.categoryPath ? product.categoryPath.join(" > ") : (product?.category || "-")}
         </p>
@@ -71,12 +115,20 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
           )}
         </div>
       </CardContent>
-      <CardFooter className="p-1 sm:p-2">
+      <CardFooter className="p-1 sm:p-2 flex flex-col gap-2">
         <Button
           className="w-full bg-blue-600 hover:bg-blue-700 transition-colors text-xs py-0.5 h-6"
           onClick={() => navigate(`/product/${product.id}`)}
         >
           عرض التفاصيل
+        </Button>
+        <Button
+          className="w-full bg-green-600 hover:bg-green-700 transition-colors text-xs py-0.5 h-6 flex items-center justify-center gap-1"
+          onClick={handleQuickAddToCart}
+          disabled={isOutOfStock}
+        >
+          <ShoppingCart className="w-3 h-3" />
+          <span>إضافة للعربة</span>
         </Button>
       </CardFooter>
     </Card>
