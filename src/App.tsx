@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -14,7 +14,7 @@ import Admin from './pages/Admin';
 import AdminLogin from './pages/AdminLogin';
 import ProductDetails from './pages/ProductDetails';
 import OrderTracking from './pages/OrderTracking';
-import RequireAuth from './components/RequireAuth';
+import { RequireAuth } from './components/RequireAuth';
 
 /**
  * Function to ensure consistent behavior across different browsers
@@ -94,7 +94,7 @@ ensureBrowserCompatibility();
 const App: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<Layout />}>
+      <Route path="/" element={<Layout children={<Outlet />} />}>
         <Route index element={<Index />} />
         <Route path="login" element={<Login />} />
         <Route path="signup" element={<Signup />} />
