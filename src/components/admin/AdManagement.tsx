@@ -57,7 +57,6 @@ const AdManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filterPlacement, setFilterPlacement] = useState<string>('all');
   const [newAdResponsiveSize, setNewAdResponsiveSize] = useState({ desktop: 100, tablet: 100, mobile: 100 });
-  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   
   // Load ads from localStorage
   useEffect(() => {
@@ -282,24 +281,6 @@ const AdManagement = () => {
   const getProductNameById = (productId: string) => {
     const product = products.find(p => p.id === productId);
     return product ? product.name : 'Unknown Product';
-  };
-
-  // Delete ad
-  const handleDeleteAd = () => {
-    if (!deleteProductId && !currentAd) return;
-    
-    try {
-      const updatedAds = ads.filter(ad => ad.id !== currentAd?.id);
-      if (saveAds(updatedAds)) {
-        toast.success('Advertisement deleted successfully');
-        setIsDeleteDialogOpen(false);
-        setCurrentAd(null);
-        setDeleteProductId(null);
-      }
-    } catch (error) {
-      console.error('Error deleting ad:', error);
-      toast.error('Failed to delete advertisement');
-    }
   };
 
   // Filter ads by placement
