@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ interface ProductFormProps {
   onSubmit: (product: Omit<Product, "id">) => Promise<void>;
   submitLabel: string;
   onCancel: () => void;
-  subcategories?: string[]; // Changed from 'categories' to 'subcategories'
+  subcategories?: string[];
 }
 
 // Define a local Size interface that includes both id and price
@@ -32,7 +33,7 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({
   onSubmit, 
   submitLabel, 
   onCancel,
-  subcategories = ["T-shirts", "Pants", "Shoes", "Jackets"]  // Changed parameter name to match interface
+  subcategories = ["T-shirts", "Pants", "Shoes", "Jackets"]
 }) => {
   const [name, setName] = useState(initialData?.name || "");
   const [description, setDescription] = useState(initialData?.description || "");
