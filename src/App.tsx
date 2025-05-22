@@ -1,3 +1,21 @@
+
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+import Layout from './components/Layout';
+import Index from './pages/Index';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
+import Cart from './pages/Cart';
+import Contact from './pages/Contact';
+import Terms from './pages/Terms';
+import NotFound from './pages/NotFound';
+import Profile from './pages/Profile';
+import Admin from './pages/Admin';
+import AdminLogin from './pages/AdminLogin';
+import ProductDetails from './pages/ProductDetails';
+import OrderTracking from './pages/OrderTracking';
+import RequireAuth from './components/RequireAuth';
+
 /**
  * Function to ensure consistent behavior across different browsers
  * Call this on app startup to apply compatibility fixes
@@ -69,14 +87,37 @@ export function ensureBrowserCompatibility() {
   });
 }
 
-// Call this function immediately
+// Call this function immediately to ensure browser compatibility
 ensureBrowserCompatibility();
 
-// Expose a global function for other parts of the app to trigger a refresh
-(window as any).refreshAppData = () => {
-  ['productsUpdated', 'cartUpdated', 'adsUpdated'].forEach(eventName => {
-    window.dispatchEvent(new Event(eventName));
-  });
+// Create the actual App component that returns JSX
+const App: React.FC = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<Layout />}>
+        <Route index element={<Index />} />
+        <Route path="login" element={<Login />} />
+        <Route path="signup" element={<Signup />} />
+        <Route path="cart" element={<Cart />} />
+        <Route path="contact" element={<Contact />} />
+        <Route path="terms" element={<Terms />} />
+        <Route path="products/:productId" element={<ProductDetails />} />
+        <Route path="order-tracking" element={<OrderTracking />} />
+        <Route path="profile" element={
+          <RequireAuth>
+            <Profile />
+          </RequireAuth>
+        } />
+        <Route path="admin-login" element={<AdminLogin />} />
+        <Route path="admin/*" element={
+          <RequireAuth adminOnly>
+            <Admin />
+          </RequireAuth>
+        } />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
+  );
 };
 
-export default ensureBrowserCompatibility;
+export default App;
