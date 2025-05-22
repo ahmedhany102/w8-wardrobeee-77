@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -159,7 +160,11 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({
       images,
       type,
       category,
-      sizes: sizesWithPrice
+      sizes: sizesWithPrice,
+      // Add required Product properties
+      inventory: Number(stock),
+      createdAt: initialData?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
 
     await onSubmit(productData);
