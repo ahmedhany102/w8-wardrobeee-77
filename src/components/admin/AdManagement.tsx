@@ -190,19 +190,6 @@ const AdManagement = () => {
     }
   };
   
-  // Add the missing handleDeleteAd function
-  const handleDeleteAd = () => {
-    if (!currentAd) return;
-    
-    const updatedAds = ads.filter(ad => ad.id !== currentAd.id);
-    
-    if (saveAds(updatedAds)) {
-      toast.success('Advertisement deleted successfully');
-      setIsDeleteDialogOpen(false);
-      setCurrentAd(null);
-    }
-  };
-  
   // Apply responsive size changes immediately
   const handleResponsiveSizeChange = (device: 'desktop' | 'tablet' | 'mobile', value: number) => {
     setNewAdResponsiveSize({...newAdResponsiveSize, [device]: value});
