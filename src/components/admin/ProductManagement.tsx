@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Product, default as ProductDatabase } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -256,7 +255,7 @@ const ProductManagement = () => {
             onSubmit={handleAddProduct}
             submitLabel="Add Product"
             onCancel={() => setShowAddDialog(false)}
-            categories={MEN_CATEGORIES.slice(1)}  // Exclude 'All'
+            subcategories={MEN_CATEGORIES.slice(1)}  // Changed from 'categories' to 'subcategories'
           />
         </DialogContent>
       </Dialog>
@@ -273,7 +272,7 @@ const ProductManagement = () => {
               onSubmit={handleEditProduct}
               submitLabel="Save Changes"
               onCancel={() => setShowEditDialog(false)}
-              categories={MEN_CATEGORIES.slice(1)}  // Exclude 'All'
+              subcategories={MEN_CATEGORIES.slice(1)}  // Changed from 'categories' to 'subcategories'
             />
           )}
         </DialogContent>
