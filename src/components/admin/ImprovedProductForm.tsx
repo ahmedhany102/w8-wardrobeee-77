@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Product } from "@/models/Product";
+import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,15 +16,24 @@ interface ProductFormProps {
   onSubmit: (product: Omit<Product, "id">) => Promise<void>;
   submitLabel: string;
   onCancel: () => void;
+  subcategories?: string[];
 }
 
+// Define a local Size interface that includes both id and price
 interface Size {
   id: string;
   size: string;
   stock: number;
+  price?: number;
 }
 
-const ImprovedProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit, submitLabel, onCancel }) => {
+const ImprovedProductForm: React.FC<ProductFormProps> = ({ 
+  initialData, 
+  onSubmit, 
+  submitLabel, 
+  onCancel,
+  subcategories = ["T-shirts", "Pants", "Shoes", "Jackets"]
+}) => {
   const [name, setName] = useState(initialData?.name || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const [price, setPrice] = useState(initialData?.price || 0);
@@ -35,8 +44,20 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit
   const [images, setImages] = useState<string[]>(initialData?.images || []);
   const [type, setType] = useState(initialData?.type || "T-shirts");
   const [category, setCategory] = useState(initialData?.category || "Men");
-  const [sizes, setSizes] = useState<Size[]>(initialData?.sizes || []);
-	const [newSize, setNewSize] = useState('');
+  
+  // Convert from SizeWithStock[] to our local Size[] interface when initializing
+  const [sizes, setSizes] = useState<Size[]>(
+    initialData?.sizes 
+      ? initialData.sizes.map(s => ({
+          id: s.id || uuidv4(), // Generate id if missing
+          size: s.size,
+          stock: s.stock,
+          price: s.price
+        }))
+      : []
+  );
+  
+  const [newSize, setNewSize] = useState('');
   const [newStock, setNewStock] = useState(0);
   const [isAddingSize, setIsAddingSize] = useState(false);
   const [newImage, setNewImage] = useState('');
@@ -98,6 +119,7 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit
       id: uuidv4(),
       size: newSize,
       stock: newStock,
+      price: price // Use the main product price for each size
     };
 
     setSizes([...sizes, newSizeObj]);
@@ -118,18 +140,26 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit
       return;
     }
 
+    // Convert local Size[] to SizeWithStock[] format required by the Product interface
+    const sizesWithPrice: SizeWithStock[] = sizes.map(size => ({
+      size: size.size,
+      stock: size.stock,
+      price: size.price || price, // Use size-specific price or fall back to main price
+      id: size.id
+    }));
+
     const productData: Omit<Product, "id"> = {
       name,
       description,
       price: Number(price),
       discount: hasDiscount ? Number(discount) : 0,
       hasDiscount,
-      stock: sizes.reduce((total, size) => total + size.stock, 0),
+      stock: sizes.length > 0 ? sizes.reduce((total, size) => total + size.stock, 0) : Number(stock),
       mainImage,
       images,
       type,
       category,
-      sizes
+      sizes: sizesWithPrice
     };
 
     await onSubmit(productData);
@@ -185,6 +215,25 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit
           />
         </div>
       )}
+
+      <div>
+        <Label htmlFor="type">Subcategory</Label>
+        <Select
+          defaultValue={type}
+          onValueChange={setType}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select subcategory" />
+          </SelectTrigger>
+          <SelectContent>
+            {subcategories.map((subcat) => (
+              <SelectItem key={subcat} value={subcat}>
+                {subcat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div>
         <Label htmlFor="mainImage">Main Image</Label>
@@ -251,17 +300,6 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit
 			</div>
 
       <div>
-        <Label htmlFor="type">Subcategory</Label>
-        <Input
-          type="text"
-          id="type"
-          value={type}
-          onChange={(e) => setType(e.target.value)}
-          required
-        />
-      </div>
-
-      <div>
         <Label htmlFor="category">Category</Label>
         <Input
           type="text"
@@ -269,6 +307,7 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({ initialData, onSubmit
           value={category}
           onChange={(e) => setCategory(e.target.value)}
           required
+          disabled // Always keep it as "Men"
         />
       </div>
 
