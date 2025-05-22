@@ -255,7 +255,6 @@ const ProductManagement = () => {
             onSubmit={handleAddProduct}
             submitLabel="Add Product"
             onCancel={() => setShowAddDialog(false)}
-            subcategories={MEN_SUBCATEGORIES.slice(1)}  // Exclude 'All'
           />
         </DialogContent>
       </Dialog>
@@ -272,7 +271,6 @@ const ProductManagement = () => {
               onSubmit={handleEditProduct}
               submitLabel="Save Changes"
               onCancel={() => setShowEditDialog(false)}
-              subcategories={MEN_SUBCATEGORIES.slice(1)}  // Exclude 'All'
             />
           )}
         </DialogContent>
