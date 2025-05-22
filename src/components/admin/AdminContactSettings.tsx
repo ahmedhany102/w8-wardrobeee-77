@@ -21,8 +21,6 @@ interface ContactSettings {
   termsAndConditions: string;
   developerName: string;
   developerUrl: string;
-  linkedin: string;
-  whatsapp: string;
 }
 
 const defaultSettings: ContactSettings = {
@@ -32,15 +30,13 @@ const defaultSettings: ContactSettings = {
   phone: '',
   workingHours: '',
   website: '',
-  facebook: 'https://www.facebook.com/share/16LEN8zQG3/',
-  instagram: 'https://www.instagram.com/a7med._.hany/',
+  facebook: '',
+  instagram: '',
   twitter: '',
   youtube: '',
   termsAndConditions: '',
   developerName: 'Ahmed Hany',
-  developerUrl: 'https://ahmedhany.dev',
-  linkedin: 'https://www.linkedin.com/in/ahmed-hany-436342257',
-  whatsapp: 'https://wa.me/qr/2O2JSVLBTNEIJ1'
+  developerUrl: 'https://ahmedhany.dev'
 };
 
 const AdminContactSettings = () => {
@@ -57,11 +53,7 @@ const AdminContactSettings = () => {
         setSettings({
           ...parsedSettings,
           developerName: parsedSettings.developerName || defaultSettings.developerName,
-          developerUrl: parsedSettings.developerUrl || defaultSettings.developerUrl,
-          facebook: parsedSettings.facebook || defaultSettings.facebook,
-          instagram: parsedSettings.instagram || defaultSettings.instagram,
-          linkedin: parsedSettings.linkedin || defaultSettings.linkedin,
-          whatsapp: parsedSettings.whatsapp || defaultSettings.whatsapp
+          developerUrl: parsedSettings.developerUrl || defaultSettings.developerUrl
         });
       } catch (error) {
         console.error('Error loading contact settings:', error);
@@ -79,11 +71,7 @@ const AdminContactSettings = () => {
     const dataToSave = {
       ...settings,
       developerName: settings.developerName || defaultSettings.developerName,
-      developerUrl: settings.developerUrl || defaultSettings.developerUrl,
-      facebook: settings.facebook || defaultSettings.facebook,
-      instagram: settings.instagram || defaultSettings.instagram,
-      linkedin: settings.linkedin || defaultSettings.linkedin,
-      whatsapp: settings.whatsapp || defaultSettings.whatsapp
+      developerUrl: settings.developerUrl || defaultSettings.developerUrl
     };
     localStorage.setItem('contactSettings', JSON.stringify(dataToSave));
     toast.success('Settings saved successfully');
@@ -118,6 +106,31 @@ const AdminContactSettings = () => {
                 </div>
                 
                 <div>
+                  <label htmlFor="mapUrl" className="text-sm font-medium">Map URL</label>
+                  <Input
+                    id="mapUrl"
+                    name="mapUrl"
+                    value={settings.mapUrl}
+                    onChange={handleChange}
+                    placeholder="Google Maps Link"
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="email" className="text-sm font-medium">Email</label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={settings.email}
+                    onChange={handleChange}
+                    placeholder="Contact Email"
+                  />
+                </div>
+                
+                <div>
                   <label htmlFor="phone" className="text-sm font-medium">Phone Number</label>
                   <Input
                     id="phone"
@@ -127,18 +140,6 @@ const AdminContactSettings = () => {
                     placeholder="Contact Phone"
                   />
                 </div>
-              </div>
-              
-              <div>
-                <label htmlFor="email" className="text-sm font-medium">Email</label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={settings.email}
-                  onChange={handleChange}
-                  placeholder="Contact Email"
-                />
               </div>
               
               <div>
@@ -195,6 +196,28 @@ const AdminContactSettings = () => {
                     placeholder="Instagram Account URL"
                   />
                 </div>
+                
+                <div>
+                  <label htmlFor="twitter" className="text-sm font-medium">Twitter</label>
+                  <Input
+                    id="twitter"
+                    name="twitter"
+                    value={settings.twitter}
+                    onChange={handleChange}
+                    placeholder="Twitter Account URL"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="youtube" className="text-sm font-medium">YouTube</label>
+                <Input
+                  id="youtube"
+                  name="youtube"
+                  value={settings.youtube}
+                  onChange={handleChange}
+                  placeholder="YouTube Channel URL"
+                />
               </div>
             </CardContent>
           </Card>
@@ -235,7 +258,9 @@ const AdminContactSettings = () => {
                     value={settings.developerName}
                     onChange={handleChange}
                     placeholder="Developer Name"
+                    readOnly
                   />
+                  <p className="text-xs text-gray-500 mt-1">This field cannot be changed</p>
                 </div>
                 
                 <div>
@@ -246,31 +271,9 @@ const AdminContactSettings = () => {
                     value={settings.developerUrl}
                     onChange={handleChange}
                     placeholder="Developer Website URL"
+                    readOnly
                   />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="linkedin" className="text-sm font-medium">LinkedIn URL</label>
-                  <Input
-                    id="linkedin"
-                    name="linkedin"
-                    value={settings.linkedin}
-                    onChange={handleChange}
-                    placeholder="LinkedIn Profile URL"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="whatsapp" className="text-sm font-medium">WhatsApp Link</label>
-                  <Input
-                    id="whatsapp"
-                    name="whatsapp"
-                    value={settings.whatsapp}
-                    onChange={handleChange}
-                    placeholder="WhatsApp Contact Link"
-                  />
+                  <p className="text-xs text-gray-500 mt-1">This field cannot be changed</p>
                 </div>
               </div>
             </CardContent>

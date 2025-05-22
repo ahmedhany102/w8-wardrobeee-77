@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Product, default as ProductDatabase } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -7,10 +8,6 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Pencil, Plus, Trash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ImprovedProductForm from "./ImprovedProductForm";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-// Define men's product subcategories
-const MEN_SUBCATEGORIES = ['All', 'T-shirts', 'Pants', 'Shoes', 'Jackets'];
 
 const ProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -21,7 +18,7 @@ const ProductManagement = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string>("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
   useEffect(() => {
     fetchProducts();
@@ -32,17 +29,14 @@ const ProductManagement = () => {
     try {
       const productDb = ProductDatabase.getInstance();
       const allProducts = await productDb.getAllProducts();
-      // Only keep men's products
-      const menProducts = allProducts.filter(product => 
-        product && 
-        (product.category === 'رجالي' || 
-         product.category === 'Men' || 
-         product.category === "Men's")
+      // Filter out women's products
+      const filteredProducts = allProducts.filter(product => 
+        product && product.category !== 'حريمي'
       );
-      setProducts(menProducts);
+      setProducts(filteredProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
-      toast.error("Failed to load products");
+      toast.error("فشل في تحميل المنتجات");
     } finally {
       setLoading(false);
     }
@@ -50,42 +44,42 @@ const ProductManagement = () => {
 
   const handleAddProduct = async (product: Omit<Product, "id">) => {
     try {
-      // Force all products to be men's category
-      const menProduct = {
-        ...product,
-        category: 'Men'
-      };
+      // Don't allow adding women's products
+      if (product.category === 'حريمي') {
+        toast.error("لا يمكن إضافة منتجات نسائية");
+        return;
+      }
       
       const productDb = ProductDatabase.getInstance();
-      await productDb.addProduct(menProduct);
-      toast.success("Product added successfully");
+      await productDb.addProduct(product);
+      toast.success("تمت إضافة المنتج بنجاح");
       setShowAddDialog(false);
       fetchProducts();
     } catch (error) {
       console.error("Error adding product:", error);
-      toast.error("Failed to add product");
+      toast.error("فشل في إضافة المنتج");
     }
   };
 
   const handleEditProduct = async (product: Omit<Product, "id">) => {
     if (!editProduct) return;
     
+    // Don't allow changing to women's category
+    if (product.category === 'حريمي') {
+      toast.error("لا يمكن تحويل المنتج إلى فئة النساء");
+      return;
+    }
+    
     try {
-      // Force all products to be men's category
-      const menProduct = {
-        ...product,
-        category: 'Men'
-      };
-      
       const productDb = ProductDatabase.getInstance();
-      await productDb.updateProduct(editProduct.id, menProduct);
-      toast.success("Product updated successfully");
+      await productDb.updateProduct(editProduct.id, product);
+      toast.success("تم تحديث المنتج بنجاح");
       setShowEditDialog(false);
       setEditProduct(null);
       fetchProducts();
     } catch (error) {
       console.error("Error updating product:", error);
-      toast.error("Failed to update product");
+      toast.error("فشل في تحديث المنتج");
     }
   };
 
@@ -94,27 +88,26 @@ const ProductManagement = () => {
     try {
       const productDb = ProductDatabase.getInstance();
       await productDb.deleteProduct(deleteProductId);
-      toast.success("Product deleted successfully");
+      toast.success("تم حذف المنتج بنجاح");
       setShowDeleteDialog(false);
       setDeleteProductId(null);
       fetchProducts();
     } catch (error) {
       console.error("Error deleting product:", error);
-      toast.error("Failed to delete product");
+      toast.error("فشل في حذف المنتج");
     }
   };
 
-  // Filter products by search and subcategory
+  // Filter products by search and category
   const filteredProducts = products.filter(product => {
     const matchesSearch = 
       (product.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-      (product.type?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+      (product.type?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+      (product.category?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
-    const matchesSubcategory = 
-      subcategoryFilter === "ALL" || 
-      (product.type?.toLowerCase() === subcategoryFilter.toLowerCase());
+    const matchesCategory = categoryFilter === "ALL" || product.category === categoryFilter;
     
-    return matchesSearch && matchesSubcategory;
+    return matchesSearch && matchesCategory;
   });
 
   return (
@@ -122,32 +115,24 @@ const ProductManagement = () => {
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div className="flex flex-col sm:flex-row gap-2">
           <input
-            placeholder="Search for a product..."
+            placeholder="بحث عن منتج..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="border px-3 py-2 rounded w-full md:w-64"
           />
-          <Select 
-            value={subcategoryFilter} 
-            onValueChange={(value) => setSubcategoryFilter(value)}
-            defaultValue="ALL"
+          <select 
+            value={categoryFilter} 
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border px-3 py-2 rounded w-full md:w-48"
           >
-            <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="All subcategories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">All subcategories</SelectItem>
-              {MEN_SUBCATEGORIES.slice(1).map(subcategory => (
-                <SelectItem key={subcategory} value={subcategory}>
-                  {subcategory}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="ALL">كل الفئات</option>
+            <option value="رجالي">رجالي</option>
+            <option value="أطفال">أطفال</option>
+          </select>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <Button onClick={() => setShowAddDialog(true)} className="bg-green-800 hover:bg-green-900 text-sm">
-            <Plus className="h-4 w-4 mr-2" /> Add New Product
+            <Plus className="h-4 w-4 mr-2" /> إضافة منتج جديد
           </Button>
           <Button
             onClick={() => {
@@ -156,14 +141,14 @@ const ProductManagement = () => {
             }}
             className="bg-red-700 hover:bg-red-800 text-white text-sm"
           >
-            Clear All Products
+            مسح كل المنتجات
           </Button>
         </div>
       </div>
       
       <Card className="border-green-100">
         <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white">
-          <CardTitle className="text-xl">Product Management</CardTitle>
+          <CardTitle className="text-xl">إدارة المنتجات</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -172,20 +157,21 @@ const ProductManagement = () => {
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-10">
-              <p className="text-gray-500">No products found</p>
+              <p className="text-gray-500">لا يوجد منتجات</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-green-50">
                   <TableRow>
-                    <TableHead className="w-16">Image</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Subcategory</TableHead>
-                    <TableHead className="hidden lg:table-cell">Sizes</TableHead>
-                    <TableHead className="hidden md:table-cell">Stock</TableHead>
-                    <TableHead className="hidden md:table-cell">Discount</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-16">الصورة</TableHead>
+                    <TableHead>الاسم</TableHead>
+                    <TableHead className="hidden md:table-cell">القسم</TableHead>
+                    <TableHead className="hidden md:table-cell">النوع</TableHead>
+                    <TableHead className="hidden lg:table-cell">المقاسات</TableHead>
+                    <TableHead className="hidden md:table-cell">المخزون</TableHead>
+                    <TableHead className="hidden md:table-cell">الخصم</TableHead>
+                    <TableHead className="text-right">إجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -201,7 +187,8 @@ const ProductManagement = () => {
                       <TableCell className="font-medium truncate" title={product.name}>
                         <div className="max-w-[120px] truncate">{product.name}</div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{product.type || 'T-shirts'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{product.category}</TableCell>
+                      <TableCell className="hidden md:table-cell">{product.type}</TableCell>
                       <TableCell className="hidden lg:table-cell">
                         {product.sizes && product.sizes.length > 0 ? 
                           <div className="max-w-[120px] truncate">{product.sizes.map(s => s.size).join(", ")}</div> : "-"}
@@ -249,13 +236,12 @@ const ProductManagement = () => {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="sm:max-w-lg overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Add New Product</DialogTitle>
+            <DialogTitle>إضافة منتج جديد</DialogTitle>
           </DialogHeader>
           <ImprovedProductForm
             onSubmit={handleAddProduct}
-            submitLabel="Add Product"
+            submitLabel="إضافة المنتج"
             onCancel={() => setShowAddDialog(false)}
-            subcategories={MEN_SUBCATEGORIES.slice(1)}  // Exclude 'All'
           />
         </DialogContent>
       </Dialog>
@@ -264,15 +250,14 @@ const ProductManagement = () => {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-lg overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
+            <DialogTitle>تعديل المنتج</DialogTitle>
           </DialogHeader>
           {editProduct && (
             <ImprovedProductForm
               initialData={editProduct}
               onSubmit={handleEditProduct}
-              submitLabel="Save Changes"
+              submitLabel="حفظ التعديلات"
               onCancel={() => setShowEditDialog(false)}
-              subcategories={MEN_SUBCATEGORIES.slice(1)}  // Exclude 'All'
             />
           )}
         </DialogContent>
@@ -282,12 +267,12 @@ const ProductManagement = () => {
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete Product</DialogTitle>
+            <DialogTitle>حذف المنتج</DialogTitle>
           </DialogHeader>
-          <p>Are you sure you want to delete this product? This action cannot be undone.</p>
+          <p>هل أنت متأكد أنك تريد حذف هذا المنتج؟ لا يمكن التراجع عن هذا الإجراء.</p>
           <DialogFooter>
-            <Button onClick={() => setShowDeleteDialog(false)}>Cancel</Button>
-            <Button onClick={handleDeleteProduct} className="bg-red-600 hover:bg-red-700 text-white">Delete</Button>
+            <Button onClick={() => setShowDeleteDialog(false)}>إلغاء</Button>
+            <Button onClick={handleDeleteProduct} className="bg-red-600 hover:bg-red-700 text-white">حذف</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
