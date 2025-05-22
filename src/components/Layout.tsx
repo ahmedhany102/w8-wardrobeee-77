@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Footer from './Footer';
 import { useAuth } from '@/contexts/AuthContext';
@@ -5,9 +6,10 @@ import { useNavigate } from 'react-router-dom';
 
 interface LayoutProps {
   children: React.ReactNode;
+  hideFooter?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout: React.FC<LayoutProps> = ({ children, hideFooter = false }) => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -29,7 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         )}
       </main>
-      <Footer />
+      {!hideFooter && <Footer />}
     </div>
   );
 };
