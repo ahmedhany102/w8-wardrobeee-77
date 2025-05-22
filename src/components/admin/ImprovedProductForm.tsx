@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,7 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({
   const [sizes, setSizes] = useState<Size[]>(
     initialData?.sizes 
       ? initialData.sizes.map(s => ({
-          id: s.id || uuidv4(), // Generate id if missing
+          id: uuidv4(), // Generate a new id for each size
           size: s.size,
           stock: s.stock,
           price: s.price
@@ -80,19 +79,19 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-	const addImage = () => {
-		if (!newImage) {
-			toast.error('Please upload an image');
-			return;
-		}
+  const addImage = () => {
+    if (!newImage) {
+      toast.error('Please upload an image');
+      return;
+    }
 
-		setImages([...images, newImage]);
-		setNewImage('');
-	};
+    setImages([...images, newImage]);
+    setNewImage('');
+  };
 
-	const removeImage = (imageToRemove: string) => {
-		setImages(images.filter(image => image !== imageToRemove));
-	};
+  const removeImage = (imageToRemove: string) => {
+    setImages(images.filter(image => image !== imageToRemove));
+  };
 
   const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,7 +145,6 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({
       size: size.size,
       stock: size.stock,
       price: size.price || price, // Use size-specific price or fall back to main price
-      id: size.id
     }));
 
     const productData: Omit<Product, "id"> = {
