@@ -1,6 +1,6 @@
 
 /**
- * Function to ensure consistent behavior across different browsers
+ * Function to ensure consistent behavior across different browsers and devices
  * Call this on app startup to apply compatibility fixes
  */
 export function ensureBrowserCompatibility() {
@@ -26,7 +26,12 @@ export function ensureBrowserCompatibility() {
       alert('This site requires local storage to work properly. Please enable cookies and local storage in your browser settings.');
     }
     
-    // Force apply any saved contact settings to ensure footer consistency
+    // Add touch device detection
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+      document.body.classList.add('touch-device');
+    }
+    
+    // Apply default settings if needed
     const savedSettings = localStorage.getItem('contactSettings');
     if (!savedSettings) {
       // If no settings found, add default contact settings
@@ -68,6 +73,16 @@ export function ensureBrowserCompatibility() {
       }
     }
   });
+  
+  // Add resize handler for responsive design adjustments
+  window.addEventListener('resize', () => {
+    const isMobile = window.innerWidth < 768;
+    document.documentElement.classList.toggle('is-mobile', isMobile);
+  });
+  
+  // Trigger resize handler once on load
+  const isMobile = window.innerWidth < 768;
+  document.documentElement.classList.toggle('is-mobile', isMobile);
 }
 
 // Call this function immediately

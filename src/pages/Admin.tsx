@@ -34,9 +34,9 @@ const Admin = ({ activeTab = "dashboard" }) => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start mb-6">
           <div>
-            <h1 className="text-2xl font-bold mb-2">لوحة التحكم</h1>
+            <h1 className="text-2xl font-bold mb-2">Admin Dashboard</h1>
             <p className="text-gray-600">
-              مرحباً {user.displayName || user.name || user.email}، يمكنك إدارة المتجر من هنا.
+              Welcome {user.displayName || user.name || user.email}, you can manage the store here.
             </p>
           </div>
           <Button
@@ -44,7 +44,7 @@ const Admin = ({ activeTab = "dashboard" }) => {
             className="bg-red-600 hover:bg-red-700 mt-4 md:mt-0"
           >
             <LogOut className="w-4 h-4 mr-2" />
-            تسجيل الخروج
+            Logout
           </Button>
         </div>
 
@@ -57,31 +57,31 @@ const Admin = ({ activeTab = "dashboard" }) => {
           <TabsList className="flex overflow-x-auto mb-6 pb-2 scrollbar-hide">
             <TabsTrigger value="dashboard" onClick={() => navigate("/admin")}>
               <Home className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">الرئيسية</span>
+              <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
             <TabsTrigger value="products" onClick={() => navigate("/admin/products")}>
               <Package className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">المنتجات</span>
+              <span className="hidden sm:inline">Products</span>
             </TabsTrigger>
             <TabsTrigger value="orders" onClick={() => navigate("/admin/orders")}>
               <Settings className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">الطلبات</span>
+              <span className="hidden sm:inline">Orders</span>
             </TabsTrigger>
             <TabsTrigger value="coupons" onClick={() => navigate("/admin/coupons")}>
               <Ticket className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">الكوبونات</span>
+              <span className="hidden sm:inline">Coupons</span>
             </TabsTrigger>
             <TabsTrigger value="contact" onClick={() => navigate("/admin/contact")}>
               <Settings className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">بيانات التواصل</span>
+              <span className="hidden sm:inline">Contact</span>
             </TabsTrigger>
             <TabsTrigger value="ads" onClick={() => navigate("/admin/ads")}>
               <Settings className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">الإعلانات</span>
+              <span className="hidden sm:inline">Advertisements</span>
             </TabsTrigger>
             <TabsTrigger value="users" onClick={() => navigate("/admin/users")}>
               <Users className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">المستخدمين</span>
+              <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
           </TabsList>
 
@@ -89,9 +89,9 @@ const Admin = ({ activeTab = "dashboard" }) => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Dashboard content */}
               <div className="p-6 bg-white rounded-lg shadow">
-                <h3 className="text-xl font-bold">إدارة المتجر</h3>
+                <h3 className="text-xl font-bold">Store Management</h3>
                 <p className="mt-2 text-gray-600">
-                  مرحباً بك في لوحة التحكم. يمكنك إدارة المنتجات والطلبات والمزيد من هنا.
+                  Welcome to the admin dashboard. You can manage products, orders, and more from here.
                 </p>
               </div>
             </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Product, default as ProductDatabase } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -9,8 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ImprovedProductForm from "./ImprovedProductForm";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-// Define men's product subcategories
-const MEN_SUBCATEGORIES = ['All', 'T-shirts', 'Pants', 'Shoes', 'Jackets'];
+// Define men's product categories
+const MEN_CATEGORIES = ['All', 'T-shirts', 'Pants', 'Shoes', 'Jackets'];
 
 const ProductManagement = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -21,7 +22,7 @@ const ProductManagement = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-  const [subcategoryFilter, setSubcategoryFilter] = useState<string>("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
   useEffect(() => {
     fetchProducts();
@@ -35,9 +36,9 @@ const ProductManagement = () => {
       // Only keep men's products
       const menProducts = allProducts.filter(product => 
         product && 
-        (product.category === 'رجالي' || 
-         product.category === 'Men' || 
-         product.category === "Men's")
+        (product.category === 'Men' || 
+         product.category === "Men's" ||
+         product.category === "رجالي")
       );
       setProducts(menProducts);
     } catch (error) {
@@ -104,17 +105,17 @@ const ProductManagement = () => {
     }
   };
 
-  // Filter products by search and subcategory
+  // Filter products by search and category
   const filteredProducts = products.filter(product => {
     const matchesSearch = 
       (product.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       (product.type?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
-    const matchesSubcategory = 
-      subcategoryFilter === "ALL" || 
-      (product.type?.toLowerCase() === subcategoryFilter.toLowerCase());
+    const matchesCategory = 
+      categoryFilter === "ALL" || 
+      (product.type?.toLowerCase() === categoryFilter.toLowerCase());
     
-    return matchesSearch && matchesSubcategory;
+    return matchesSearch && matchesCategory;
   });
 
   return (
@@ -128,18 +129,18 @@ const ProductManagement = () => {
             className="border px-3 py-2 rounded w-full md:w-64"
           />
           <Select 
-            value={subcategoryFilter} 
-            onValueChange={(value) => setSubcategoryFilter(value)}
+            value={categoryFilter} 
+            onValueChange={(value) => setCategoryFilter(value)}
             defaultValue="ALL"
           >
             <SelectTrigger className="w-full md:w-48">
-              <SelectValue placeholder="All subcategories" />
+              <SelectValue placeholder="All categories" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All subcategories</SelectItem>
-              {MEN_SUBCATEGORIES.slice(1).map(subcategory => (
-                <SelectItem key={subcategory} value={subcategory}>
-                  {subcategory}
+              <SelectItem value="ALL">All categories</SelectItem>
+              {MEN_CATEGORIES.slice(1).map(category => (
+                <SelectItem key={category} value={category}>
+                  {category}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -181,7 +182,7 @@ const ProductManagement = () => {
                   <TableRow>
                     <TableHead className="w-16">Image</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Subcategory</TableHead>
+                    <TableHead className="hidden md:table-cell">Category</TableHead>
                     <TableHead className="hidden lg:table-cell">Sizes</TableHead>
                     <TableHead className="hidden md:table-cell">Stock</TableHead>
                     <TableHead className="hidden md:table-cell">Discount</TableHead>
@@ -255,7 +256,7 @@ const ProductManagement = () => {
             onSubmit={handleAddProduct}
             submitLabel="Add Product"
             onCancel={() => setShowAddDialog(false)}
-            subcategories={MEN_SUBCATEGORIES.slice(1)}  // Exclude 'All'
+            categories={MEN_CATEGORIES.slice(1)}  // Exclude 'All'
           />
         </DialogContent>
       </Dialog>
@@ -272,7 +273,7 @@ const ProductManagement = () => {
               onSubmit={handleEditProduct}
               submitLabel="Save Changes"
               onCancel={() => setShowEditDialog(false)}
-              subcategories={MEN_SUBCATEGORIES.slice(1)}  // Exclude 'All'
+              categories={MEN_CATEGORIES.slice(1)}  // Exclude 'All'
             />
           )}
         </DialogContent>

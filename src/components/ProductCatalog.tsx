@@ -10,15 +10,14 @@ import { Button } from './ui/button';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
 
-// Define subcategories
-const MEN_SUBCATEGORIES = ['All', 'T-shirts', 'Pants', 'Shoes', 'Jackets'];
+// Define men's product categories
+const MEN_CATEGORIES = ['All', 'T-shirts', 'Pants', 'Shoes', 'Jackets'];
 
 const ProductCatalog: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('ALL');
-  const [activeSubcategory, setActiveSubcategory] = useState('All');
+  const [activeCategory, setActiveCategory] = useState('All');
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [showCartDialog, setShowCartDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,12 +61,12 @@ const ProductCatalog: React.FC = () => {
     try {
       const productDb = ProductDatabase.getInstance();
       const allProducts = await productDb.getAllProducts();
-      // Filter for men's products only (no Kids, no Women's)
+      // Filter for men's products only
       const menOnly = allProducts.filter(
         product => product && 
-          product.category === 'رجالي' || 
-          product.category === 'Men' || 
-          product.category === "Men's"
+          (product.category === 'Men' || 
+          product.category === "Men's" || 
+          product.category === "رجالي")
       );
       setProducts(menOnly);
       setFilteredProducts(menOnly);
@@ -82,19 +81,19 @@ const ProductCatalog: React.FC = () => {
   // Handle search functionality
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    filterProducts(activeSubcategory, query);
+    filterProducts(activeCategory, query);
   };
 
-  // Main filter function that combines category, subcategory, and search filtering
-  const filterProducts = (subcategory: string, query: string = searchQuery) => {
+  // Main filter function that combines category and search filtering
+  const filterProducts = (category: string, query: string = searchQuery) => {
     const lowercaseQuery = query.toLowerCase();
     
     let filtered = products;
     
-    // Filter by subcategory if not "All"
-    if (subcategory !== 'All') {
+    // Filter by category if not "All"
+    if (category !== 'All') {
       filtered = filtered.filter(product => 
-        product && product.type && product.type.toLowerCase() === subcategory.toLowerCase()
+        product && product.type && product.type.toLowerCase() === category.toLowerCase()
       );
     }
     
@@ -114,10 +113,10 @@ const ProductCatalog: React.FC = () => {
     setFilteredProducts(filtered);
   };
 
-  // Handle subcategory change
-  const handleSubcategoryChange = (subcategory: string) => {
-    setActiveSubcategory(subcategory);
-    filterProducts(subcategory);
+  // Handle category change
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+    filterProducts(category);
   };
 
   const handleAddToCart = async (product: Product, size: string, quantity: number = 1) => {
@@ -238,21 +237,21 @@ const ProductCatalog: React.FC = () => {
       {/* Search Bar */}
       <SearchBar onSearch={handleSearch} />
       
-      {/* Subcategories */}
+      {/* Categories */}
       <div className="mb-8">
         <div className="flex justify-center overflow-x-auto pb-4">
           <div className="bg-gradient-to-r from-green-900 to-black inline-flex rounded-md p-1">
-            {MEN_SUBCATEGORIES.map(subcategory => (
+            {MEN_CATEGORIES.map(category => (
               <button
-                key={subcategory}
-                onClick={() => handleSubcategoryChange(subcategory)}
+                key={category}
+                onClick={() => handleCategoryChange(category)}
                 className={`px-4 py-2 text-sm rounded-md transition-colors ${
-                  activeSubcategory === subcategory 
+                  activeCategory === category 
                     ? 'bg-green-200 text-green-800' 
                     : 'text-white hover:text-green-200'
                 }`}
               >
-                {subcategory}
+                {category}
               </button>
             ))}
           </div>
@@ -270,7 +269,7 @@ const ProductCatalog: React.FC = () => {
             onClick={() => {
               setSearchQuery('');
               handleSearch('');
-              setActiveSubcategory('All');
+              setActiveCategory('All');
               filterProducts('All', '');
             }}
             className="bg-green-800 hover:bg-green-900 interactive-button"
