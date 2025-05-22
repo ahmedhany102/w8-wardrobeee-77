@@ -1,21 +1,3 @@
-
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import Layout from './components/Layout';
-import Index from './pages/Index';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import Cart from './pages/Cart';
-import NotFound from './pages/NotFound';
-import Profile from './pages/Profile';
-import Contact from './pages/Contact';
-import Terms from './pages/Terms';
-import OrderTracking from './pages/OrderTracking';
-import Admin from './pages/Admin';
-import AdminLogin from './pages/AdminLogin';
-import ProductDetails from './pages/ProductDetails';
-import { RequireAuth } from './components/RequireAuth';
-
 /**
  * Function to ensure consistent behavior across different browsers
  * Call this on app startup to apply compatibility fixes
@@ -97,24 +79,4 @@ ensureBrowserCompatibility();
   });
 };
 
-// Define the App component
-const App = () => {
-  return (
-    <Routes>
-      <Route path="/" element={<Layout><Index /></Layout>} />
-      <Route path="/login" element={<Layout><Login /></Layout>} />
-      <Route path="/signup" element={<Layout><Signup /></Layout>} />
-      <Route path="/cart" element={<Layout><Cart /></Layout>} />
-      <Route path="/profile" element={<RequireAuth><Layout><Profile /></Layout></RequireAuth>} />
-      <Route path="/contact" element={<Layout><Contact /></Layout>} />
-      <Route path="/terms" element={<Layout><Terms /></Layout>} />
-      <Route path="/orders/:orderId" element={<RequireAuth><Layout><OrderTracking /></Layout></RequireAuth>} />
-      <Route path="/product/:productId" element={<Layout><ProductDetails /></Layout>} />
-      <Route path="/admin-login" element={<AdminLogin />} />
-      <Route path="/admin/*" element={<RequireAuth adminOnly={true}><Admin /></RequireAuth>} />
-      <Route path="*" element={<Layout><NotFound /></Layout>} />
-    </Routes>
-  );
-};
-
-export default App;
+export default ensureBrowserCompatibility;
