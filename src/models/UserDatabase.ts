@@ -1,7 +1,8 @@
+
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { User, isValidRole, isValidStatus } from '@/models/User';
-import { supabase, supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 class UserDatabase {
   private static instance: UserDatabase;
@@ -32,118 +33,6 @@ class UserDatabase {
   private validateEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
-  }
-
-  public async signIn(email: string, password: string): Promise<User | null> {
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        console.error('Error signing in:', error);
-        throw error;
-      }
-
-      if (!data.user) {
-        throw new Error('No user data returned');
-      }
-
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching user profile:', profileError);
-        throw profileError;
-      }
-
-      // Update last login
-      await supabase
-        .from('profiles')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', data.user.id);
-
-      return {
-        id: data.user.id,
-        email: data.user.email || '',
-        name: profile.name || '',
-        role: profile.role || 'USER',
-        createdAt: profile.created_at || new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        ipAddress: profile.ip_address || '',
-        status: profile.status || 'ACTIVE',
-        isAdmin: profile.is_admin || false,
-        isSuperAdmin: profile.is_super_admin || false,
-        isBlocked: profile.is_blocked || false
-      };
-    } catch (error) {
-      console.error('Error in signIn:', error);
-      throw error;
-    }
-  }
-
-  public async signUp(email: string, password: string, name: string): Promise<User | null> {
-    try {
-      // Register user with Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name
-          }
-        }
-      });
-
-      if (authError) {
-        console.error('Error in signUp:', authError);
-        throw authError;
-      }
-
-      if (!authData.user) {
-        throw new Error('No user data returned');
-      }
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          email,
-          name,
-          role: 'USER',
-          status: 'ACTIVE',
-          created_at: new Date().toISOString(),
-          last_login: new Date().toISOString()
-        });
-
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        throw profileError;
-      }
-
-      return {
-        id: authData.user.id,
-        email,
-        name,
-        role: 'USER',
-        createdAt: new Date().toISOString(),
-        lastLogin: new Date().toISOString(),
-        ipAddress: '',
-        status: 'ACTIVE',
-        isAdmin: false,
-        isSuperAdmin: false,
-        isBlocked: false
-      };
-    } catch (error) {
-      console.error('Error in signUp:', error);
-      throw error;
-    }
   }
 
   public async addUser(userData: Partial<User>): Promise<User | null> {
@@ -286,6 +175,66 @@ class UserDatabase {
       };
     } catch (error) {
       console.error('Error creating admin user:', error);
+      return null;
+    }
+  }
+
+  public async loginUser(email: string, password: string): Promise<User | null> {
+    try {
+      // Sign in with email and password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.log('Login error:', error);
+        return null;
+      }
+
+      if (!data.user) {
+        console.log('No user found');
+        return null;
+      }
+
+      // Get the user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (profileError || !profile) {
+        console.error('Error fetching user profile:', profileError);
+        return null;
+      }
+
+      // Update last login time
+      await supabase
+        .from('profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', data.user.id);
+
+      // Ensure role and status have valid values
+      const role = isValidRole(profile.role) ? profile.role : 'USER';
+      const status = isValidStatus(profile.status) ? profile.status : 'ACTIVE';
+
+      // Return user data without password
+      return {
+        id: data.user.id,
+        email: data.user.email || '',
+        name: profile.name || '',
+        role,
+        createdAt: profile.created_at,
+        lastLogin: new Date().toISOString(),
+        ipAddress: profile.ip_address || '0.0.0.0',
+        status,
+        isAdmin: profile.is_admin || false,
+        isSuperAdmin: profile.is_super_admin || false,
+        isBlocked: profile.is_blocked || false
+      };
+    } catch (error) {
+      console.error('Error during login:', error);
       return null;
     }
   }
