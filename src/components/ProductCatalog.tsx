@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -58,9 +57,9 @@ const ProductCatalog: React.FC = () => {
     try {
       const productDb = ProductDatabase.getInstance();
       const allProducts = await productDb.getAllProducts();
-      // Filter out products in حريمي category (Women)
+      // Only keep men's products
       const filteredByGender = allProducts.filter(
-        product => product && product.category !== 'حريمي'
+        product => product && product.category !== 'حريمي' && product.category !== 'أطفال'
       );
       setProducts(filteredByGender);
       setFilteredProducts(filteredByGender);
@@ -89,7 +88,11 @@ const ProductCatalog: React.FC = () => {
           (product.name?.toLowerCase().includes(lowercaseQuery) || false) || 
           (product.description?.toLowerCase().includes(lowercaseQuery) || false);
         
-        const matchesCategory = activeTab === 'ALL' || product.category === activeTab;
+        const matchesCategory = activeTab === 'ALL' || 
+                                (activeTab === 'T-Shirts' && product.type === 'T-Shirts') ||
+                                (activeTab === 'Trousers' && product.type === 'Trousers') ||
+                                (activeTab === 'Shoes' && product.type === 'Shoes') ||
+                                (activeTab === 'Jackets' && product.type === 'Jackets');
         
         return matchesSearch && matchesCategory;
       });
@@ -103,7 +106,7 @@ const ProductCatalog: React.FC = () => {
     if (category === 'ALL') {
       setFilteredProducts(products);
     } else {
-      const filtered = products.filter(product => product && product.category === category);
+      const filtered = products.filter(product => product && product.type === category);
       setFilteredProducts(filtered);
     }
   };
@@ -144,9 +147,9 @@ const ProductCatalog: React.FC = () => {
     const success = await cartDb.addToCart(product, size.toString(), product.colors?.[0] || "", quantity);
     if (success) {
       window.dispatchEvent(new Event('cartUpdated'));
-      toast.success(`${product.name} تمت إضافته للعربة`);
+      toast.success(`${product.name} added to cart`);
     } else {
-      toast.error('فشل في إضافة المنتج للعربة');
+      toast.error('Failed to add product to cart');
     }
   };
 
@@ -247,16 +250,28 @@ const ProductCatalog: React.FC = () => {
               All
             </TabsTrigger>
             <TabsTrigger 
-              value="رجالي" 
+              value="T-Shirts" 
               className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
             >
-              رجالي
+              T-Shirts
             </TabsTrigger>
             <TabsTrigger 
-              value="أطفال" 
+              value="Trousers" 
               className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
             >
-              أطفال
+              Trousers
+            </TabsTrigger>
+            <TabsTrigger 
+              value="Shoes" 
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
+            >
+              Shoes
+            </TabsTrigger>
+            <TabsTrigger 
+              value="Jackets" 
+              className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
+            >
+              Jackets
             </TabsTrigger>
           </TabsList>
         </div>

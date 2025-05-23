@@ -9,7 +9,224 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      cart_items: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          image_url: string | null
+          name: string
+          price: number
+          product_id: string
+          quantity: number
+          size: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          price: number
+          product_id: string
+          quantity?: number
+          size?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          price?: number
+          product_id?: string
+          quantity?: number
+          size?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          coupon_info: Json | null
+          created_at: string | null
+          customer_info: Json
+          id: string
+          items: Json
+          notes: string | null
+          order_number: string
+          payment_info: Json | null
+          payment_status: string
+          status: string
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          coupon_info?: Json | null
+          created_at?: string | null
+          customer_info: Json
+          id?: string
+          items: Json
+          notes?: string | null
+          order_number: string
+          payment_info?: Json | null
+          payment_status?: string
+          status?: string
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          coupon_info?: Json | null
+          created_at?: string | null
+          customer_info?: Json
+          id?: string
+          items?: Json
+          notes?: string | null
+          order_number?: string
+          payment_info?: Json | null
+          payment_status?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          ad_product_id: string | null
+          category: string | null
+          category_path: string[] | null
+          color: string | null
+          color_images: Json | null
+          colors: string[] | null
+          created_at: string | null
+          description: string | null
+          details: string | null
+          discount: number | null
+          featured: boolean | null
+          has_discount: boolean | null
+          id: string
+          image_url: string | null
+          images: string[] | null
+          inventory: number | null
+          main_image: string | null
+          name: string
+          price: number
+          rating: number | null
+          size: string | null
+          sizes: Json | null
+          stock: number | null
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ad_product_id?: string | null
+          category?: string | null
+          category_path?: string[] | null
+          color?: string | null
+          color_images?: Json | null
+          colors?: string[] | null
+          created_at?: string | null
+          description?: string | null
+          details?: string | null
+          discount?: number | null
+          featured?: boolean | null
+          has_discount?: boolean | null
+          id?: string
+          image_url?: string | null
+          images?: string[] | null
+          inventory?: number | null
+          main_image?: string | null
+          name: string
+          price?: number
+          rating?: number | null
+          size?: string | null
+          sizes?: Json | null
+          stock?: number | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ad_product_id?: string | null
+          category?: string | null
+          category_path?: string[] | null
+          color?: string | null
+          color_images?: Json | null
+          colors?: string[] | null
+          created_at?: string | null
+          description?: string | null
+          details?: string | null
+          discount?: number | null
+          featured?: boolean | null
+          has_discount?: boolean | null
+          id?: string
+          image_url?: string | null
+          images?: string[] | null
+          inventory?: number | null
+          main_image?: string | null
+          name?: string
+          price?: number
+          rating?: number | null
+          size?: string | null
+          sizes?: Json | null
+          stock?: number | null
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          ip_address: string | null
+          is_admin: boolean | null
+          is_blocked: boolean | null
+          is_super_admin: boolean | null
+          last_login: string | null
+          name: string | null
+          role: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id: string
+          ip_address?: string | null
+          is_admin?: boolean | null
+          is_blocked?: boolean | null
+          is_super_admin?: boolean | null
+          last_login?: string | null
+          name?: string | null
+          role?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          ip_address?: string | null
+          is_admin?: boolean | null
+          is_blocked?: boolean | null
+          is_super_admin?: boolean | null
+          last_login?: string | null
+          name?: string | null
+          role?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

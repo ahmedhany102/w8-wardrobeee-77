@@ -18,6 +18,7 @@ interface ProductFormProps {
   onSubmit: (product: Omit<Product, "id">) => void;
   submitLabel?: string;
   onCancel?: () => void;
+  allowSizesWithoutColors?: boolean;
 }
 
 // Define available categories with nested structure
@@ -46,7 +47,7 @@ const categoryStructure = {
   }
 };
 
-const ImprovedProductForm = ({ initialData = {}, onSubmit, submitLabel = "حفظ المنتج", onCancel }: ProductFormProps) => {
+const ImprovedProductForm = ({ initialData = {}, onSubmit, submitLabel = "حفظ المنتج", onCancel, allowSizesWithoutColors }: ProductFormProps) => {
   // Basic product information
   const [name, setName] = useState(initialData.name || "");
   const [categoryPath, setCategoryPath] = useState<string[]>(initialData.categoryPath || []);

@@ -18,7 +18,7 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   // Adding properties referenced elsewhere in the codebase
-  type?: string;
+  type?: string; // Used for categories: T-Shirts, Trousers, Shoes, Jackets
   details?: string;
   mainImage?: string;
   colors?: string[];
@@ -113,12 +113,16 @@ export class ProductDatabase {
     try {
       const savedProducts = localStorage.getItem('products');
       if (savedProducts) {
-        // Filter out women's products
+        // Filter out women's and kids' products
         const allProducts = JSON.parse(savedProducts);
         this.products = allProducts.filter((product: Product) => 
-          product && product.category !== 'Women' && 
+          product && 
+          product.category !== 'حريمي' && 
+          product.category !== 'أطفال' && 
           product.category !== 'Girls' &&
-          product.category !== 'Female'
+          product.category !== 'Female' &&
+          product.category !== 'Women' &&
+          product.category !== 'Kids'
         );
       }
       window.dispatchEvent(new Event('productsUpdated'));
@@ -139,12 +143,16 @@ export class ProductDatabase {
     const request = store.getAll();
 
     request.onsuccess = () => {
-      // Filter out women's products
+      // Filter out women's and kids' products
       const allProducts = request.result || [];
       this.products = allProducts.filter((product: Product) => 
-        product && product.category !== 'Women' && 
+        product && 
+        product.category !== 'حريمي' && 
+        product.category !== 'أطفال' && 
         product.category !== 'Girls' &&
-        product.category !== 'Female'
+        product.category !== 'Female' &&
+        product.category !== 'Women' &&
+        product.category !== 'Kids'
       );
       
       // Also sync with localStorage for cross-browser compatibility
@@ -208,12 +216,15 @@ export class ProductDatabase {
   }
 
   public async getAllProducts(): Promise<Product[]> {
-    // Filter out women's products
+    // Filter out women's and kids' products
     return this.products.filter(product => 
       product && 
-      product.category !== 'Women' && 
+      product.category !== 'حريمي' && 
+      product.category !== 'أطفال' && 
       product.category !== 'Girls' &&
-      product.category !== 'Female'
+      product.category !== 'Female' &&
+      product.category !== 'Women' &&
+      product.category !== 'Kids'
     );
   }
 
@@ -224,6 +235,12 @@ export class ProductDatabase {
   }
 
   public async addProduct(productData: Omit<Product, "id">): Promise<Product> {
+    // Ensure product is in one of the allowed categories
+    const validTypes = ['T-Shirts', 'Trousers', 'Shoes', 'Jackets'];
+    if (!productData.type || !validTypes.includes(productData.type)) {
+      productData.type = validTypes[0]; // Default to T-Shirts if invalid
+    }
+    
     const newProduct: Product = {
       ...productData,
       id: uuidv4(),
@@ -231,6 +248,7 @@ export class ProductDatabase {
       updatedAt: new Date().toISOString(),
       description: productData.description || '',
       inventory: productData.inventory || 0,
+      category: 'Men', // All products are men's products
     };
     
     this.products.push(newProduct);
@@ -242,9 +260,16 @@ export class ProductDatabase {
     const index = this.products.findIndex(p => p.id === id);
     if (index === -1) return false;
     
+    // Ensure updated product stays in allowed categories
+    const validTypes = ['T-Shirts', 'Trousers', 'Shoes', 'Jackets'];
+    if (updates.type && !validTypes.includes(updates.type)) {
+      updates.type = this.products[index].type || validTypes[0];
+    }
+    
     this.products[index] = {
       ...this.products[index],
       ...updates,
+      category: 'Men', // Ensure it stays as men's product
       updatedAt: new Date().toISOString(),
     };
     
@@ -255,17 +280,30 @@ export class ProductDatabase {
   // Update stock quantity after purchase
   public async updateProductStock(productId: string, size: string, quantity: number): Promise<boolean> {
     const product = this.products.find(p => p.id === productId);
-    if (!product || !product.sizes) return false;
+    if (!product) return false;
     
-    const sizeIndex = product.sizes.findIndex(s => s.size === size);
-    if (sizeIndex === -1) return false;
+    // Handle the case where the product has sizes
+    if (product.sizes && product.sizes.length > 0) {
+      const sizeIndex = product.sizes.findIndex(s => s.size === size);
+      if (sizeIndex === -1) return false;
+      
+      // Ensure we don't go below 0
+      const newStock = Math.max(0, product.sizes[sizeIndex].stock - quantity);
+      product.sizes[sizeIndex].stock = newStock;
+      
+      this.saveProducts();
+      return true;
+    } 
+    // Handle the case where the product has a single stock value
+    else if (product.stock !== undefined) {
+      // Ensure we don't go below 0
+      product.stock = Math.max(0, product.stock - quantity);
+      
+      this.saveProducts();
+      return true;
+    }
     
-    // Ensure we don't go below 0
-    const newStock = Math.max(0, product.sizes[sizeIndex].stock - quantity);
-    product.sizes[sizeIndex].stock = newStock;
-    
-    this.saveProducts();
-    return true;
+    return false;
   }
 
   public async deleteProduct(id: string): Promise<boolean> {
