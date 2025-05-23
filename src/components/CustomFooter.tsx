@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Linkedin, MessageCircleMore, Twitter, Youtube } from 'lucide-react';
@@ -184,23 +183,34 @@ const CustomFooter = () => {
           <div className="flex flex-col md:flex-row justify-between items-center text-center md:text-left">
             <p className="text-xs text-gray-300 mb-3 md:mb-0">© {new Date().getFullYear()} {storeName}</p>
             
-            <div className="flex items-center space-x-4">
-              <span className="text-xs text-gray-300">Dev {developerName}:</span>
-              
-              <a href="https://wa.me/qr/2O2JSVLBTNEIJ1" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-green-400" title="WhatsApp">
-                <MessageCircleMore size={16} />
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-300">Developed by {developerName} —</span>
+              <a
+                href="#" // placeholder for GitHub link
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-green-400 text-xs"
+                title="GitHub Profile"
+              >
+                GitHub
               </a>
-              
-              <a href="https://www.facebook.com/share/16LEN8zQG3/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-400" title="Facebook">
-                <Facebook size={16} />
+              <span>|</span>
+              <a
+                href={developerUrl} // Uses existing portfolio link
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-green-400 text-xs"
+                title="Portfolio"
+              >
+                Portfolio
               </a>
-              
-              <a href="https://www.instagram.com/a7med._.hany/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-pink-400" title="Instagram">
-                <Instagram size={16} />
-              </a>
-              
-              <a href="https://linkedin.com/in/ahmed-hany-436342257" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-500" title="LinkedIn">
-                <Linkedin size={16} />
+               <span>|</span>
+              <a
+                href="mailto:" // placeholder for email link
+                className="text-gray-300 hover:text-green-400 text-xs"
+                title="Email"
+              >
+                Email
               </a>
             </div>
           </div>
