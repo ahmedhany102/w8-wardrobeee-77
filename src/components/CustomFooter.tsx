@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Instagram, Linkedin, MessageCircleMore } from 'lucide-react';
+import { Facebook, Instagram, Linkedin, MessageCircleMore, Twitter, Youtube } from 'lucide-react';
 import ContactSettingsDatabase, { ContactSettings } from '@/models/ContactSettingsDatabase';
 
 const CustomFooter = () => {
@@ -26,6 +26,7 @@ const CustomFooter = () => {
   
   const storeName = settings?.storeName || 'W8 for Men';
   const developerName = settings?.developerName || 'Ahmed Hany';
+  const developerUrl = settings?.developerUrl || 'https://ahmedhany.dev';
 
   return (
     <footer className="mt-auto bg-gradient-to-r from-green-900 to-black text-white py-6 px-4 shadow-inner">
@@ -63,7 +64,7 @@ const CustomFooter = () => {
               <Link to="/terms" className="text-sm hover:text-green-300 transition-colors">Terms & Conditions</Link>
             </nav>
             
-            {!loading && settings && settings.facebook && settings.instagram && (
+            {!loading && settings && (
               <div className="flex space-x-4 mb-4">
                 {settings.facebook && (
                   <a 
@@ -92,7 +93,7 @@ const CustomFooter = () => {
                     rel="noopener noreferrer" 
                     className="text-gray-300 hover:text-blue-400"
                   >
-                    <Instagram size={20} />
+                    <Twitter size={20} />
                   </a>
                 )}
                 {settings.youtube && (
@@ -102,7 +103,7 @@ const CustomFooter = () => {
                     rel="noopener noreferrer" 
                     className="text-gray-300 hover:text-red-400"
                   >
-                    <Instagram size={20} />
+                    <Youtube size={20} />
                   </a>
                 )}
               </div>

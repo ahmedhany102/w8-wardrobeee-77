@@ -61,7 +61,6 @@ class ContactSettingsDatabase {
         ...settings,
         developerName: settings.developerName || 'Ahmed Hany',
         developerUrl: settings.developerUrl || 'https://ahmedhany.dev',
-        updated_at: new Date().toISOString()
       };
 
       // Convert to snake_case for database
@@ -81,7 +80,7 @@ class ContactSettingsDatabase {
         developer_name: completeSettings.developerName,
         developer_url: completeSettings.developerUrl,
         store_name: completeSettings.storeName || 'W8 for Men',
-        updated_at: completeSettings.updatedAt || new Date().toISOString()
+        updated_at: new Date().toISOString()
       };
 
       let result;
@@ -96,8 +95,7 @@ class ContactSettingsDatabase {
         // Create new settings
         result = await supabase
           .from('contact_settings')
-          .insert(dbSettings)
-          .select();
+          .insert(dbSettings);
       }
 
       if (result.error) {

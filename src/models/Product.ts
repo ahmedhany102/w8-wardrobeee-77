@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -272,9 +271,14 @@ export class ProductDatabase {
         // Parse sizes from JSON (it comes as a string from Supabase)
         let sizes: SizeWithStock[] = [];
         try {
-          sizes = typeof product.sizes === 'string' 
-            ? JSON.parse(product.sizes as string) 
-            : (product.sizes as unknown as SizeWithStock[]);
+          if (typeof product.sizes === 'string') {
+            sizes = JSON.parse(product.sizes);
+          } else if (Array.isArray(product.sizes)) {
+            sizes = product.sizes as unknown as SizeWithStock[];
+          } else {
+            console.error('Unexpected sizes format:', product.sizes);
+            return false;
+          }
         } catch (e) {
           console.error('Error parsing sizes:', e);
           return false;
@@ -300,7 +304,9 @@ export class ProductDatabase {
         return true;
       } else if (product.stock !== undefined) {
         // Update the single stock value
-        const newStock = Math.max(0, product.stock - quantity);
+        const newStock = typeof product.stock === 'number' 
+          ? Math.max(0, product.stock - quantity) 
+          : 0;
         
         const { error: updateError } = await supabase
           .from('products')
