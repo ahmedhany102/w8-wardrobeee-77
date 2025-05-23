@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -138,8 +137,8 @@ const AdminLogin = () => {
   };
 
   return (
-    <Layout>
-      <div className="flex justify-center items-center min-h-[80vh] w-full">
+    <Layout hideFooter>
+      <div className="flex justify-center items-center min-h-[80vh] w-full flex-grow">
         <Card className="w-full max-w-md shadow-lg border-green-800 animate-fade-in">
           <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
             <div className="flex justify-center mb-2">
