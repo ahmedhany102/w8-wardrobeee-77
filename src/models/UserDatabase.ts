@@ -1,7 +1,7 @@
 
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
-import { User } from '@/models/User';
+import { User, isValidRole, isValidStatus } from '@/models/User';
 import { supabase } from '@/integrations/supabase/client';
 
 class UserDatabase {
@@ -71,14 +71,17 @@ class UserDatabase {
         throw new Error('Failed to create user');
       }
 
+      // Ensure role is valid
+      const userRole = isValidRole(userData.role || 'USER') ? userData.role || 'USER' : 'USER';
+      
       // Profile will be automatically created via trigger
       // Let's ensure the is_admin value is set correctly
-      if (userData.role === 'ADMIN') {
+      if (userRole === 'ADMIN') {
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
             is_admin: true,
-            role: 'ADMIN' as const
+            role: 'ADMIN'
           })
           .eq('id', authData.user.id);
 
@@ -92,15 +95,14 @@ class UserDatabase {
         id: authData.user.id,
         email: authData.user.email || '',
         name: userData.name || '',
-        role: userData.role || 'USER',
+        role: userRole,
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         ipAddress: '0.0.0.0',
         status: 'ACTIVE',
-        isAdmin: userData.role === 'ADMIN',
+        isAdmin: userRole === 'ADMIN',
         isSuperAdmin: userData.isSuperAdmin || false,
-        isBlocked: false,
-        password: '' // Empty for security
+        isBlocked: false
       };
     } catch (error) {
       console.error('Error registering user:', error);
@@ -149,7 +151,7 @@ class UserDatabase {
         .from('profiles')
         .update({
           is_admin: true,
-          role: 'ADMIN' as const
+          role: 'ADMIN'
         })
         .eq('id', authData.user.id);
 
@@ -169,8 +171,7 @@ class UserDatabase {
         status: 'ACTIVE',
         isAdmin: true,
         isSuperAdmin: false,
-        isBlocked: false,
-        password: '' // Empty for security
+        isBlocked: false
       };
     } catch (error) {
       console.error('Error creating admin user:', error);
@@ -215,9 +216,8 @@ class UserDatabase {
         .eq('id', data.user.id);
 
       // Ensure role and status have valid values
-      const role = profile.role === 'ADMIN' ? 'ADMIN' : 'USER';
-      const status = ['ACTIVE', 'BLOCKED', 'PENDING'].includes(profile.status) ? 
-        profile.status as 'ACTIVE' | 'BLOCKED' | 'PENDING' : 'ACTIVE';
+      const role = isValidRole(profile.role) ? profile.role : 'USER';
+      const status = isValidStatus(profile.status) ? profile.status : 'ACTIVE';
 
       // Return user data without password
       return {
@@ -231,8 +231,7 @@ class UserDatabase {
         status,
         isAdmin: profile.is_admin || false,
         isSuperAdmin: profile.is_super_admin || false,
-        isBlocked: profile.is_blocked || false,
-        password: '' // Empty for security
+        isBlocked: profile.is_blocked || false
       };
     } catch (error) {
       console.error('Error during login:', error);
@@ -253,9 +252,8 @@ class UserDatabase {
 
       return data.map(profile => {
         // Ensure role and status have valid values
-        const role = profile.role === 'ADMIN' ? 'ADMIN' as const : 'USER' as const;
-        const status = ['ACTIVE', 'BLOCKED', 'PENDING'].includes(profile.status) ? 
-          profile.status as 'ACTIVE' | 'BLOCKED' | 'PENDING' : 'ACTIVE' as const;
+        const role = isValidRole(profile.role) ? profile.role : 'USER';
+        const status = isValidStatus(profile.status) ? profile.status : 'ACTIVE';
 
         return {
           id: profile.id,
@@ -291,9 +289,8 @@ class UserDatabase {
       }
 
       // Ensure role and status have valid values
-      const role = data.role === 'ADMIN' ? 'ADMIN' as const : 'USER' as const;
-      const status = ['ACTIVE', 'BLOCKED', 'PENDING'].includes(data.status) ? 
-        data.status as 'ACTIVE' | 'BLOCKED' | 'PENDING' : 'ACTIVE' as const;
+      const role = isValidRole(data.role) ? data.role : 'USER';
+      const status = isValidStatus(data.status) ? data.status : 'ACTIVE';
 
       return {
         id: data.id,
@@ -337,8 +334,8 @@ class UserDatabase {
 
         dbUpdates.email = updates.email;
       }
-      if (updates.role) dbUpdates.role = updates.role;
-      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.role && isValidRole(updates.role)) dbUpdates.role = updates.role;
+      if (updates.status && isValidStatus(updates.status)) dbUpdates.status = updates.status;
       if (updates.isAdmin !== undefined) dbUpdates.is_admin = updates.isAdmin;
       if (updates.isSuperAdmin !== undefined) dbUpdates.is_super_admin = updates.isSuperAdmin;
       if (updates.isBlocked !== undefined) dbUpdates.is_blocked = updates.isBlocked;

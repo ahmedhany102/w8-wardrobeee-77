@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SizeWithStock } from "@/models/Product";
 
-// Add this interface that was missing
+// Export the interface for use in other components
 export interface SizeItem {
   size: string;
   price: number;
@@ -16,7 +16,7 @@ export interface SizeItem {
 export interface SizeManagerProps {
   sizes: SizeWithStock[];
   onChange: (sizes: SizeWithStock[]) => void;
-  colors?: string[]; // Making colors optional to fix TypeScript error
+  colors?: string[]; // Optional colors array for color-specific sizes
 }
 
 const SizeManager: React.FC<SizeManagerProps> = ({ sizes, onChange, colors }) => {

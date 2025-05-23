@@ -273,7 +273,7 @@ export class ProductDatabase {
         let sizes: SizeWithStock[] = [];
         try {
           sizes = typeof product.sizes === 'string' 
-            ? JSON.parse(product.sizes) 
+            ? JSON.parse(product.sizes as string) 
             : (product.sizes as unknown as SizeWithStock[]);
         } catch (e) {
           console.error('Error parsing sizes:', e);
