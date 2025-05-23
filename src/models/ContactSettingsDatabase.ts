@@ -34,6 +34,7 @@ class ContactSettingsDatabase {
 
   public async getContactSettings(): Promise<ContactSettings> {
     try {
+      console.log("Fetching contact settings from Supabase...");
       // Always get the first record - we'll only have one settings record
       const { data, error } = await supabase
         .from('contact_settings')
@@ -47,6 +48,7 @@ class ContactSettingsDatabase {
         return this.getDefaultSettings();
       }
 
+      console.log("Fetched contact settings:", data);
       return data ? this.mapDatabaseToModel(data) : this.getDefaultSettings();
     } catch (error) {
       console.error('Error in getContactSettings:', error);
@@ -56,6 +58,7 @@ class ContactSettingsDatabase {
 
   public async saveContactSettings(settings: ContactSettings): Promise<boolean> {
     try {
+      console.log("Saving contact settings to Supabase:", settings);
       // Ensure developer info is preserved
       const completeSettings = {
         ...settings,
@@ -103,6 +106,7 @@ class ContactSettingsDatabase {
         return false;
       }
 
+      console.log("Contact settings saved successfully");
       return true;
     } catch (error) {
       console.error('Error in saveContactSettings:', error);

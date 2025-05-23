@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,13 +10,14 @@ import { toast } from 'sonner';
 import UserDatabase from '@/models/UserDatabase';
 import { Plus, Trash } from 'lucide-react';
 import { User as UserModel } from '@/models/User';
+import { supabase } from '@/integrations/supabase/client';
 
 const UsersPanel = () => {
   const [users, setUsers] = useState<UserModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showAddAdminDialog, setShowAddAdminDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<string | undefined>(null);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [newAdmin, setNewAdmin] = useState({
     name: '',
     email: '',
@@ -29,9 +31,32 @@ const UsersPanel = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const db = UserDatabase.getInstance();
-      const allUsers = await db.getAllUsers();
-      setUsers(allUsers);
+      
+      // Fetch users directly from Supabase profiles table
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Map the data to match our UserModel structure
+      const formattedUsers: UserModel[] = data.map((profile: any) => ({
+        id: profile.id,
+        name: profile.name || '',
+        email: profile.email || '',
+        role: profile.role || 'USER',
+        isBlocked: profile.is_blocked || false,
+        status: profile.status || 'ACTIVE',
+        isAdmin: profile.is_admin || false,
+        isSuperAdmin: profile.is_super_admin || false,
+        createdAt: profile.created_at || new Date().toISOString(),
+        lastLogin: profile.last_login || new Date().toISOString(),
+        ipAddress: profile.ip_address || ''
+      }));
+      
+      setUsers(formattedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('حدث خطأ أثناء جلب بيانات المستخدمين');
@@ -44,12 +69,22 @@ const UsersPanel = () => {
     if (!userId) return;
     
     try {
-      const db = UserDatabase.getInstance();
-      await db.updateUser(userId, { isBlocked: !isCurrentlyBlocked });
+      // Update directly in Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_blocked: !isCurrentlyBlocked,
+          status: !isCurrentlyBlocked ? 'BLOCKED' : 'ACTIVE'
+        })
+        .eq('id', userId);
+      
+      if (error) {
+        throw error;
+      }
       
       // Update the local state
       setUsers(users.map(user => 
-        user.id === userId ? { ...user, isBlocked: !isCurrentlyBlocked } : user
+        user.id === userId ? { ...user, isBlocked: !isCurrentlyBlocked, status: !isCurrentlyBlocked ? 'BLOCKED' : 'ACTIVE' } : user
       ));
       
       toast.success(`تم ${!isCurrentlyBlocked ? 'حظر' : 'إلغاء حظر'} المستخدم بنجاح`);
@@ -63,16 +98,19 @@ const UsersPanel = () => {
     if (!userToDelete) return;
     
     try {
-      const db = UserDatabase.getInstance();
-      const success = await db.deleteUser(userToDelete);
+      // Delete directly from Supabase
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userToDelete);
       
-      if (success) {
-        // Remove the user from the local state
-        setUsers(users.filter(user => user.id !== userToDelete));
-        toast.success('تم حذف المستخدم بنجاح');
-      } else {
-        toast.error('فشل حذف المستخدم');
+      if (error) {
+        throw error;
       }
+      
+      // Remove the user from the local state
+      setUsers(users.filter(user => user.id !== userToDelete));
+      toast.success('تم حذف المستخدم بنجاح');
       
       setShowDeleteDialog(false);
       setUserToDelete(null);
@@ -92,17 +130,37 @@ const UsersPanel = () => {
     }
     
     try {
-      const db = UserDatabase.getInstance();
+      // Create new user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newAdmin.email,
+        password: newAdmin.password,
+        options: {
+          data: {
+            name: newAdmin.name,
+            is_admin: true
+          }
+        }
+      });
       
-      // Check if email already exists
-      const existingUser = await db.getUserById(newAdmin.email);
-      if (existingUser) {
-        toast.error('البريد الإلكتروني مستخدم بالفعل');
-        return;
+      if (authError) {
+        throw authError;
       }
       
-      // Create new admin user
-      await db.createAdminUser(newAdmin.name, newAdmin.email, newAdmin.password);
+      // Make sure the user profile has admin privileges
+      if (authData.user) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
+            is_admin: true, 
+            name: newAdmin.name,
+            role: 'ADMIN'
+          })
+          .eq('id', authData.user.id);
+          
+        if (updateError) {
+          console.error('Error updating admin status:', updateError);
+        }
+      }
       
       toast.success('تم إنشاء حساب المسؤول بنجاح');
       setShowAddAdminDialog(false);
@@ -110,10 +168,9 @@ const UsersPanel = () => {
       
       // Refresh user list
       fetchUsers();
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating admin user:', error);
-      toast.error('حدث خطأ أثناء إنشاء حساب المسؤول');
+      toast.error(error.message || 'حدث خطأ أثناء إنشاء حساب المسؤول');
     }
   };
 

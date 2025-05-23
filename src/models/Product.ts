@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -86,6 +87,7 @@ export class ProductDatabase {
 
   public async getAllProducts(): Promise<Product[]> {
     try {
+      console.log('Fetching all products from Supabase...');
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -96,6 +98,8 @@ export class ProductDatabase {
         return [];
       }
 
+      console.log(`Retrieved ${data.length} products from database`);
+      
       // Map database fields to camelCase for frontend
       return data.map(this.mapDatabaseProductToModel);
     } catch (error) {
@@ -108,6 +112,7 @@ export class ProductDatabase {
     if (!id) return null;
     
     try {
+      console.log(`Fetching product with ID: ${id} from Supabase...`);
       const { data, error } = await supabase
         .from('products')
         .select('*')
@@ -119,6 +124,7 @@ export class ProductDatabase {
         return null;
       }
 
+      console.log('Product retrieved:', data);
       return this.mapDatabaseProductToModel(data);
     } catch (error) {
       console.error('Error in getProductById:', error);
@@ -127,6 +133,8 @@ export class ProductDatabase {
   }
 
   public async addProduct(productData: Omit<Product, "id">): Promise<Product> {
+    console.log('Adding new product to Supabase:', productData);
+    
     // Ensure product is in Men category
     const validTypes = ['T-Shirts', 'Trousers', 'Shoes', 'Jackets'];
     if (!productData.type || !validTypes.includes(productData.type)) {
@@ -164,6 +172,7 @@ export class ProductDatabase {
     };
     
     try {
+      console.log('Inserting product into Supabase:', dbProduct);
       const { data, error } = await supabase
         .from('products')
         .insert(dbProduct)
@@ -186,6 +195,7 @@ export class ProductDatabase {
         throw error;
       }
 
+      console.log('Product successfully added:', data);
       return this.mapDatabaseProductToModel(data);
     } catch (error) {
       console.error('Error in addProduct:', error);

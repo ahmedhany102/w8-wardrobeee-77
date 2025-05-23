@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Linkedin, MessageCircleMore, Twitter, Youtube } from 'lucide-react';
 import ContactSettingsDatabase, { ContactSettings } from '@/models/ContactSettingsDatabase';
+import { supabase } from '@/integrations/supabase/client';
 
 const CustomFooter = () => {
   const [settings, setSettings] = useState<ContactSettings | null>(null);
@@ -11,11 +12,79 @@ const CustomFooter = () => {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const db = ContactSettingsDatabase.getInstance();
-        const contactSettings = await db.getContactSettings();
-        setSettings(contactSettings);
+        console.log("Loading footer settings...");
+        // First try to get from Supabase directly
+        const { data, error } = await supabase
+          .from('contact_settings')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching contact settings directly:', error);
+          // Fallback to the database class
+          const db = ContactSettingsDatabase.getInstance();
+          const contactSettings = await db.getContactSettings();
+          setSettings(contactSettings);
+        } else if (data) {
+          console.log("Footer settings loaded from Supabase:", data);
+          // Map the snake_case fields to camelCase
+          setSettings({
+            id: data.id,
+            address: data.address || '',
+            mapUrl: data.map_url || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            workingHours: data.working_hours || '',
+            website: data.website || '',
+            facebook: data.facebook || '',
+            instagram: data.instagram || '',
+            twitter: data.twitter || '',
+            youtube: data.youtube || '',
+            termsAndConditions: data.terms_and_conditions || '',
+            developerName: data.developer_name || 'Ahmed Hany',
+            developerUrl: data.developer_url || 'https://ahmedhany.dev',
+            storeName: data.store_name || 'W8 for Men',
+          });
+        } else {
+          // No data found, use default settings
+          setSettings({
+            address: '',
+            mapUrl: '',
+            email: '',
+            phone: '',
+            workingHours: '',
+            website: '',
+            facebook: '',
+            instagram: '',
+            twitter: '',
+            youtube: '',
+            termsAndConditions: '',
+            developerName: 'Ahmed Hany',
+            developerUrl: 'https://ahmedhany.dev',
+            storeName: 'W8 for Men'
+          });
+        }
       } catch (error) {
         console.error('Error loading contact settings for footer:', error);
+        // Set default values if we can't load settings
+        setSettings({
+          address: '',
+          mapUrl: '',
+          email: '',
+          phone: '',
+          workingHours: '',
+          website: '',
+          facebook: '',
+          instagram: '',
+          twitter: '',
+          youtube: '',
+          termsAndConditions: '',
+          developerName: 'Ahmed Hany',
+          developerUrl: 'https://ahmedhany.dev',
+          storeName: 'W8 for Men'
+        });
       } finally {
         setLoading(false);
       }

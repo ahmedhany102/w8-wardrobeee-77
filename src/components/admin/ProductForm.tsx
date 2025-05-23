@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import SizeManager from "./SizeManager";
 import { Product, SizeWithStock, SizeItem } from "@/models/Product";
+import { toast } from "sonner";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
@@ -157,6 +158,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Form submitted with data:", { 
+      name, categoryPath, type, colors, details, hasDiscount, discount, sizes
+    });
 
     // Simple validation check
     if (!name.trim() || categoryPath.length === 0 || !type.trim() || (!mainImage && additionalImages.length === 0) || colors.length === 0 || sizes.length === 0) {
@@ -197,9 +201,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
     });
     
     // Construct the product object to be submitted
-    onSubmit({
+    const productData = {
       name: name.trim(),
-      category: categoryPath[categoryPath.length - 1] || "", // Use the last part of categoryPath
+      category: categoryPath[0] || "Men", // Use the first part of categoryPath
       categoryPath,
       type: type.trim(),
       colors,
@@ -215,7 +219,17 @@ const ProductForm: React.FC<ProductFormProps> = ({ initialData = {}, onSubmit, s
       inventory: formattedSizes.reduce((sum, item) => sum + item.stock, 0),
       createdAt: initialData.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    });
+    };
+    
+    console.log("Sending product data to be saved:", productData);
+    
+    try {
+      onSubmit(productData);
+      toast.success("تم حفظ المنتج بنجاح");
+    } catch (error) {
+      console.error("Error saving product:", error);
+      toast.error("حدث خطأ أثناء حفظ المنتج");
+    }
   };
 
   // Get current level options for category selection
