@@ -69,6 +69,9 @@ export interface SizeWithStock {
   price: number;
 }
 
+// Type for Json compatibility with Supabase
+type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
 // ProductDatabase class for managing products
 export class ProductDatabase {
   private static instance: ProductDatabase;
@@ -131,9 +134,9 @@ export class ProductDatabase {
       productData.type = validTypes[0]; // Default to T-Shirts if invalid
     }
     
-    // Serialize complex objects to JSON
-    const sizes = productData.sizes ? JSON.parse(JSON.stringify(productData.sizes)) : null;
-    const colorImages = productData.colorImages ? JSON.parse(JSON.stringify(productData.colorImages)) : null;
+    // Serialize complex objects to JSON strings for Supabase
+    const sizes = productData.sizes ? JSON.stringify(productData.sizes) : null;
+    const colorImages = productData.colorImages ? JSON.stringify(productData.colorImages) : null;
     
     // Map to database format (snake_case)
     const dbProduct = {
@@ -219,14 +222,14 @@ export class ProductDatabase {
     if (updates.images) dbUpdates.images = updates.images;
     if (updates.color !== undefined) dbUpdates.color = updates.color;
     if (updates.size !== undefined) dbUpdates.size = updates.size;
-    if (updates.sizes !== undefined) dbUpdates.sizes = updates.sizes;
+    if (updates.sizes !== undefined) dbUpdates.sizes = JSON.stringify(updates.sizes);
     if (updates.hasDiscount !== undefined) dbUpdates.has_discount = updates.hasDiscount;
     if (updates.stock !== undefined) dbUpdates.stock = updates.stock;
     if (updates.mainImage !== undefined) dbUpdates.main_image = updates.mainImage;
     if (updates.colors !== undefined) dbUpdates.colors = updates.colors;
     if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
     if (updates.categoryPath !== undefined) dbUpdates.category_path = updates.categoryPath;
-    if (updates.colorImages !== undefined) dbUpdates.color_images = updates.colorImages;
+    if (updates.colorImages !== undefined) dbUpdates.color_images = JSON.stringify(updates.colorImages);
     if (updates.details !== undefined) dbUpdates.details = updates.details;
     dbUpdates.category = 'Men'; // Always ensure it's Men's category
     dbUpdates.updated_at = new Date().toISOString();
@@ -265,9 +268,18 @@ export class ProductDatabase {
       }
       
       // Update the stock based on whether we're using sizes
-      if (product.sizes && Array.isArray(product.sizes)) {
-        // Cast the sizes to the correct type for TypeScript
-        const sizes = product.sizes as SizeWithStock[];
+      if (product.sizes) {
+        // Parse sizes from JSON (it comes as a string from Supabase)
+        let sizes: SizeWithStock[] = [];
+        try {
+          sizes = typeof product.sizes === 'string' 
+            ? JSON.parse(product.sizes) 
+            : (product.sizes as unknown as SizeWithStock[]);
+        } catch (e) {
+          console.error('Error parsing sizes:', e);
+          return false;
+        }
+        
         const sizeIndex = sizes.findIndex((s) => s.size === size);
         if (sizeIndex === -1) return false;
         
@@ -277,7 +289,7 @@ export class ProductDatabase {
         // Update the product with the new sizes
         const { error: updateError } = await supabase
           .from('products')
-          .update({ sizes: sizes })
+          .update({ sizes: JSON.stringify(sizes) })
           .eq('id', productId);
         
         if (updateError) {
@@ -331,6 +343,26 @@ export class ProductDatabase {
 
   // Helper method to convert database fields (snake_case) to model fields (camelCase)
   private mapDatabaseProductToModel(dbProduct: any): Product {
+    // Parse JSON strings for complex objects
+    let sizes: SizeWithStock[] | undefined = undefined;
+    let colorImages: Record<string, string[]> | undefined = undefined;
+    
+    try {
+      if (dbProduct.sizes) {
+        sizes = typeof dbProduct.sizes === 'string' 
+          ? JSON.parse(dbProduct.sizes) 
+          : (dbProduct.sizes as unknown as SizeWithStock[]);
+      }
+      
+      if (dbProduct.color_images) {
+        colorImages = typeof dbProduct.color_images === 'string'
+          ? JSON.parse(dbProduct.color_images)
+          : dbProduct.color_images;
+      }
+    } catch (e) {
+      console.error('Error parsing JSON from database:', e);
+    }
+    
     return {
       id: dbProduct.id,
       name: dbProduct.name,
@@ -350,12 +382,12 @@ export class ProductDatabase {
       details: dbProduct.details,
       mainImage: dbProduct.main_image || dbProduct.images?.[0],
       colors: dbProduct.colors || [],
-      sizes: dbProduct.sizes,
+      sizes: sizes,
       hasDiscount: dbProduct.has_discount || false,
       stock: dbProduct.stock || 0,
       imageUrl: dbProduct.image_url,
       categoryPath: dbProduct.category_path || [],
-      colorImages: dbProduct.color_images,
+      colorImages: colorImages,
       adProductId: dbProduct.ad_product_id
     };
   }

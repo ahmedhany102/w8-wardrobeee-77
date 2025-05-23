@@ -5,6 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SizeWithStock } from "@/models/Product";
 
+// Add this interface that was missing
+export interface SizeItem {
+  size: string;
+  price: number;
+  stock: number;
+  image?: string;
+}
+
 export interface SizeManagerProps {
   sizes: SizeWithStock[];
   onChange: (sizes: SizeWithStock[]) => void;

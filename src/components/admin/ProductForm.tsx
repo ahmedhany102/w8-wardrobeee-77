@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
-import SizeManager, { SizeItem } from "./SizeManager";
-import { Product, SizeWithStock } from "@/models/Product";
+import SizeManager from "./SizeManager";
+import { Product, SizeWithStock, SizeItem } from "@/models/Product";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
