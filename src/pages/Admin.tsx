@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -28,7 +29,7 @@ const Admin = ({ activeTab = "dashboard" }) => {
   };
 
   return (
-    <Layout>
+    <Layout hideFooter>
       <div className="container mx-auto py-4 px-4 md:px-0">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start mb-6">

@@ -1,14 +1,12 @@
-
 import React, { useRef } from "react";
 
 interface ImageUploaderProps {
   value?: string[];
   onChange: (imgs: string[]) => void;
   label?: string;
-  onImageUploaded?: (imageUrl: string) => void; // Added onImageUploaded prop
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, label, onImageUploaded }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, label }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,15 +17,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, lab
     files.forEach((file, idx) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        const imageUrl = ev.target?.result as string;
-        newImages[idx] = imageUrl;
+        newImages[idx] = ev.target?.result as string;
         loaded++;
-        
-        // Call onImageUploaded callback with the new image URL if provided
-        if (onImageUploaded && typeof onImageUploaded === 'function') {
-          onImageUploaded(imageUrl);
-        }
-        
         if (loaded === files.length) {
           onChange([...(value || []), ...newImages.filter(Boolean)]);
         }
@@ -62,7 +53,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, lab
                 type="button"
                 onClick={() => handleRemove(idx)}
                 className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                title="Remove Image"
+                title="حذف الصورة"
               >
                 ×
               </button>
@@ -74,4 +65,4 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, lab
   );
 };
 
-export default ImageUploader;
+export default ImageUploader; 

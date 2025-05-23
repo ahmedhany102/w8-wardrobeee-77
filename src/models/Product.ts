@@ -1,6 +1,5 @@
 
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/integrations/supabase/client';
 
 // Define the Product interface
 export interface Product {
@@ -69,14 +68,17 @@ export interface SizeWithStock {
   price: number;
 }
 
-// Type for Json compatibility with Supabase
-type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
-
 // ProductDatabase class for managing products
 export class ProductDatabase {
   private static instance: ProductDatabase;
+  private products: Product[] = [];
+  private db: IDBDatabase | null = null;
+  private readonly DB_NAME = 'w8StoreDB';
+  private readonly STORE_NAME = 'products';
 
-  private constructor() {}
+  private constructor() {
+    this.initDB();
+  }
 
   public static getInstance(): ProductDatabase {
     if (!ProductDatabase.instance) {
@@ -85,327 +87,234 @@ export class ProductDatabase {
     return ProductDatabase.instance;
   }
 
-  public async getAllProducts(): Promise<Product[]> {
-    try {
-      console.log('Fetching all products from Supabase...');
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', 'Men');
+  private initDB(): void {
+    const request = indexedDB.open(this.DB_NAME, 1);
 
-      if (error) {
-        console.error('Error fetching products:', error);
-        return [];
+    request.onerror = (event) => {
+      console.error('Error opening database:', event);
+      // Fallback to localStorage if IndexedDB fails
+      this.loadProductsFromLocalStorage();
+    };
+
+    request.onsuccess = (event) => {
+      this.db = (event.target as IDBOpenDBRequest).result;
+      this.loadProducts();
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      if (!db.objectStoreNames.contains(this.STORE_NAME)) {
+        db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
       }
+    };
+  }
 
-      console.log(`Retrieved ${data.length} products from database`);
-      
-      // Map database fields to camelCase for frontend
-      return data.map(this.mapDatabaseProductToModel);
+  private loadProductsFromLocalStorage(): void {
+    try {
+      const savedProducts = localStorage.getItem('products');
+      if (savedProducts) {
+        // Filter out women's and kids' products
+        const allProducts = JSON.parse(savedProducts);
+        this.products = allProducts.filter((product: Product) => 
+          product && 
+          product.category !== 'حريمي' && 
+          product.category !== 'أطفال' && 
+          product.category !== 'Girls' &&
+          product.category !== 'Female' &&
+          product.category !== 'Women' &&
+          product.category !== 'Kids'
+        );
+      }
+      window.dispatchEvent(new Event('productsUpdated'));
     } catch (error) {
-      console.error('Error in getAllProducts:', error);
-      return [];
+      console.error('Error loading products from localStorage:', error);
+      this.products = [];
     }
+  }
+
+  private loadProducts(): void {
+    if (!this.db) {
+      this.loadProductsFromLocalStorage();
+      return;
+    }
+
+    const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
+    const store = transaction.objectStore(this.STORE_NAME);
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      // Filter out women's and kids' products
+      const allProducts = request.result || [];
+      this.products = allProducts.filter((product: Product) => 
+        product && 
+        product.category !== 'حريمي' && 
+        product.category !== 'أطفال' && 
+        product.category !== 'Girls' &&
+        product.category !== 'Female' &&
+        product.category !== 'Women' &&
+        product.category !== 'Kids'
+      );
+      
+      // Also sync with localStorage for cross-browser compatibility
+      localStorage.setItem('products', JSON.stringify(this.products));
+      window.dispatchEvent(new Event('productsUpdated'));
+    };
+
+    request.onerror = (event) => {
+      console.error('Error loading products from IndexedDB:', event);
+      this.loadProductsFromLocalStorage();
+    };
+  }
+
+  private saveProducts(): void {
+    // Always save to localStorage for cross-browser compatibility
+    localStorage.setItem('products', JSON.stringify(this.products));
+    
+    // Ensure we sync data across browsers
+    navigator.serviceWorker?.ready.then(registration => {
+      // Fix: Check if the sync API is available before using it
+      if ('sync' in registration) {
+        // Use type assertion to tell TypeScript this is safe
+        (registration as any).sync.register('syncProducts').catch(err => {
+          console.log('Cannot sync products across browsers:', err);
+        });
+      } else {
+        console.log('Background Sync API not available in this browser');
+      }
+    }).catch(err => {
+      console.log('Service Worker not available for sync:', err);
+    });
+
+    if (!this.db) {
+      window.dispatchEvent(new Event('productsUpdated'));
+      return;
+    }
+
+    try {
+      const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
+      const store = transaction.objectStore(this.STORE_NAME);
+
+      // Clear existing products
+      store.clear();
+
+      // Add all products
+      this.products.forEach(product => {
+        store.add(product);
+      });
+
+      transaction.oncomplete = () => {
+        window.dispatchEvent(new Event('productsUpdated'));
+      };
+
+      transaction.onerror = (event) => {
+        console.error('Error saving products to IndexedDB:', event);
+      };
+    } catch (error) {
+      console.error('Transaction error:', error);
+      window.dispatchEvent(new Event('productsUpdated'));
+    }
+  }
+
+  public async getAllProducts(): Promise<Product[]> {
+    // Filter out women's and kids' products
+    return this.products.filter(product => 
+      product && 
+      product.category !== 'حريمي' && 
+      product.category !== 'أطفال' && 
+      product.category !== 'Girls' &&
+      product.category !== 'Female' &&
+      product.category !== 'Women' &&
+      product.category !== 'Kids'
+    );
   }
 
   public async getProductById(id: string | undefined): Promise<Product | null> {
     if (!id) return null;
-    
-    try {
-      console.log(`Fetching product with ID: ${id} from Supabase...`);
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error || !data) {
-        console.error('Error fetching product by ID:', error);
-        return null;
-      }
-
-      console.log('Product retrieved:', data);
-      return this.mapDatabaseProductToModel(data);
-    } catch (error) {
-      console.error('Error in getProductById:', error);
-      return null;
-    }
+    const product = this.products.find(p => p.id === id);
+    return product || null;
   }
 
   public async addProduct(productData: Omit<Product, "id">): Promise<Product> {
-    console.log('Adding new product to Supabase:', productData);
-    
-    // Ensure product is in Men category
+    // Ensure product is in one of the allowed categories
     const validTypes = ['T-Shirts', 'Trousers', 'Shoes', 'Jackets'];
     if (!productData.type || !validTypes.includes(productData.type)) {
       productData.type = validTypes[0]; // Default to T-Shirts if invalid
     }
     
-    // Serialize complex objects to JSON strings for Supabase
-    const sizes = productData.sizes ? JSON.stringify(productData.sizes) : null;
-    const colorImages = productData.colorImages ? JSON.stringify(productData.colorImages) : null;
-    
-    // Map to database format (snake_case)
-    const dbProduct = {
-      name: productData.name,
+    const newProduct: Product = {
+      ...productData,
+      id: uuidv4(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       description: productData.description || '',
-      price: productData.price,
-      category: 'Men',
-      type: productData.type,
       inventory: productData.inventory || 0,
-      featured: productData.featured || false,
-      discount: productData.discount || 0,
-      rating: productData.rating,
-      images: productData.images || [],
-      color: productData.color,
-      size: productData.size,
-      sizes: sizes,
-      has_discount: productData.hasDiscount || false,
-      stock: productData.stock || 0,
-      main_image: productData.mainImage || productData.images?.[0],
-      colors: productData.colors || [],
-      image_url: productData.imageUrl,
-      category_path: productData.categoryPath || [],
-      color_images: colorImages,
-      details: productData.details,
-      ad_product_id: productData.adProductId
+      category: 'Men', // All products are men's products
     };
     
-    try {
-      console.log('Inserting product into Supabase:', dbProduct);
-      const { data, error } = await supabase
-        .from('products')
-        .insert(dbProduct)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error adding product:', error);
-        // Fallback to creating locally with UUID if there's an auth error
-        if (error.code === 'PGRST116') {
-          const newProduct: Product = {
-            ...productData,
-            id: uuidv4(),
-            category: 'Men',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          return newProduct;
-        }
-        throw error;
-      }
-
-      console.log('Product successfully added:', data);
-      return this.mapDatabaseProductToModel(data);
-    } catch (error) {
-      console.error('Error in addProduct:', error);
-      // Create a local product as fallback
-      const newProduct: Product = {
-        ...productData,
-        id: uuidv4(),
-        category: 'Men',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      return newProduct;
-    }
+    this.products.push(newProduct);
+    this.saveProducts();
+    return newProduct;
   }
 
   public async updateProduct(id: string, updates: Partial<Product>): Promise<boolean> {
+    const index = this.products.findIndex(p => p.id === id);
+    if (index === -1) return false;
+    
     // Ensure updated product stays in allowed categories
     const validTypes = ['T-Shirts', 'Trousers', 'Shoes', 'Jackets'];
     if (updates.type && !validTypes.includes(updates.type)) {
-      updates.type = validTypes[0];
+      updates.type = this.products[index].type || validTypes[0];
     }
     
-    // Map to database format (snake_case)
-    const dbUpdates: any = {};
-    if (updates.name) dbUpdates.name = updates.name;
-    if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.price !== undefined) dbUpdates.price = updates.price;
-    if (updates.type) dbUpdates.type = updates.type;
-    if (updates.inventory !== undefined) dbUpdates.inventory = updates.inventory;
-    if (updates.featured !== undefined) dbUpdates.featured = updates.featured;
-    if (updates.discount !== undefined) dbUpdates.discount = updates.discount;
-    if (updates.rating !== undefined) dbUpdates.rating = updates.rating;
-    if (updates.images) dbUpdates.images = updates.images;
-    if (updates.color !== undefined) dbUpdates.color = updates.color;
-    if (updates.size !== undefined) dbUpdates.size = updates.size;
-    if (updates.sizes !== undefined) dbUpdates.sizes = JSON.stringify(updates.sizes);
-    if (updates.hasDiscount !== undefined) dbUpdates.has_discount = updates.hasDiscount;
-    if (updates.stock !== undefined) dbUpdates.stock = updates.stock;
-    if (updates.mainImage !== undefined) dbUpdates.main_image = updates.mainImage;
-    if (updates.colors !== undefined) dbUpdates.colors = updates.colors;
-    if (updates.imageUrl !== undefined) dbUpdates.image_url = updates.imageUrl;
-    if (updates.categoryPath !== undefined) dbUpdates.category_path = updates.categoryPath;
-    if (updates.colorImages !== undefined) dbUpdates.color_images = JSON.stringify(updates.colorImages);
-    if (updates.details !== undefined) dbUpdates.details = updates.details;
-    dbUpdates.category = 'Men'; // Always ensure it's Men's category
-    dbUpdates.updated_at = new Date().toISOString();
+    this.products[index] = {
+      ...this.products[index],
+      ...updates,
+      category: 'Men', // Ensure it stays as men's product
+      updatedAt: new Date().toISOString(),
+    };
     
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update(dbUpdates)
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error updating product:', error);
-        return false;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error in updateProduct:', error);
-      return false;
-    }
+    this.saveProducts();
+    return true;
   }
   
   // Update stock quantity after purchase
   public async updateProductStock(productId: string, size: string, quantity: number): Promise<boolean> {
-    try {
-      // First get the current product
-      const { data: product, error: fetchError } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', productId)
-        .single();
+    const product = this.products.find(p => p.id === productId);
+    if (!product) return false;
+    
+    // Handle the case where the product has sizes
+    if (product.sizes && product.sizes.length > 0) {
+      const sizeIndex = product.sizes.findIndex(s => s.size === size);
+      if (sizeIndex === -1) return false;
       
-      if (fetchError || !product) {
-        console.error('Error fetching product for stock update:', fetchError);
-        return false;
-      }
+      // Ensure we don't go below 0
+      const newStock = Math.max(0, product.sizes[sizeIndex].stock - quantity);
+      product.sizes[sizeIndex].stock = newStock;
       
-      // Update the stock based on whether we're using sizes
-      if (product.sizes) {
-        // Parse sizes from JSON (it comes as a string from Supabase)
-        let sizes: SizeWithStock[] = [];
-        try {
-          if (typeof product.sizes === 'string') {
-            sizes = JSON.parse(product.sizes);
-          } else if (Array.isArray(product.sizes)) {
-            sizes = product.sizes as unknown as SizeWithStock[];
-          } else {
-            console.error('Unexpected sizes format:', product.sizes);
-            return false;
-          }
-        } catch (e) {
-          console.error('Error parsing sizes:', e);
-          return false;
-        }
-        
-        const sizeIndex = sizes.findIndex((s) => s.size === size);
-        if (sizeIndex === -1) return false;
-        
-        // Ensure we don't go below 0
-        sizes[sizeIndex].stock = Math.max(0, sizes[sizeIndex].stock - quantity);
-        
-        // Update the product with the new sizes
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({ sizes: JSON.stringify(sizes) })
-          .eq('id', productId);
-        
-        if (updateError) {
-          console.error('Error updating product stock (sizes):', updateError);
-          return false;
-        }
-        
-        return true;
-      } else if (product.stock !== undefined) {
-        // Update the single stock value
-        const newStock = typeof product.stock === 'number' 
-          ? Math.max(0, product.stock - quantity) 
-          : 0;
-        
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({ stock: newStock })
-          .eq('id', productId);
-        
-        if (updateError) {
-          console.error('Error updating product stock:', updateError);
-          return false;
-        }
-        
-        return true;
-      }
+      this.saveProducts();
+      return true;
+    } 
+    // Handle the case where the product has a single stock value
+    else if (product.stock !== undefined) {
+      // Ensure we don't go below 0
+      product.stock = Math.max(0, product.stock - quantity);
       
-      return false;
-    } catch (error) {
-      console.error('Error in updateProductStock:', error);
-      return false;
+      this.saveProducts();
+      return true;
     }
+    
+    return false;
   }
 
   public async deleteProduct(id: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting product:', error);
-        return false;
-      }
-
+    const initialLength = this.products.length;
+    this.products = this.products.filter(p => p.id !== id);
+    
+    if (this.products.length !== initialLength) {
+      this.saveProducts();
       return true;
-    } catch (error) {
-      console.error('Error in deleteProduct:', error);
-      return false;
     }
-  }
-
-  // Helper method to convert database fields (snake_case) to model fields (camelCase)
-  private mapDatabaseProductToModel(dbProduct: any): Product {
-    // Parse JSON strings for complex objects
-    let sizes: SizeWithStock[] | undefined = undefined;
-    let colorImages: Record<string, string[]> | undefined = undefined;
-    
-    try {
-      if (dbProduct.sizes) {
-        sizes = typeof dbProduct.sizes === 'string' 
-          ? JSON.parse(dbProduct.sizes) 
-          : (dbProduct.sizes as unknown as SizeWithStock[]);
-      }
-      
-      if (dbProduct.color_images) {
-        colorImages = typeof dbProduct.color_images === 'string'
-          ? JSON.parse(dbProduct.color_images)
-          : dbProduct.color_images;
-      }
-    } catch (e) {
-      console.error('Error parsing JSON from database:', e);
-    }
-    
-    return {
-      id: dbProduct.id,
-      name: dbProduct.name,
-      description: dbProduct.description || '',
-      price: dbProduct.price,
-      category: dbProduct.category,
-      inventory: dbProduct.inventory || 0,
-      featured: dbProduct.featured || false,
-      discount: dbProduct.discount || 0,
-      rating: dbProduct.rating,
-      images: dbProduct.images || [],
-      color: dbProduct.color,
-      size: dbProduct.size,
-      createdAt: dbProduct.created_at,
-      updatedAt: dbProduct.updated_at,
-      type: dbProduct.type,
-      details: dbProduct.details,
-      mainImage: dbProduct.main_image || dbProduct.images?.[0],
-      colors: dbProduct.colors || [],
-      sizes: sizes,
-      hasDiscount: dbProduct.has_discount || false,
-      stock: dbProduct.stock || 0,
-      imageUrl: dbProduct.image_url,
-      categoryPath: dbProduct.category_path || [],
-      colorImages: colorImages,
-      adProductId: dbProduct.ad_product_id
-    };
+    return false;
   }
 }
 

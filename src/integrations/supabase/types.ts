@@ -56,66 +56,6 @@ export type Database = {
           },
         ]
       }
-      contact_settings: {
-        Row: {
-          address: string | null
-          created_at: string | null
-          developer_name: string | null
-          developer_url: string | null
-          email: string | null
-          facebook: string | null
-          id: string
-          instagram: string | null
-          map_url: string | null
-          phone: string | null
-          store_name: string | null
-          terms_and_conditions: string | null
-          twitter: string | null
-          updated_at: string | null
-          website: string | null
-          working_hours: string | null
-          youtube: string | null
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string | null
-          developer_name?: string | null
-          developer_url?: string | null
-          email?: string | null
-          facebook?: string | null
-          id?: string
-          instagram?: string | null
-          map_url?: string | null
-          phone?: string | null
-          store_name?: string | null
-          terms_and_conditions?: string | null
-          twitter?: string | null
-          updated_at?: string | null
-          website?: string | null
-          working_hours?: string | null
-          youtube?: string | null
-        }
-        Update: {
-          address?: string | null
-          created_at?: string | null
-          developer_name?: string | null
-          developer_url?: string | null
-          email?: string | null
-          facebook?: string | null
-          id?: string
-          instagram?: string | null
-          map_url?: string | null
-          phone?: string | null
-          store_name?: string | null
-          terms_and_conditions?: string | null
-          twitter?: string | null
-          updated_at?: string | null
-          website?: string | null
-          working_hours?: string | null
-          youtube?: string | null
-        }
-        Relationships: []
-      }
       orders: {
         Row: {
           coupon_info: Json | null

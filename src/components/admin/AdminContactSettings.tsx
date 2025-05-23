@@ -6,7 +6,22 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import ContactSettingsDatabase, { ContactSettings } from '@/models/ContactSettingsDatabase';
+
+interface ContactSettings {
+  address: string;
+  mapUrl: string;
+  email: string;
+  phone: string;
+  workingHours: string;
+  website: string;
+  facebook: string;
+  instagram: string;
+  twitter: string;
+  youtube: string;
+  termsAndConditions: string;
+  developerName: string;
+  developerUrl: string;
+}
 
 const defaultSettings: ContactSettings = {
   address: '',
@@ -21,80 +36,46 @@ const defaultSettings: ContactSettings = {
   youtube: '',
   termsAndConditions: '',
   developerName: 'Ahmed Hany',
-  developerUrl: 'https://ahmedhany.dev',
-  storeName: 'W8 for Men'
+  developerUrl: 'https://ahmedhany.dev'
 };
 
 const AdminContactSettings = () => {
   const [settings, setSettings] = useState<ContactSettings>(defaultSettings);
   const [activeTab, setActiveTab] = useState('contact');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const loadSettings = async () => {
-    setLoading(true);
-    try {
-      const db = ContactSettingsDatabase.getInstance();
-      const savedSettings = await db.getContactSettings();
-      if (savedSettings) {
+    // Load settings from localStorage
+    const savedSettings = localStorage.getItem('contactSettings');
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
         // Ensure developer information is preserved
         setSettings({
-          ...savedSettings,
-          developerName: savedSettings.developerName || defaultSettings.developerName,
-          developerUrl: savedSettings.developerUrl || defaultSettings.developerUrl
+          ...parsedSettings,
+          developerName: parsedSettings.developerName || defaultSettings.developerName,
+          developerUrl: parsedSettings.developerUrl || defaultSettings.developerUrl
         });
+      } catch (error) {
+        console.error('Error loading contact settings:', error);
       }
-    } catch (error) {
-      console.error('Error loading contact settings:', error);
-      toast.error('Failed to load settings');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setSettings(prev => ({ ...prev, [name]: value }));
   };
 
-  const saveSettings = async () => {
-    setSaving(true);
-    try {
-      // Ensure developer info is always present
-      const dataToSave = {
-        ...settings,
-        developerName: settings.developerName || defaultSettings.developerName,
-        developerUrl: settings.developerUrl || defaultSettings.developerUrl,
-        storeName: settings.storeName || 'W8 for Men'
-      };
-      
-      const db = ContactSettingsDatabase.getInstance();
-      const success = await db.saveContactSettings(dataToSave);
-      
-      if (success) {
-        toast.success('Settings saved successfully');
-      } else {
-        toast.error('Failed to save settings');
-      }
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      toast.error('An error occurred while saving');
-    } finally {
-      setSaving(false);
-    }
+  const saveSettings = () => {
+    // Ensure developer info is always present
+    const dataToSave = {
+      ...settings,
+      developerName: settings.developerName || defaultSettings.developerName,
+      developerUrl: settings.developerUrl || defaultSettings.developerUrl
+    };
+    localStorage.setItem('contactSettings', JSON.stringify(dataToSave));
+    toast.success('Settings saved successfully');
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <p>Loading settings...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -106,25 +87,6 @@ const AdminContactSettings = () => {
         </TabsList>
         
         <TabsContent value="contact" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Store Information</CardTitle>
-              <CardDescription>Enter basic store information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4">
-                <label htmlFor="storeName" className="text-sm font-medium">Store Name</label>
-                <Input
-                  id="storeName"
-                  name="storeName"
-                  value={settings.storeName || ''}
-                  onChange={handleChange}
-                  placeholder="Store Name"
-                />
-              </div>
-            </CardContent>
-          </Card>
-          
           <Card>
             <CardHeader>
               <CardTitle>Basic Contact Information</CardTitle>
@@ -320,12 +282,8 @@ const AdminContactSettings = () => {
       </Tabs>
 
       <CardFooter className="flex justify-end">
-        <Button 
-          onClick={saveSettings} 
-          className="bg-green-600 hover:bg-green-700"
-          disabled={saving}
-        >
-          {saving ? 'Saving...' : 'Save Changes'}
+        <Button onClick={saveSettings} className="bg-green-600 hover:bg-green-700">
+          Save Changes
         </Button>
       </CardFooter>
     </div>

@@ -1,169 +1,119 @@
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useRef } from "react";
 import { SizeWithStock } from "@/models/Product";
 
-// Export the interface for use in other components
+// Define SizeItem to match how it's used in ProductForm
 export interface SizeItem {
   size: string;
   price: number;
   stock: number;
-  image?: string;
+  image?: string; // base64
 }
 
-export interface SizeManagerProps {
-  sizes: SizeWithStock[];
-  onChange: (sizes: SizeWithStock[]) => void;
-  colors?: string[]; // Optional colors array for color-specific sizes
+interface SizeManagerProps {
+  sizes: SizeItem[];
+  onChange: (sizes: SizeItem[]) => void;
 }
 
-const SizeManager: React.FC<SizeManagerProps> = ({ sizes, onChange, colors }) => {
-  const [newSize, setNewSize] = useState("");
-  const [newStock, setNewStock] = useState("");
-  const [newPrice, setNewPrice] = useState("");
+const SizeManager: React.FC<SizeManagerProps> = ({ sizes, onChange }) => {
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const handleAddSize = () => {
-    if (!newSize.trim()) return;
-    
-    const sizeExists = sizes.some(s => s.size.toLowerCase() === newSize.toLowerCase());
-    if (sizeExists) {
-      alert("This size already exists");
-      return;
-    }
-    
-    const newSizeObj: SizeWithStock = {
-      size: newSize,
-      stock: parseInt(newStock) || 0,
-      price: parseFloat(newPrice) || 0
+  const handleSizeChange = (index: number, field: keyof SizeItem, value: string | number) => {
+    const updated = sizes.map((item, i) =>
+      i === index ? { ...item, [field]: value } : item
+    );
+    onChange(updated);
+  };
+
+  const handleImageChange = (index: number, file: File | null) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      const updated = sizes.map((item, i) =>
+        i === index ? { ...item, image: base64 } : item
+      );
+      onChange(updated);
     };
-    
-    onChange([...sizes, newSizeObj]);
-    setNewSize("");
-    setNewStock("");
-    setNewPrice("");
+    reader.readAsDataURL(file);
   };
-  
-  const handleUpdateSize = (index: number, field: keyof SizeWithStock, value: string) => {
-    const updatedSizes = [...sizes];
-    
-    if (field === 'size') {
-      updatedSizes[index][field] = value;
-    } else {
-      // For 'stock' and 'price' fields, convert to number
-      const numValue = parseFloat(value);
-      if (!isNaN(numValue)) {
-        updatedSizes[index][field] = field === 'stock' ? Math.floor(numValue) : numValue;
-      }
-    }
-    
-    onChange(updatedSizes);
+
+  const addSize = () => {
+    onChange([...sizes, { size: "", price: 0, stock: 0, image: "" }]);
   };
-  
-  const handleRemoveSize = (index: number) => {
-    const updatedSizes = sizes.filter((_, i) => i !== index);
-    onChange(updatedSizes);
+
+  const removeSize = (index: number) => {
+    onChange(sizes.filter((_, i) => i !== index));
   };
 
   return (
-    <div className="space-y-4">
-      {sizes.length > 0 && (
-        <div className="space-y-2">
-          <div className="grid grid-cols-12 gap-2 font-medium">
-            <div className="col-span-3">Size</div>
-            <div className="col-span-3">Price (EGP)</div>
-            <div className="col-span-3">Stock</div>
-            <div className="col-span-3">Actions</div>
-          </div>
-          
-          {sizes.map((size, index) => (
-            <div key={index} className="grid grid-cols-12 gap-2 items-center">
-              <div className="col-span-3">
-                <Input
-                  value={size.size}
-                  onChange={(e) => handleUpdateSize(index, 'size', e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="col-span-3">
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={size.price}
-                  onChange={(e) => handleUpdateSize(index, 'price', e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="col-span-3">
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={size.stock}
-                  onChange={(e) => handleUpdateSize(index, 'stock', e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              <div className="col-span-3">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleRemoveSize(index)}
-                >
-                  Remove
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      <div className="border-t pt-4">
-        <Label>Add New Size</Label>
-        <div className="grid grid-cols-12 gap-2 mt-2">
-          <div className="col-span-3">
-            <Input
-              placeholder="Size"
-              value={newSize}
-              onChange={(e) => setNewSize(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div className="col-span-3">
-            <Input
-              placeholder="Price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={newPrice}
-              onChange={(e) => setNewPrice(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div className="col-span-3">
-            <Input
-              placeholder="Stock"
-              type="number"
-              min="0"
-              step="1"
-              value={newStock}
-              onChange={(e) => setNewStock(e.target.value)}
-              className="w-full"
-            />
-          </div>
-          <div className="col-span-3">
-            <Button 
-              type="button"
-              onClick={handleAddSize}
-              className="w-full"
-            >
-              Add Size
-            </Button>
-          </div>
-        </div>
+    <div className="space-y-2">
+      <div className="flex justify-between items-center mb-2">
+        <span className="font-bold">المقاسات المتوفرة</span>
+        <button type="button" className="bg-green-700 text-white px-3 py-1 rounded" onClick={addSize}>إضافة مقاس</button>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full border text-center">
+          <thead>
+            <tr className="bg-gray-200 text-gray-800">
+              <th className="p-2 text-gray-800">المقاس</th>
+              <th className="p-2 text-gray-800">السعر</th>
+              <th className="p-2 text-gray-800">المخزون</th>
+              <th className="p-2 text-gray-800">صورة المقاس</th>
+              <th className="p-2 text-gray-800">حذف</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sizes.map((item, idx) => (
+              <tr key={idx} className="border-b">
+                <td className="p-2">
+                  <input
+                    type="text"
+                    value={item.size}
+                    onChange={e => handleSizeChange(idx, "size", e.target.value)}
+                    className="border rounded px-2 py-1 w-full"
+                    placeholder="مثال: M, 42"
+                  />
+                </td>
+                <td className="p-2">
+                  <input
+                    type="number"
+                    value={item.price}
+                    min={0}
+                    onChange={e => handleSizeChange(idx, "price", parseFloat(e.target.value) || 0)}
+                    className="border rounded px-2 py-1 w-full"
+                  />
+                </td>
+                <td className="p-2">
+                  <input
+                    type="number"
+                    value={item.stock}
+                    min={0}
+                    onChange={e => handleSizeChange(idx, "stock", parseInt(e.target.value) || 0)}
+                    className="border rounded px-2 py-1 w-full"
+                  />
+                </td>
+                <td className="p-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={el => fileInputRefs.current[idx] = el}
+                    onChange={e => handleImageChange(idx, e.target.files?.[0] || null)}
+                    className="text-gray-800"
+                  />
+                  {item.image && (
+                    <img src={item.image} alt="size" className="h-10 w-10 object-cover mt-1 mx-auto rounded" />
+                  )}
+                </td>
+                <td className="p-2">
+                  <button type="button" className="bg-red-600 text-white px-2 py-1 rounded" onClick={() => removeSize(idx)}>
+                    حذف
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
