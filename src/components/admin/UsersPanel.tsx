@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import UserDatabase from '@/models/UserDatabase';
 import { Plus, Trash } from 'lucide-react';
+import { User } from '@/models/User';
 
 interface User {
   id?: string;
