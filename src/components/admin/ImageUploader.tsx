@@ -1,3 +1,4 @@
+
 import React, { useRef } from "react";
 
 interface ImageUploaderProps {
@@ -53,7 +54,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, lab
                 type="button"
                 onClick={() => handleRemove(idx)}
                 className="absolute top-0 right-0 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                title="حذف الصورة"
+                title="Remove Image"
               >
                 ×
               </button>
@@ -65,4 +66,4 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, lab
   );
 };
 
-export default ImageUploader; 
+export default ImageUploader;

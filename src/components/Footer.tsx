@@ -34,8 +34,8 @@ const Footer: React.FC = () => {
           </div>
         </div>
         
-        {/* Developer section only visible in admin panel */}
-        {isAdmin && (
+        {/* Developer section only visible when admin is logged in */}
+        {isAdmin && window.location.pathname.includes('/admin') && (
           <div className="border-t border-gray-700 mt-6 pt-6">
             <div className="flex flex-col md:flex-row justify-between items-center">
               <p className="mb-4 md:mb-0">Developed by Ahmed Hany</p>

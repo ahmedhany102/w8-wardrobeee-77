@@ -242,8 +242,7 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({
           <Label>Sizes &amp; Stock</Label>
           <SizeManager 
             sizes={sizes} 
-            onChange={setSizes} 
-            colors={allowSizesWithoutColors ? undefined : colors} 
+            onChange={setSizes}
           />
         </CardContent>
       </Card>
@@ -252,7 +251,12 @@ const ImprovedProductForm: React.FC<ProductFormProps> = ({
         <CardContent className="pt-4">
           <Label>Product Images</Label>
           <div className="mt-2">
-            <ImageUploader onImageUploaded={handleImageUpload} />
+            <ImageUploader onChange={(imgs: string[]) => {
+              setImages(imgs);
+              if (imgs.length > 0 && !mainImage) {
+                setMainImage(imgs[0]);
+              }
+            }} value={images} />
             
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mt-4">
               {images.map((image, index) => (

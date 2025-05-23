@@ -1,4 +1,3 @@
-
 import { Order, OrderItem } from './Order';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -17,15 +16,21 @@ class OrderDatabase {
   // Save order to database
   public async saveOrder(order: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>): Promise<Order> {
     try {
+      // Convert OrderItem[] to a format that can be safely stored as JSON
+      const items = JSON.parse(JSON.stringify(order.items));
+      const customerInfo = JSON.parse(JSON.stringify(order.customerInfo));
+      const paymentInfo = order.paymentInfo ? JSON.parse(JSON.stringify(order.paymentInfo)) : null;
+      const couponInfo = order.couponInfo ? JSON.parse(JSON.stringify(order.couponInfo)) : null;
+
       const orderData = {
         order_number: order.orderNumber,
-        customer_info: order.customerInfo,
-        items: order.items,
+        customer_info: customerInfo,
+        items: items,
         total_amount: order.totalAmount,
         status: order.status,
         payment_status: order.paymentStatus,
-        payment_info: order.paymentInfo,
-        coupon_info: order.couponInfo,
+        payment_info: paymentInfo,
+        coupon_info: couponInfo,
         notes: order.notes
       };
 
@@ -74,6 +79,26 @@ class OrderDatabase {
   // Cancel order by ID
   public async cancelOrder(orderId: string): Promise<Order | null> {
     return this.updateOrderStatus(orderId, "CANCELLED");
+  }
+
+  // Delete an order - new admin function
+  public async deleteOrder(orderId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+      
+      if (error) {
+        console.error('Error deleting order:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in deleteOrder:', error);
+      return false;
+    }
   }
 
   // Get all orders (for admin)
@@ -296,32 +321,6 @@ class OrderDatabase {
     }
   }
 
-  // Delete an order - new admin function
-  public async deleteOrder(orderId: string): Promise<boolean> {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderId);
-      
-      if (error) {
-        console.error('Error deleting order:', error);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error in deleteOrder:', error);
-      return false;
-    }
-  }
-
-  // Send email notification
-  private sendOrderNotification(order: Order): void {
-    // In a real application, this would send an actual email to the admin
-    console.log('Sending notification for order:', order.orderNumber);
-  }
-
   // Helper method to convert database fields (snake_case) to model fields (camelCase)
   private mapDatabaseOrderToModel(dbOrder: any): Order {
     return {
@@ -338,6 +337,12 @@ class OrderDatabase {
       createdAt: dbOrder.created_at,
       updatedAt: dbOrder.updated_at
     };
+  }
+
+  // Send email notification
+  private sendOrderNotification(order: Order): void {
+    // In a real application, this would send an actual email to the admin
+    console.log('Sending notification for order:', order.orderNumber);
   }
 }
 

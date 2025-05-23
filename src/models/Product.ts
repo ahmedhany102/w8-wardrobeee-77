@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -131,6 +130,10 @@ export class ProductDatabase {
       productData.type = validTypes[0]; // Default to T-Shirts if invalid
     }
     
+    // Serialize complex objects to JSON
+    const sizes = productData.sizes ? JSON.parse(JSON.stringify(productData.sizes)) : null;
+    const colorImages = productData.colorImages ? JSON.parse(JSON.stringify(productData.colorImages)) : null;
+    
     // Map to database format (snake_case)
     const dbProduct = {
       name: productData.name,
@@ -145,14 +148,14 @@ export class ProductDatabase {
       images: productData.images || [],
       color: productData.color,
       size: productData.size,
-      sizes: productData.sizes,
+      sizes: sizes,
       has_discount: productData.hasDiscount || false,
       stock: productData.stock || 0,
       main_image: productData.mainImage || productData.images?.[0],
       colors: productData.colors || [],
       image_url: productData.imageUrl,
       category_path: productData.categoryPath || [],
-      color_images: productData.colorImages,
+      color_images: colorImages,
       details: productData.details,
       ad_product_id: productData.adProductId
     };
@@ -263,7 +266,7 @@ export class ProductDatabase {
       // Update the stock based on whether we're using sizes
       if (product.sizes && Array.isArray(product.sizes)) {
         const sizes = product.sizes;
-        const sizeIndex = sizes.findIndex(s => s.size === size);
+        const sizeIndex = sizes.findIndex((s: any) => s.size === size);
         if (sizeIndex === -1) return false;
         
         // Ensure we don't go below 0

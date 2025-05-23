@@ -77,7 +77,8 @@ class UserDatabase {
         const { error: updateError } = await supabase
           .from('profiles')
           .update({
-            is_admin: true
+            is_admin: true,
+            role: 'ADMIN' as const
           })
           .eq('id', authData.user.id);
 
@@ -148,7 +149,7 @@ class UserDatabase {
         .from('profiles')
         .update({
           is_admin: true,
-          role: 'ADMIN'
+          role: 'ADMIN' as const
         })
         .eq('id', authData.user.id);
 
@@ -213,16 +214,21 @@ class UserDatabase {
         .update({ last_login: new Date().toISOString() })
         .eq('id', data.user.id);
 
+      // Ensure role and status have valid values
+      const role = profile.role === 'ADMIN' ? 'ADMIN' : 'USER';
+      const status = ['ACTIVE', 'BLOCKED', 'PENDING'].includes(profile.status) ? 
+        profile.status as 'ACTIVE' | 'BLOCKED' | 'PENDING' : 'ACTIVE';
+
       // Return user data without password
       return {
         id: data.user.id,
         email: data.user.email || '',
         name: profile.name || '',
-        role: profile.role || 'USER',
+        role,
         createdAt: profile.created_at,
         lastLogin: new Date().toISOString(),
         ipAddress: profile.ip_address || '0.0.0.0',
-        status: profile.status || 'ACTIVE',
+        status,
         isAdmin: profile.is_admin || false,
         isSuperAdmin: profile.is_super_admin || false,
         isBlocked: profile.is_blocked || false,
@@ -245,19 +251,26 @@ class UserDatabase {
         return [];
       }
 
-      return data.map(profile => ({
-        id: profile.id,
-        email: profile.email || '',
-        name: profile.name || '',
-        role: profile.role || 'USER',
-        createdAt: profile.created_at,
-        lastLogin: profile.last_login,
-        ipAddress: profile.ip_address || '0.0.0.0',
-        status: profile.status || 'ACTIVE',
-        isAdmin: profile.is_admin || false,
-        isSuperAdmin: profile.is_super_admin || false,
-        isBlocked: profile.is_blocked || false
-      }));
+      return data.map(profile => {
+        // Ensure role and status have valid values
+        const role = profile.role === 'ADMIN' ? 'ADMIN' as const : 'USER' as const;
+        const status = ['ACTIVE', 'BLOCKED', 'PENDING'].includes(profile.status) ? 
+          profile.status as 'ACTIVE' | 'BLOCKED' | 'PENDING' : 'ACTIVE' as const;
+
+        return {
+          id: profile.id,
+          email: profile.email || '',
+          name: profile.name || '',
+          role,
+          createdAt: profile.created_at,
+          lastLogin: profile.last_login,
+          ipAddress: profile.ip_address || '0.0.0.0',
+          status,
+          isAdmin: profile.is_admin || false,
+          isSuperAdmin: profile.is_super_admin || false,
+          isBlocked: profile.is_blocked || false
+        };
+      });
     } catch (error) {
       console.error('Error getting all users:', error);
       return [];
@@ -277,15 +290,20 @@ class UserDatabase {
         return null;
       }
 
+      // Ensure role and status have valid values
+      const role = data.role === 'ADMIN' ? 'ADMIN' as const : 'USER' as const;
+      const status = ['ACTIVE', 'BLOCKED', 'PENDING'].includes(data.status) ? 
+        data.status as 'ACTIVE' | 'BLOCKED' | 'PENDING' : 'ACTIVE' as const;
+
       return {
         id: data.id,
         email: data.email || '',
         name: data.name || '',
-        role: data.role || 'USER',
+        role,
         createdAt: data.created_at,
         lastLogin: data.last_login,
         ipAddress: data.ip_address || '0.0.0.0',
-        status: data.status || 'ACTIVE',
+        status,
         isAdmin: data.is_admin || false,
         isSuperAdmin: data.is_super_admin || false,
         isBlocked: data.is_blocked || false
