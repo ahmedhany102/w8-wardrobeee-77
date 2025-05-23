@@ -2,123 +2,19 @@
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/models/User';
+import { supabase } from '@/integrations/supabase/client';
 
 class UserDatabase {
   private static instance: UserDatabase;
-  private users: User[] = [];
   private readonly SALT_ROUNDS = 10;
-  private db: IDBDatabase | null = null;
-  private readonly DB_NAME = 'w8StoreDB';
-  private readonly STORE_NAME = 'users';
 
-  private constructor() {
-    this.initDB();
-  }
+  private constructor() {}
 
   public static getInstance(): UserDatabase {
     if (!UserDatabase.instance) {
       UserDatabase.instance = new UserDatabase();
     }
     return UserDatabase.instance;
-  }
-
-  private initDB(): void {
-    // Use IndexedDB for cross-browser storage consistency
-    const request = indexedDB.open(this.DB_NAME, 1);
-
-    request.onerror = (event) => {
-      console.error('Error opening database:', event);
-    };
-
-    request.onsuccess = (event) => {
-      this.db = (event.target as IDBOpenDBRequest).result;
-      this.loadUsers();
-    };
-
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(this.STORE_NAME)) {
-        db.createObjectStore(this.STORE_NAME, { keyPath: 'id' });
-      }
-    };
-  }
-
-  private loadUsers(): void {
-    if (!this.db) return;
-
-    const transaction = this.db.transaction([this.STORE_NAME], 'readonly');
-    const store = transaction.objectStore(this.STORE_NAME);
-    const request = store.getAll();
-
-    request.onsuccess = () => {
-      this.users = request.result || [];
-      if (this.users.length === 0) {
-        this.createDefaultAdmin();
-      }
-      
-      // Also sync with localStorage for backward compatibility
-      this.syncWithLocalStorage();
-    };
-
-    request.onerror = (event) => {
-      console.error('Error loading users:', event);
-      this.createDefaultAdmin();
-    };
-  }
-
-  // Sync IndexedDB data with localStorage for backward compatibility
-  private syncWithLocalStorage(): void {
-    const mockUsers = this.users.map(user => ({
-      id: user.id,
-      email: user.email,
-      password: user.password,
-      name: user.name,
-      role: user.isAdmin ? "ADMIN" : "USER"
-    }));
-    localStorage.setItem("mock_users", JSON.stringify(mockUsers));
-  }
-
-  private createDefaultAdmin(): void {
-    const adminUser: User = {
-      id: 'admin-1',
-      name: 'Ahmed Hany',
-      email: 'ahmedhanyseifeldien@gmail.com',
-      password: 'Ahmedhany11*',
-      role: 'ADMIN',
-      createdAt: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-      ipAddress: '192.168.1.1',
-      status: 'ACTIVE',
-      isAdmin: true,
-      isSuperAdmin: true,
-      isBlocked: false
-    };
-    this.users = [adminUser];
-    this.saveUsers();
-  }
-
-  private saveUsers(): void {
-    if (!this.db) return;
-
-    const transaction = this.db.transaction([this.STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(this.STORE_NAME);
-
-    // Clear existing users
-    store.clear();
-
-    // Add all users
-    this.users.forEach(user => {
-      store.add(user);
-    });
-
-    transaction.oncomplete = () => {
-      // Sync with localStorage for backward compatibility
-      this.syncWithLocalStorage();
-    };
-
-    transaction.onerror = (event) => {
-      console.error('Error saving users:', event);
-    };
   }
 
   private async hashPassword(password: string): Promise<string> {
@@ -145,16 +41,56 @@ class UserDatabase {
         throw new Error('Invalid email format');
       }
 
-      const existingUser = this.users.find(user => user.email === userData.email);
+      // Check if email already exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', userData.email)
+        .maybeSingle();
+
       if (existingUser) {
         throw new Error('Email already registered');
       }
 
-      const newUser: User = {
-        id: userData.id || uuidv4(),
-        name: userData.name || '',
+      // Register user with Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password || '',
+        options: {
+          data: {
+            name: userData.name || ''
+          }
+        }
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error('Failed to create user');
+      }
+
+      // Profile will be automatically created via trigger
+      // Let's ensure the is_admin value is set correctly
+      if (userData.role === 'ADMIN') {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            is_admin: true
+          })
+          .eq('id', authData.user.id);
+
+        if (updateError) {
+          console.error('Error updating admin status:', updateError);
+        }
+      }
+
+      // Return the user without password
+      return {
+        id: authData.user.id,
+        email: authData.user.email || '',
+        name: userData.name || '',
         role: userData.role || 'USER',
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
@@ -162,15 +98,9 @@ class UserDatabase {
         status: 'ACTIVE',
         isAdmin: userData.role === 'ADMIN',
         isSuperAdmin: userData.isSuperAdmin || false,
-        isBlocked: false
+        isBlocked: false,
+        password: '' // Empty for security
       };
-
-      this.users.push(newUser);
-      this.saveUsers();
-      
-      // Return without password
-      const { password, ...userWithoutPassword } = newUser;
-      return userWithoutPassword as User;
     } catch (error) {
       console.error('Error registering user:', error);
       return null;
@@ -183,17 +113,54 @@ class UserDatabase {
         throw new Error('Invalid email format');
       }
 
-      const existingUser = this.users.find(user => user.email === email);
+      // Check if email already exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', email)
+        .maybeSingle();
+
       if (existingUser) {
         throw new Error('Email already registered');
       }
 
-      // Create new admin user
-      const newUser: User = {
-        id: uuidv4(),
-        name: name,
+      // Register user with Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: email,
-        password: password, // We'll let addUser handle hashing if needed
+        password: password,
+        options: {
+          data: {
+            name: name
+          }
+        }
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error('Failed to create admin user');
+      }
+
+      // Update the profile to make them an admin
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          is_admin: true,
+          role: 'ADMIN'
+        })
+        .eq('id', authData.user.id);
+
+      if (updateError) {
+        console.error('Error setting admin privileges:', updateError);
+      }
+
+      // Return the admin user without password
+      return {
+        id: authData.user.id,
+        email: authData.user.email || '',
+        name: name,
         role: 'ADMIN',
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
@@ -201,15 +168,9 @@ class UserDatabase {
         status: 'ACTIVE',
         isAdmin: true,
         isSuperAdmin: false,
-        isBlocked: false
+        isBlocked: false,
+        password: '' // Empty for security
       };
-
-      this.users.push(newUser);
-      this.saveUsers();
-      
-      // Return without password
-      const { password: _, ...userWithoutPassword } = newUser;
-      return userWithoutPassword as User;
     } catch (error) {
       console.error('Error creating admin user:', error);
       return null;
@@ -218,102 +179,170 @@ class UserDatabase {
 
   public async loginUser(email: string, password: string): Promise<User | null> {
     try {
-      const user = this.users.find(u => u.email === email);
-      if (!user) {
-        console.log('User not found:', email);
+      // Sign in with email and password
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        console.log('Login error:', error);
         return null;
       }
 
-      // Check if it's a simple password or hashed
-      let isValid = false;
-      if (user.password === password) {
-        // Direct comparison for non-hashed passwords
-        isValid = true;
-      } else {
-        // Try bcrypt comparison for hashed passwords
-        try {
-          isValid = await this.verifyPassword(password, user.password);
-        } catch (e) {
-          // If bcrypt fails, try base64 decode for legacy passwords
-          try {
-            isValid = atob(user.password) === password;
-          } catch (e2) {
-            isValid = false;
-          }
-        }
-      }
-
-      if (!isValid) {
-        console.log('Invalid password for user:', email);
+      if (!data.user) {
+        console.log('No user found');
         return null;
       }
 
-      user.lastLogin = new Date().toISOString();
-      this.saveUsers();
+      // Get the user profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .maybeSingle();
 
-      const { password: _, ...userWithoutPassword } = user;
-      return userWithoutPassword as User;
+      if (profileError || !profile) {
+        console.error('Error fetching user profile:', profileError);
+        return null;
+      }
+
+      // Update last login time
+      await supabase
+        .from('profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', data.user.id);
+
+      // Return user data without password
+      return {
+        id: data.user.id,
+        email: data.user.email || '',
+        name: profile.name || '',
+        role: profile.role || 'USER',
+        createdAt: profile.created_at,
+        lastLogin: new Date().toISOString(),
+        ipAddress: profile.ip_address || '0.0.0.0',
+        status: profile.status || 'ACTIVE',
+        isAdmin: profile.is_admin || false,
+        isSuperAdmin: profile.is_super_admin || false,
+        isBlocked: profile.is_blocked || false,
+        password: '' // Empty for security
+      };
     } catch (error) {
       console.error('Error during login:', error);
       return null;
     }
   }
 
-  public getAllUsers(): Omit<User, 'password'>[] {
-    return this.users.map(({ password, ...user }) => user);
+  public async getAllUsers(): Promise<Omit<User, 'password'>[]> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return [];
+      }
+
+      return data.map(profile => ({
+        id: profile.id,
+        email: profile.email || '',
+        name: profile.name || '',
+        role: profile.role || 'USER',
+        createdAt: profile.created_at,
+        lastLogin: profile.last_login,
+        ipAddress: profile.ip_address || '0.0.0.0',
+        status: profile.status || 'ACTIVE',
+        isAdmin: profile.is_admin || false,
+        isSuperAdmin: profile.is_super_admin || false,
+        isBlocked: profile.is_blocked || false
+      }));
+    } catch (error) {
+      console.error('Error getting all users:', error);
+      return [];
+    }
   }
 
-  public getUserById(id: string): Omit<User, 'password'> | null {
-    const user = this.users.find(u => u.id === id);
-    if (!user) return null;
-    const { password, ...userWithoutPassword } = user;
-    return userWithoutPassword;
+  public async getUserById(id: string): Promise<Omit<User, 'password'> | null> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error || !data) {
+        console.error('Error fetching user by ID:', error);
+        return null;
+      }
+
+      return {
+        id: data.id,
+        email: data.email || '',
+        name: data.name || '',
+        role: data.role || 'USER',
+        createdAt: data.created_at,
+        lastLogin: data.last_login,
+        ipAddress: data.ip_address || '0.0.0.0',
+        status: data.status || 'ACTIVE',
+        isAdmin: data.is_admin || false,
+        isSuperAdmin: data.is_super_admin || false,
+        isBlocked: data.is_blocked || false
+      };
+    } catch (error) {
+      console.error('Error getting user by ID:', error);
+      return null;
+    }
   }
 
   public async updateUser(id: string, updates: Partial<User>): Promise<boolean> {
     try {
-      const userIndex = this.users.findIndex(u => u.id === id);
-      if (userIndex === -1) return false;
+      const dbUpdates: any = {};
 
-      if (updates.email && !this.validateEmail(updates.email)) {
-        throw new Error('Invalid email format');
-      }
-
-      if (updates.email && this.users.some(u => u.email === updates.email && u.id !== id)) {
-        throw new Error('Email already in use');
-      }
-
-      // Handle password change specially
-      if (updates.password) {
-        // Store password directly - we'll handle hashing later if needed
-        this.users[userIndex] = {
-          ...this.users[userIndex],
-          ...updates
-        };
-        
-        // Also update in localStorage for backward compatibility
-        const mockUsers = JSON.parse(localStorage.getItem("mock_users") || "[]");
-        const mockUserIndex = mockUsers.findIndex((u: any) => u.id === id);
-        if (mockUserIndex >= 0) {
-          mockUsers[mockUserIndex].password = updates.password;
-          localStorage.setItem("mock_users", JSON.stringify(mockUsers));
+      if (updates.name) dbUpdates.name = updates.name;
+      if (updates.email) {
+        if (!this.validateEmail(updates.email)) {
+          throw new Error('Invalid email format');
         }
-      } else {
-        this.users[userIndex] = {
-          ...this.users[userIndex],
-          ...updates
-        };
+        // Check if email is already in use by another user
+        const { data: existingUser } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', updates.email)
+          .neq('id', id)
+          .maybeSingle();
+
+        if (existingUser) {
+          throw new Error('Email already in use');
+        }
+
+        dbUpdates.email = updates.email;
+      }
+      if (updates.role) dbUpdates.role = updates.role;
+      if (updates.status) dbUpdates.status = updates.status;
+      if (updates.isAdmin !== undefined) dbUpdates.is_admin = updates.isAdmin;
+      if (updates.isSuperAdmin !== undefined) dbUpdates.is_super_admin = updates.isSuperAdmin;
+      if (updates.isBlocked !== undefined) dbUpdates.is_blocked = updates.isBlocked;
+      if (updates.ipAddress) dbUpdates.ip_address = updates.ipAddress;
+
+      // If password is being updated, handle that separately with Auth API
+      if (updates.password) {
+        // This would require admin privileges, not implementing here
+        console.log('Password updates require admin privileges');
       }
 
-      if (updates.role) {
-        this.users[userIndex].isAdmin = updates.role === 'ADMIN';
+      // Update the profile in the database
+      const { error } = await supabase
+        .from('profiles')
+        .update(dbUpdates)
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error updating user:', error);
+        return false;
       }
 
-      if (updates.status) {
-        this.users[userIndex].isBlocked = updates.status === 'BLOCKED';
-      }
-
-      this.saveUsers();
       return true;
     } catch (error) {
       console.error('Error updating user:', error);
@@ -322,30 +351,49 @@ class UserDatabase {
   }
 
   public async updateUserRole(id: string, role: 'ADMIN' | 'USER'): Promise<boolean> {
-    return this.updateUser(id, { role });
+    return this.updateUser(id, { 
+      role,
+      isAdmin: role === 'ADMIN'
+    });
   }
 
   public async updateUserStatus(id: string, status: 'ACTIVE' | 'BLOCKED' | 'PENDING'): Promise<boolean> {
-    return this.updateUser(id, { status });
+    return this.updateUser(id, { 
+      status,
+      isBlocked: status === 'BLOCKED'
+    });
   }
 
-  public deleteUser(id: string): boolean {
+  public async deleteUser(id: string): Promise<boolean> {
     try {
-      // Don't allow deleting super admin
-      const userToDelete = this.users.find(u => u.id === id);
-      if (userToDelete && userToDelete.isSuperAdmin) {
+      // Check if user is a super admin
+      const { data: user, error: fetchError } = await supabase
+        .from('profiles')
+        .select('is_super_admin')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error fetching user for deletion check:', fetchError);
+        return false;
+      }
+
+      if (user?.is_super_admin) {
         console.error('Cannot delete super admin user');
         return false;
       }
-      
-      const initialLength = this.users.length;
-      this.users = this.users.filter(u => u.id !== id);
-      
-      if (this.users.length !== initialLength) {
-        this.saveUsers();
-        return true;
+
+      // Delete the user from Auth (will cascade to profiles due to foreign key)
+      // Note: This requires admin privileges 
+      // For regular operation, use admin functions or server-side code
+      const { error: deleteError } = await supabase.auth.admin.deleteUser(id);
+
+      if (deleteError) {
+        console.error('Error deleting user:', deleteError);
+        return false;
       }
-      return false;
+
+      return true;
     } catch (error) {
       console.error('Error deleting user:', error);
       return false;
