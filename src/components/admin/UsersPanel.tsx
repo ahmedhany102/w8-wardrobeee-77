@@ -8,21 +8,10 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import UserDatabase from '@/models/UserDatabase';
 import { Plus, Trash } from 'lucide-react';
-import { User } from '@/models/User';
-
-interface User {
-  id?: string;
-  name: string;
-  email: string;
-  role: string;
-  isBlocked: boolean;
-  status: string;
-  isAdmin: boolean;
-  isSuperAdmin: boolean;
-}
+import { User as UserModel } from '@/models/User';
 
 const UsersPanel = () => {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserModel[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showAddAdminDialog, setShowAddAdminDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
