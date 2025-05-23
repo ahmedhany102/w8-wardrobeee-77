@@ -5,9 +5,10 @@ interface ImageUploaderProps {
   value?: string[];
   onChange: (imgs: string[]) => void;
   label?: string;
+  onImageUploaded?: (imageUrl: string) => void; // Added onImageUploaded prop
 }
 
-const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, label }) => {
+const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, label, onImageUploaded }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -18,8 +19,15 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ value = [], onChange, lab
     files.forEach((file, idx) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        newImages[idx] = ev.target?.result as string;
+        const imageUrl = ev.target?.result as string;
+        newImages[idx] = imageUrl;
         loaded++;
+        
+        // Call onImageUploaded callback with the new image URL if provided
+        if (onImageUploaded && typeof onImageUploaded === 'function') {
+          onImageUploaded(imageUrl);
+        }
+        
         if (loaded === files.length) {
           onChange([...(value || []), ...newImages.filter(Boolean)]);
         }

@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -265,8 +266,9 @@ export class ProductDatabase {
       
       // Update the stock based on whether we're using sizes
       if (product.sizes && Array.isArray(product.sizes)) {
-        const sizes = product.sizes;
-        const sizeIndex = sizes.findIndex((s: any) => s.size === size);
+        // Cast the sizes to the correct type for TypeScript
+        const sizes = product.sizes as SizeWithStock[];
+        const sizeIndex = sizes.findIndex((s) => s.size === size);
         if (sizeIndex === -1) return false;
         
         // Ensure we don't go below 0
