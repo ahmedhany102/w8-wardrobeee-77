@@ -1,6 +1,5 @@
-
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseAdmin } from '@/integrations/supabase/client';
 
 // Define the Product interface
 export interface Product {
@@ -95,16 +94,14 @@ export class ProductDatabase {
 
       if (error) {
         console.error('Error fetching products:', error);
-        return [];
+        throw error;
       }
 
       console.log(`Retrieved ${data.length} products from database`);
-      
-      // Map database fields to camelCase for frontend
       return data.map(this.mapDatabaseProductToModel);
     } catch (error) {
       console.error('Error in getAllProducts:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -138,7 +135,7 @@ export class ProductDatabase {
     // Ensure product is in Men category
     const validTypes = ['T-Shirts', 'Trousers', 'Shoes', 'Jackets'];
     if (!productData.type || !validTypes.includes(productData.type)) {
-      productData.type = validTypes[0]; // Default to T-Shirts if invalid
+      productData.type = validTypes[0];
     }
     
     // Serialize complex objects to JSON strings for Supabase
@@ -168,12 +165,14 @@ export class ProductDatabase {
       category_path: productData.categoryPath || [],
       color_images: colorImages,
       details: productData.details,
-      ad_product_id: productData.adProductId
+      ad_product_id: productData.adProductId,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
     try {
       console.log('Inserting product into Supabase:', dbProduct);
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('products')
         .insert(dbProduct)
         .select()
@@ -181,17 +180,6 @@ export class ProductDatabase {
 
       if (error) {
         console.error('Error adding product:', error);
-        // Fallback to creating locally with UUID if there's an auth error
-        if (error.code === 'PGRST116') {
-          const newProduct: Product = {
-            ...productData,
-            id: uuidv4(),
-            category: 'Men',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          return newProduct;
-        }
         throw error;
       }
 
@@ -199,15 +187,7 @@ export class ProductDatabase {
       return this.mapDatabaseProductToModel(data);
     } catch (error) {
       console.error('Error in addProduct:', error);
-      // Create a local product as fallback
-      const newProduct: Product = {
-        ...productData,
-        id: uuidv4(),
-        category: 'Men',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      return newProduct;
+      throw error;
     }
   }
 
