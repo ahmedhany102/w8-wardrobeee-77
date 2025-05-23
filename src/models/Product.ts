@@ -1,5 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { supabase, supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
+import { supabaseAdmin } from '@/integrations/supabase/admin';
 
 // Define the Product interface
 export interface Product {
