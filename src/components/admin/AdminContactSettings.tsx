@@ -6,76 +6,75 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-interface ContactSettings {
-  address: string;
-  mapUrl: string;
-  email: string;
-  phone: string;
-  workingHours: string;
-  website: string;
-  facebook: string;
-  instagram: string;
-  twitter: string;
-  youtube: string;
-  termsAndConditions: string;
-  developerName: string;
-  developerUrl: string;
-}
-
-const defaultSettings: ContactSettings = {
-  address: '',
-  mapUrl: '',
-  email: '',
-  phone: '',
-  workingHours: '',
-  website: '',
-  facebook: '',
-  instagram: '',
-  twitter: '',
-  youtube: '',
-  termsAndConditions: '',
-  developerName: 'Ahmed Hany',
-  developerUrl: 'https://ahmedhany.dev'
-};
+import { useSupabaseContactSettings } from '@/hooks/useSupabaseData';
 
 const AdminContactSettings = () => {
-  const [settings, setSettings] = useState<ContactSettings>(defaultSettings);
+  const { settings, loading, updateSettings } = useSupabaseContactSettings();
+  const [formData, setFormData] = useState({
+    store_name: '',
+    address: '',
+    email: '',
+    phone: '',
+    working_hours: '',
+    website: '',
+    facebook: '',
+    instagram: '',
+    twitter: '',
+    youtube: '',
+    map_url: '',
+    terms_and_conditions: '',
+    developer_name: 'Ahmed Hany',
+    developer_url: 'https://ahmedhany.dev'
+  });
   const [activeTab, setActiveTab] = useState('contact');
 
   useEffect(() => {
-    // Load settings from localStorage
-    const savedSettings = localStorage.getItem('contactSettings');
-    if (savedSettings) {
-      try {
-        const parsedSettings = JSON.parse(savedSettings);
-        // Ensure developer information is preserved
-        setSettings({
-          ...parsedSettings,
-          developerName: parsedSettings.developerName || defaultSettings.developerName,
-          developerUrl: parsedSettings.developerUrl || defaultSettings.developerUrl
-        });
-      } catch (error) {
-        console.error('Error loading contact settings:', error);
-      }
+    if (settings) {
+      setFormData({
+        store_name: settings.store_name || '',
+        address: settings.address || '',
+        email: settings.email || '',
+        phone: settings.phone || '',
+        working_hours: settings.working_hours || '',
+        website: settings.website || '',
+        facebook: settings.facebook || '',
+        instagram: settings.instagram || '',
+        twitter: settings.twitter || '',
+        youtube: settings.youtube || '',
+        map_url: settings.map_url || '',
+        terms_and_conditions: settings.terms_and_conditions || '',
+        developer_name: settings.developer_name || 'Ahmed Hany',
+        developer_url: settings.developer_url || 'https://ahmedhany.dev'
+      });
     }
-  }, []);
+  }, [settings]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setSettings(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const saveSettings = () => {
-    // Ensure developer info is always present
-    const dataToSave = {
-      ...settings,
-      developerName: settings.developerName || defaultSettings.developerName,
-      developerUrl: settings.developerUrl || defaultSettings.developerUrl
-    };
-    localStorage.setItem('contactSettings', JSON.stringify(dataToSave));
-    toast.success('Settings saved successfully');
+  const saveSettings = async () => {
+    try {
+      const success = await updateSettings(formData);
+      if (success) {
+        toast.success('Settings saved successfully');
+      } else {
+        toast.error('Failed to save settings');
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Error saving settings');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <div className="text-center">Loading contact settings...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -95,24 +94,24 @@ const AdminContactSettings = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="address" className="text-sm font-medium">Address</label>
+                  <label htmlFor="store_name" className="text-sm font-medium">Store Name</label>
                   <Input
-                    id="address"
-                    name="address"
-                    value={settings.address}
+                    id="store_name"
+                    name="store_name"
+                    value={formData.store_name}
                     onChange={handleChange}
-                    placeholder="Full Address"
+                    placeholder="Store Name"
                   />
                 </div>
                 
                 <div>
-                  <label htmlFor="mapUrl" className="text-sm font-medium">Map URL</label>
+                  <label htmlFor="address" className="text-sm font-medium">Address</label>
                   <Input
-                    id="mapUrl"
-                    name="mapUrl"
-                    value={settings.mapUrl}
+                    id="address"
+                    name="address"
+                    value={formData.address}
                     onChange={handleChange}
-                    placeholder="Google Maps Link"
+                    placeholder="Full Address"
                   />
                 </div>
               </div>
@@ -124,7 +123,7 @@ const AdminContactSettings = () => {
                     id="email"
                     name="email"
                     type="email"
-                    value={settings.email}
+                    value={formData.email}
                     onChange={handleChange}
                     placeholder="Contact Email"
                   />
@@ -135,22 +134,35 @@ const AdminContactSettings = () => {
                   <Input
                     id="phone"
                     name="phone"
-                    value={settings.phone}
+                    value={formData.phone}
                     onChange={handleChange}
                     placeholder="Contact Phone"
                   />
                 </div>
               </div>
               
-              <div>
-                <label htmlFor="workingHours" className="text-sm font-medium">Working Hours</label>
-                <Input
-                  id="workingHours"
-                  name="workingHours"
-                  value={settings.workingHours}
-                  onChange={handleChange}
-                  placeholder="Example: Monday-Friday 9AM-5PM"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="working_hours" className="text-sm font-medium">Working Hours</label>
+                  <Input
+                    id="working_hours"
+                    name="working_hours"
+                    value={formData.working_hours}
+                    onChange={handleChange}
+                    placeholder="Example: Monday-Friday 9AM-5PM"
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="map_url" className="text-sm font-medium">Map URL</label>
+                  <Input
+                    id="map_url"
+                    name="map_url"
+                    value={formData.map_url}
+                    onChange={handleChange}
+                    placeholder="Google Maps Link"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -167,7 +179,7 @@ const AdminContactSettings = () => {
                   <Input
                     id="website"
                     name="website"
-                    value={settings.website}
+                    value={formData.website}
                     onChange={handleChange}
                     placeholder="Website URL"
                   />
@@ -178,7 +190,7 @@ const AdminContactSettings = () => {
                   <Input
                     id="facebook"
                     name="facebook"
-                    value={settings.facebook}
+                    value={formData.facebook}
                     onChange={handleChange}
                     placeholder="Facebook Page URL"
                   />
@@ -191,7 +203,7 @@ const AdminContactSettings = () => {
                   <Input
                     id="instagram"
                     name="instagram"
-                    value={settings.instagram}
+                    value={formData.instagram}
                     onChange={handleChange}
                     placeholder="Instagram Account URL"
                   />
@@ -202,7 +214,7 @@ const AdminContactSettings = () => {
                   <Input
                     id="twitter"
                     name="twitter"
-                    value={settings.twitter}
+                    value={formData.twitter}
                     onChange={handleChange}
                     placeholder="Twitter Account URL"
                   />
@@ -214,7 +226,7 @@ const AdminContactSettings = () => {
                 <Input
                   id="youtube"
                   name="youtube"
-                  value={settings.youtube}
+                  value={formData.youtube}
                   onChange={handleChange}
                   placeholder="YouTube Channel URL"
                 />
@@ -231,9 +243,9 @@ const AdminContactSettings = () => {
             </CardHeader>
             <CardContent>
               <Textarea
-                id="termsAndConditions"
-                name="termsAndConditions"
-                value={settings.termsAndConditions}
+                id="terms_and_conditions"
+                name="terms_and_conditions"
+                value={formData.terms_and_conditions}
                 onChange={handleChange}
                 placeholder="Enter terms and conditions here..."
                 className="min-h-[300px]"
@@ -251,11 +263,11 @@ const AdminContactSettings = () => {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="developerName" className="text-sm font-medium">Developer Name</label>
+                  <label htmlFor="developer_name" className="text-sm font-medium">Developer Name</label>
                   <Input
-                    id="developerName"
-                    name="developerName"
-                    value={settings.developerName}
+                    id="developer_name"
+                    name="developer_name"
+                    value={formData.developer_name}
                     onChange={handleChange}
                     placeholder="Developer Name"
                     readOnly
@@ -264,11 +276,11 @@ const AdminContactSettings = () => {
                 </div>
                 
                 <div>
-                  <label htmlFor="developerUrl" className="text-sm font-medium">Developer URL</label>
+                  <label htmlFor="developer_url" className="text-sm font-medium">Developer URL</label>
                   <Input
-                    id="developerUrl"
-                    name="developerUrl"
-                    value={settings.developerUrl}
+                    id="developer_url"
+                    name="developer_url"
+                    value={formData.developer_url}
                     onChange={handleChange}
                     placeholder="Developer Website URL"
                     readOnly

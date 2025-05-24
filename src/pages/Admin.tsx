@@ -10,13 +10,19 @@ import OrdersPanel from "@/components/admin/OrdersPanel";
 import CouponManagement from "@/components/admin/CouponManagement";
 import AdminContactSettings from "@/components/admin/AdminContactSettings";
 import AdManagement from "@/components/admin/AdManagement";
-import { Home, LogOut, Package, Settings, Ticket, Users } from "lucide-react";
 import UsersPanel from "@/components/admin/UsersPanel";
+import AdminDashboardStats from "@/components/AdminDashboardStats";
+import { Home, LogOut, Package, Settings, Ticket, Users } from "lucide-react";
+import { useSupabaseProducts, useSupabaseUsers, useSupabaseOrders } from "@/hooks/useSupabaseData";
 
 const Admin = ({ activeTab = "dashboard" }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(activeTab);
+  
+  const { products, loading: productsLoading } = useSupabaseProducts();
+  const { users, loading: usersLoading } = useSupabaseUsers();
+  const { orders, loading: ordersLoading } = useSupabaseOrders();
 
   // Check if user exists and is admin
   if (!user || user.role !== "ADMIN") {
@@ -24,9 +30,11 @@ const Admin = ({ activeTab = "dashboard" }) => {
   }
 
   const handleLogout = () => {
-    logout(); // Using logout instead of signOut
+    logout();
     navigate("/");
   };
+
+  const statsLoading = productsLoading || usersLoading || ordersLoading;
 
   return (
     <Layout hideFooter>
@@ -47,6 +55,14 @@ const Admin = ({ activeTab = "dashboard" }) => {
             تسجيل الخروج
           </Button>
         </div>
+
+        {/* Stats Dashboard */}
+        <AdminDashboardStats 
+          totalProducts={products.length}
+          totalUsers={users.length}
+          totalOrders={orders.length}
+          loading={statsLoading}
+        />
 
         {/* Tabs */}
         <Tabs 
@@ -87,7 +103,6 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
           <TabsContent value="dashboard" className="mt-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Dashboard content */}
               <div className="p-6 bg-white rounded-lg shadow">
                 <h3 className="text-xl font-bold">إدارة المتجر</h3>
                 <p className="mt-2 text-gray-600">
