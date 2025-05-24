@@ -16,9 +16,12 @@ interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
+  adminLogin: (email: string, password: string) => Promise<boolean>;
   signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   loading: boolean;
+  isAdmin: boolean;
+  checkAuthStatus: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,6 +39,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const checkAuthStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+    }
+  };
+
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (profile) {
+        const authUser: AuthUser = {
+          id: profile.id,
+          email: profile.email || '',
+          name: profile.name,
+          displayName: profile.name,
+          role: profile.is_admin ? 'ADMIN' : 'USER'
+        };
+        console.log('Setting user from profile:', authUser);
+        setUser(authUser);
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -46,47 +84,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user) {
           // Fetch user profile from profiles table
           setTimeout(async () => {
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', session.user.id)
-                .single();
-              
-              if (profile) {
-                const authUser: AuthUser = {
-                  id: profile.id,
-                  email: profile.email || session.user.email || '',
-                  name: profile.name,
-                  displayName: profile.name,
-                  role: profile.is_admin ? 'ADMIN' : 'USER'
-                };
-                console.log('Setting user from profile:', authUser);
-                setUser(authUser);
-              } else {
-                // Fallback to session user data
-                const authUser: AuthUser = {
-                  id: session.user.id,
-                  email: session.user.email || '',
-                  name: session.user.user_metadata?.name,
-                  displayName: session.user.user_metadata?.name,
-                  role: 'USER'
-                };
-                console.log('Setting user from session:', authUser);
-                setUser(authUser);
-              }
-            } catch (error) {
-              console.error('Error fetching user profile:', error);
-              // Fallback to session user data
-              const authUser: AuthUser = {
-                id: session.user.id,
-                email: session.user.email || '',
-                name: session.user.user_metadata?.name,
-                displayName: session.user.user_metadata?.name,
-                role: 'USER'
-              };
-              setUser(authUser);
-            }
+            await fetchUserProfile(session.user.id);
           }, 0);
         } else {
           setUser(null);
@@ -102,48 +100,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       
       if (session?.user) {
-        // Trigger the same logic as in onAuthStateChange
         setTimeout(async () => {
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
-            
-            if (profile) {
-              const authUser: AuthUser = {
-                id: profile.id,
-                email: profile.email || session.user.email || '',
-                name: profile.name,
-                displayName: profile.name,
-                role: profile.is_admin ? 'ADMIN' : 'USER'
-              };
-              console.log('Setting initial user from profile:', authUser);
-              setUser(authUser);
-            } else {
-              const authUser: AuthUser = {
-                id: session.user.id,
-                email: session.user.email || '',
-                name: session.user.user_metadata?.name,
-                displayName: session.user.user_metadata?.name,
-                role: 'USER'
-              };
-              console.log('Setting initial user from session:', authUser);
-              setUser(authUser);
-            }
-          } catch (error) {
-            console.error('Error fetching initial user profile:', error);
-            const authUser: AuthUser = {
-              id: session.user.id,
-              email: session.user.email || '',
-              name: session.user.user_metadata?.name,
-              displayName: session.user.user_metadata?.name,
-              role: 'USER'
-            };
-            setUser(authUser);
-          }
-          setLoading(false);
+          await fetchUserProfile(session.user.id);
         }, 0);
       } else {
         setLoading(false);
@@ -177,6 +135,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Login error:', error);
       toast.error('Login failed. Please try again.');
+      return false;
+    }
+  };
+
+  const adminLogin = async (email: string, password: string): Promise<boolean> => {
+    try {
+      console.log('Attempting admin login for:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Admin login error:', error);
+        toast.error(error.message);
+        return false;
+      }
+
+      if (data.user) {
+        // Check if user is admin
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile?.is_admin) {
+          console.log('Admin login successful for user:', data.user.id);
+          toast.success('Admin login successful!');
+          return true;
+        } else {
+          // Sign out non-admin user
+          await supabase.auth.signOut();
+          toast.error('Access denied. Admin privileges required.');
+          return false;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Admin login error:', error);
+      toast.error('Admin login failed. Please try again.');
       return false;
     }
   };
@@ -234,9 +234,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     session,
     login,
+    adminLogin,
     signup,
     logout,
     loading,
+    isAdmin: user?.role === 'ADMIN',
+    checkAuthStatus,
   };
 
   return (
