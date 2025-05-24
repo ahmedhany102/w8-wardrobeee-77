@@ -42,21 +42,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuthStatus = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      setSession(session);
       if (session?.user) {
         await fetchUserProfile(session.user.id);
+      } else {
+        setUser(null);
       }
     } catch (error) {
       console.error('Error checking auth status:', error);
+      setUser(null);
+      setSession(null);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchUserProfile = async (userId: string) => {
     try {
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
+      
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
       
       if (profile) {
         const authUser: AuthUser = {
@@ -75,6 +87,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Initial session check
+    checkAuthStatus();
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -82,10 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         
         if (session?.user) {
-          // Fetch user profile from profiles table
-          setTimeout(async () => {
-            await fetchUserProfile(session.user.id);
-          }, 0);
+          await fetchUserProfile(session.user.id);
         } else {
           setUser(null);
         }
@@ -94,26 +106,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session);
-      setSession(session);
-      
-      if (session?.user) {
-        setTimeout(async () => {
-          await fetchUserProfile(session.user.id);
-        }, 0);
-      } else {
-        setLoading(false);
-      }
-    });
-
     return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      setLoading(true);
       console.log('Attempting login for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -121,11 +121,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Login error:', error);
-        toast.error(error.message);
+        if (error.message.includes('Email not confirmed')) {
+          toast.error('Please check your email and confirm your account before logging in.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password. Please try again.');
+        } else {
+          toast.error(error.message);
+        }
         return false;
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
         console.log('Login successful for user:', data.user.id);
         toast.success('Login successful!');
         return true;
@@ -136,12 +142,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Login error:', error);
       toast.error('Login failed. Please try again.');
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
+      setLoading(true);
       console.log('Attempting admin login for:', email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -149,19 +159,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Admin login error:', error);
-        toast.error(error.message);
+        if (error.message.includes('Email not confirmed')) {
+          toast.error('Admin account not confirmed. Please check email or contact system administrator.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid admin credentials. Please check email and password.');
+        } else {
+          toast.error(error.message);
+        }
         return false;
       }
 
-      if (data.user) {
+      if (data.user && data.session) {
         // Check if user is admin
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('is_admin')
+          .select('is_admin, is_super_admin')
           .eq('id', data.user.id)
           .single();
 
-        if (profile?.is_admin) {
+        if (profileError) {
+          console.error('Error checking admin status:', profileError);
+          await supabase.auth.signOut();
+          toast.error('Error verifying admin status. Please try again.');
+          return false;
+        }
+
+        if (profile?.is_admin || profile?.is_super_admin) {
           console.log('Admin login successful for user:', data.user.id);
           toast.success('Admin login successful!');
           return true;
@@ -178,12 +201,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Admin login error:', error);
       toast.error('Admin login failed. Please try again.');
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
+      setLoading(true);
       console.log('Attempting signup for:', email, name);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -202,7 +229,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data.user) {
         console.log('Signup successful for user:', data.user.id);
-        toast.success('Account created successfully!');
+        if (data.user.email_confirmed_at) {
+          toast.success('Account created successfully! You can now login.');
+        } else {
+          toast.success('Account created! Please check your email to confirm your account before logging in.');
+        }
         return true;
       }
 
@@ -211,6 +242,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Signup error:', error);
       toast.error('Signup failed. Please try again.');
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -222,6 +255,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Logout error:', error);
         toast.error('Error logging out');
       } else {
+        setUser(null);
+        setSession(null);
         toast.success('Logged out successfully');
       }
     } catch (error) {

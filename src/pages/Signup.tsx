@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,16 +48,17 @@ const signupSchema = z
 type SignupFormValues = z.infer<typeof signupSchema>;
 
 const Signup = () => {
-  const { signup, user } = useAuth();
+  const { signup, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
 
   React.useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
@@ -69,16 +71,73 @@ const Signup = () => {
   });
 
   const onSubmit = async (data: SignupFormValues) => {
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     try {
       const success = await signup(data.email, data.password, data.name);
       if (success) {
-        navigate("/");
+        setSignupSuccess(true);
+        // Don't navigate immediately, let user see the success message
+        setTimeout(() => {
+          navigate("/login");
+        }, 3000);
       }
+    } catch (error) {
+      console.error('Signup submission error:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-[80vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-800 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (signupSuccess) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-[80vh]">
+          <Card className="w-full max-w-md shadow-lg border-green-800">
+            <CardHeader className="bg-gradient-to-r from-green-800 to-black text-white rounded-t-md">
+              <CardTitle className="text-center text-2xl">Account Created!</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6 text-center">
+              <div className="mb-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Successfully Registered!</h3>
+                <p className="text-gray-600 mt-2">
+                  Your account has been created. You will be redirected to the login page shortly.
+                </p>
+                <p className="text-sm text-gray-500 mt-4">
+                  If email confirmation is enabled, please check your email before logging in.
+                </p>
+              </div>
+              <Button 
+                onClick={() => navigate("/login")}
+                className="w-full bg-green-800 hover:bg-green-900"
+              >
+                Go to Login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -185,7 +244,14 @@ const Signup = () => {
                   className="w-full bg-green-800 hover:bg-green-900 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Creating Account..." : "Create Account"}
+                  {isSubmitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Creating Account...
+                    </div>
+                  ) : (
+                    "Create Account"
+                  )}
                 </Button>
               </form>
             </Form>

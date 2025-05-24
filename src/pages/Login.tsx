@@ -25,16 +25,16 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const Login = () => {
-  const { login, user } = useAuth();
+  const { login, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already logged in
   React.useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -45,20 +45,38 @@ const Login = () => {
   });
 
   const onSubmit = async (data: LoginFormValues) => {
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     try {
-      // Add Network request simulation for better security feeling
-      console.log("Sending login request...");
+      console.log("Attempting login for:", data.email);
       
       const success = await login(data.email, data.password);
       if (success) {
-        toast.success("Login successful!");
+        // Success handling is done in the login function
         navigate("/");
       }
+      // Error handling is done in the login function
+    } catch (error) {
+      console.error('Login submission error:', error);
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-[80vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-800 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -116,7 +134,14 @@ const Login = () => {
                   className="w-full bg-green-800 hover:bg-green-900 transition-transform hover:scale-[1.02] active:scale-[0.98]"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Logging in..." : "Log in"}
+                  {isSubmitting ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Logging in...
+                    </div>
+                  ) : (
+                    "Log in"
+                  )}
                 </Button>
               </form>
             </Form>
