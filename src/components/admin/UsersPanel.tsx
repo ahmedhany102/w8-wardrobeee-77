@@ -7,62 +7,26 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import UserDatabase from '@/models/UserDatabase';
 import { Plus, Trash } from 'lucide-react';
-
-interface User {
-  id?: string;
-  name: string;
-  email: string;
-  role: string;
-  isBlocked: boolean;
-  status: string;
-  isAdmin: boolean;
-  isSuperAdmin: boolean;
-}
+import { useSupabaseUsers } from '@/hooks/useSupabaseData';
+import { supabase } from '@/integrations/supabase/client';
 
 const UsersPanel = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { users, loading, updateUser, deleteUser, refetch } = useSupabaseUsers();
   const [showAddAdminDialog, setShowAddAdminDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [userToDelete, setUserToDelete] = useState<string | undefined>(null);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [newAdmin, setNewAdmin] = useState({
     name: '',
     email: '',
     password: ''
   });
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const db = UserDatabase.getInstance();
-      const allUsers = await db.getAllUsers();
-      setUsers(allUsers);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('حدث خطأ أثناء جلب بيانات المستخدمين');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleBlockUser = async (userId: string | undefined, isCurrentlyBlocked: boolean) => {
+  const toggleBlockUser = async (userId, isCurrentlyBlocked) => {
     if (!userId) return;
     
     try {
-      const db = UserDatabase.getInstance();
-      await db.updateUser(userId, { isBlocked: !isCurrentlyBlocked });
-      
-      // Update the local state
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, isBlocked: !isCurrentlyBlocked } : user
-      ));
-      
+      await updateUser(userId, { is_blocked: !isCurrentlyBlocked });
       toast.success(`تم ${!isCurrentlyBlocked ? 'حظر' : 'إلغاء حظر'} المستخدم بنجاح`);
     } catch (error) {
       console.error('Error toggling user block status:', error);
@@ -70,21 +34,12 @@ const UsersPanel = () => {
     }
   };
 
-  const deleteUser = async () => {
+  const handleDeleteUser = async () => {
     if (!userToDelete) return;
     
     try {
-      const db = UserDatabase.getInstance();
-      const success = await db.deleteUser(userToDelete);
-      
-      if (success) {
-        // Remove the user from the local state
-        setUsers(users.filter(user => user.id !== userToDelete));
-        toast.success('تم حذف المستخدم بنجاح');
-      } else {
-        toast.error('فشل حذف المستخدم');
-      }
-      
+      await deleteUser(userToDelete);
+      toast.success('تم حذف المستخدم بنجاح');
       setShowDeleteDialog(false);
       setUserToDelete(null);
     } catch (error) {
@@ -94,7 +49,7 @@ const UsersPanel = () => {
     }
   };
 
-  const handleAddAdmin = async (e: React.FormEvent) => {
+  const handleAddAdmin = async (e) => {
     e.preventDefault();
     
     if (!newAdmin.name || !newAdmin.email || !newAdmin.password) {
@@ -103,24 +58,38 @@ const UsersPanel = () => {
     }
     
     try {
-      const db = UserDatabase.getInstance();
-      
-      // Check if email already exists
-      const existingUser = await db.getUserById(newAdmin.email);
-      if (existingUser) {
-        toast.error('البريد الإلكتروني مستخدم بالفعل');
+      // Create admin user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: newAdmin.email,
+        password: newAdmin.password,
+        options: {
+          data: {
+            name: newAdmin.name
+          }
+        }
+      });
+
+      if (authError) {
+        console.error('Error creating admin user:', authError);
+        toast.error('حدث خطأ أثناء إنشاء حساب المسؤول');
         return;
       }
-      
-      // Create new admin user
-      await db.createAdminUser(newAdmin.name, newAdmin.email, newAdmin.password);
+
+      // Update the profile to be admin
+      if (authData.user) {
+        await updateUser(authData.user.id, {
+          name: newAdmin.name,
+          email: newAdmin.email,
+          role: 'ADMIN',
+          is_admin: true,
+          is_super_admin: false
+        });
+      }
       
       toast.success('تم إنشاء حساب المسؤول بنجاح');
       setShowAddAdminDialog(false);
       setNewAdmin({ name: '', email: '', password: '' });
-      
-      // Refresh user list
-      fetchUsers();
+      refetch();
       
     } catch (error) {
       console.error('Error creating admin user:', error);
@@ -128,7 +97,7 @@ const UsersPanel = () => {
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNewAdmin(prev => ({ ...prev, [name]: value }));
   };
@@ -148,7 +117,7 @@ const UsersPanel = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>المستخدمين</CardTitle>
+          <CardTitle>المستخدمين - Total: {users.length}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -177,29 +146,29 @@ const UsersPanel = () => {
                       <TableCell>{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        {user.isSuperAdmin 
+                        {user.is_super_admin 
                           ? 'مدير أعلى' 
-                          : (user.isAdmin ? 'مدير' : 'مستخدم')}
+                          : (user.is_admin ? 'مدير' : 'مستخدم')}
                       </TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded text-xs ${
-                          user.isBlocked 
+                          user.is_blocked 
                             ? 'bg-red-100 text-red-800' 
                             : 'bg-green-100 text-green-800'
                         }`}>
-                          {user.isBlocked ? 'محظور' : 'نشط'}
+                          {user.is_blocked ? 'محظور' : 'نشط'}
                         </span>
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          {!user.isSuperAdmin && (
+                          {!user.is_super_admin && (
                             <>
                               <Button 
-                                onClick={() => toggleBlockUser(user.id, user.isBlocked)}
-                                variant={user.isBlocked ? "outline" : "destructive"}
+                                onClick={() => toggleBlockUser(user.id, user.is_blocked)}
+                                variant={user.is_blocked ? "outline" : "destructive"}
                                 size="sm"
                               >
-                                {user.isBlocked ? 'إلغاء الحظر' : 'حظر'}
+                                {user.is_blocked ? 'إلغاء الحظر' : 'حظر'}
                               </Button>
                               <Button
                                 onClick={() => {
@@ -293,7 +262,7 @@ const UsersPanel = () => {
               إلغاء
             </Button>
             <Button 
-              onClick={deleteUser}
+              onClick={handleDeleteUser}
               variant="destructive"
               className="bg-red-600 hover:bg-red-700"
             >

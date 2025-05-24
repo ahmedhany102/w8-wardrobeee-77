@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Linkedin, MessageCircleMore } from 'lucide-react';
 import { useSupabaseContactSettings } from '@/hooks/useSupabaseData';
@@ -21,6 +21,18 @@ const Footer = () => {
   };
 
   const currentSettings = settings || defaultSettings;
+
+  if (loading) {
+    return (
+      <footer className="bg-gray-900 text-white pt-6 pb-3 mt-auto">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-center items-center p-4">
+            <div className="text-center">Loading...</div>
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="bg-gray-900 text-white pt-6 pb-3 mt-auto">

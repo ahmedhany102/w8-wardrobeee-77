@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from "react";
-import { Product, default as ProductDatabase } from "@/models/Product";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -8,81 +7,47 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Pencil, Plus, Trash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ImprovedProductForm from "./ImprovedProductForm";
+import { useSupabaseProducts } from "@/hooks/useSupabaseData";
 
 const ProductManagement = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { products, loading, addProduct, updateProduct, deleteProduct, refetch } = useSupabaseProducts();
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [editProduct, setEditProduct] = useState<Product | null>(null);
-  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [editProduct, setEditProduct] = useState(null);
+  const [deleteProductId, setDeleteProductId] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState("ALL");
 
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
-    setLoading(true);
+  const handleAddProduct = async (product) => {
     try {
-      const productDb = ProductDatabase.getInstance();
-      const allProducts = await productDb.getAllProducts();
-      // Filter out women's and kids' products
-      const filteredProducts = allProducts.filter(product => 
-        product && 
-        product.category !== 'حريمي' && 
-        product.category !== 'أطفال' && 
-        product.category !== 'Women' &&
-        product.category !== 'Kids' &&
-        product.category !== 'Girls' &&
-        product.category !== 'Female'
-      );
-      setProducts(filteredProducts);
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      toast.error("Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddProduct = async (product: Omit<Product, "id">) => {
-    try {
-      // Force all products to be men's
       const productWithCategory = {
         ...product,
         category: 'Men'
       };
       
-      const productDb = ProductDatabase.getInstance();
-      await productDb.addProduct(productWithCategory);
+      await addProduct(productWithCategory);
       toast.success("Product added successfully");
       setShowAddDialog(false);
-      fetchProducts();
     } catch (error) {
       console.error("Error adding product:", error);
       toast.error("Failed to add product");
     }
   };
 
-  const handleEditProduct = async (product: Omit<Product, "id">) => {
+  const handleEditProduct = async (product) => {
     if (!editProduct) return;
     
-    // Force all products to be men's
     const productWithCategory = {
       ...product,
       category: 'Men'
     };
     
     try {
-      const productDb = ProductDatabase.getInstance();
-      await productDb.updateProduct(editProduct.id, productWithCategory);
+      await updateProduct(editProduct.id, productWithCategory);
       toast.success("Product updated successfully");
       setShowEditDialog(false);
       setEditProduct(null);
-      fetchProducts();
     } catch (error) {
       console.error("Error updating product:", error);
       toast.error("Failed to update product");
@@ -92,12 +57,10 @@ const ProductManagement = () => {
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return;
     try {
-      const productDb = ProductDatabase.getInstance();
-      await productDb.deleteProduct(deleteProductId);
+      await deleteProduct(deleteProductId);
       toast.success("Product deleted successfully");
       setShowDeleteDialog(false);
       setDeleteProductId(null);
-      fetchProducts();
     } catch (error) {
       console.error("Error deleting product:", error);
       toast.error("Failed to delete product");
@@ -143,21 +106,12 @@ const ProductManagement = () => {
           <Button onClick={() => setShowAddDialog(true)} className="bg-green-800 hover:bg-green-900 text-sm">
             <Plus className="h-4 w-4 mr-2" /> Add New Product
           </Button>
-          <Button
-            onClick={() => {
-              localStorage.removeItem('products');
-              window.location.reload();
-            }}
-            className="bg-red-700 hover:bg-red-800 text-white text-sm"
-          >
-            Clear All Products
-          </Button>
         </div>
       </div>
       
       <Card className="border-green-100">
         <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white">
-          <CardTitle className="text-xl">Product Management</CardTitle>
+          <CardTitle className="text-xl">Product Management - Total: {products.length}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -187,8 +141,8 @@ const ProductManagement = () => {
                   {filteredProducts.map(product => (
                     <TableRow key={product.id} className="hover:bg-green-50 transition-colors">
                       <TableCell>
-                        {product.mainImage ? (
-                          <img src={product.mainImage} alt={product.name} className="h-10 w-10 object-cover rounded-md" />
+                        {product.main_image ? (
+                          <img src={product.main_image} alt={product.name} className="h-10 w-10 object-cover rounded-md" />
                         ) : (
                           <span className="text-gray-400">-</span>
                         )}
@@ -199,15 +153,15 @@ const ProductManagement = () => {
                       <TableCell className="hidden md:table-cell">Men</TableCell>
                       <TableCell className="hidden md:table-cell">{product.type || '-'}</TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {product.sizes && product.sizes.length > 0 ? 
+                        {product.sizes && Array.isArray(product.sizes) && product.sizes.length > 0 ? 
                           <div className="max-w-[120px] truncate">{product.sizes.map(s => s.size).join(", ")}</div> : "-"}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {product.sizes ? 
+                        {product.sizes && Array.isArray(product.sizes) ? 
                           product.sizes.reduce((total, size) => total + (size?.stock || 0), 0) : 
                           product.stock || 0}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{product.hasDiscount && product.discount ? `${product.discount}%` : "-"}</TableCell>
+                      <TableCell className="hidden md:table-cell">{product.discount ? `${product.discount}%` : "-"}</TableCell>
                       <TableCell className="text-right space-x-1">
                         <div className="flex justify-end gap-1">
                           <Button

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -5,86 +6,50 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import OrderDatabase from "@/models/OrderDatabase";
-import { Order } from "@/models/Order";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSupabaseOrders } from "@/hooks/useSupabaseData";
 
 const OrdersPanel = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const { orders, loading, updateOrder, refetch } = useSupabaseOrders();
+  const [selectedOrder, setSelectedOrder] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
-    setIsLoading(true);
-    try {
-      const orderDb = OrderDatabase.getInstance();
-      const allOrders = await orderDb.getAllOrders();
-      setOrders(allOrders.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ));
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      toast.error("Failed to load orders");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleViewDetails = (order: Order) => {
+  const handleViewDetails = (order) => {
     setSelectedOrder(order);
     setIsDialogOpen(true);
   };
 
-  const handleStatusChange = async (orderId: string, status: Order["status"]) => {
+  const handleStatusChange = async (orderId, status) => {
     try {
-      const orderDb = OrderDatabase.getInstance();
-      const updatedOrder = await orderDb.updateOrderStatus(orderId, status);
+      await updateOrder(orderId, { status });
       
-      if (updatedOrder) {
-        setOrders(orders.map(order => 
-          order.id === orderId ? { ...order, status } : order
-        ));
-        
-        if (selectedOrder?.id === orderId) {
-          setSelectedOrder({ ...selectedOrder, status });
-        }
-        
-        toast.success("Order status updated");
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status });
       }
+      
+      toast.success("Order status updated");
     } catch (error) {
       console.error("Error updating order status:", error);
       toast.error("Failed to update order status");
     }
   };
 
-  const handlePaymentStatusChange = async (orderId: string, paymentStatus: Order["paymentStatus"]) => {
+  const handlePaymentStatusChange = async (orderId, paymentStatus) => {
     try {
-      const orderDb = OrderDatabase.getInstance();
-      const updatedOrder = await orderDb.updatePaymentStatus(orderId, paymentStatus);
+      await updateOrder(orderId, { payment_status: paymentStatus });
       
-      if (updatedOrder) {
-        setOrders(orders.map(order => 
-          order.id === orderId ? { ...order, paymentStatus } : order
-        ));
-        
-        if (selectedOrder?.id === orderId) {
-          setSelectedOrder({ ...selectedOrder, paymentStatus });
-        }
-        
-        toast.success("Payment status updated");
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, payment_status: paymentStatus });
       }
+      
+      toast.success("Payment status updated");
     } catch (error) {
       console.error("Error updating payment status:", error);
       toast.error("Failed to update payment status");
     }
   };
 
-  const getStatusBadgeVariant = (status: Order["status"]) => {
+  const getStatusBadgeVariant = (status) => {
     switch (status) {
       case "PENDING": return "warning";
       case "PROCESSING": return "info";
@@ -95,7 +60,7 @@ const OrdersPanel = () => {
     }
   };
 
-  const getPaymentStatusBadgeVariant = (status: Order["paymentStatus"]) => {
+  const getPaymentStatusBadgeVariant = (status) => {
     switch (status) {
       case "PAID": return "success";
       case "PENDING": return "warning";
@@ -108,9 +73,9 @@ const OrdersPanel = () => {
   return (
     <CardContent className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-green-800">Orders Management</h2>
+        <h2 className="text-xl font-semibold text-green-800">Orders Management - Total: {orders.length}</h2>
         <Button 
-          onClick={fetchOrders} 
+          onClick={refetch} 
           variant="outline"
           className="border-green-500 hover:bg-green-50 transition-all"
         >
@@ -118,7 +83,7 @@ const OrdersPanel = () => {
         </Button>
       </div>
 
-      {isLoading ? (
+      {loading ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-800 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading orders...</p>
@@ -145,20 +110,20 @@ const OrdersPanel = () => {
             <TableBody>
               {orders.map((order) => (
                 <TableRow key={order.id} className="hover:bg-green-50 transition-colors">
-                  <TableCell className="font-medium">{order.orderNumber}</TableCell>
-                  <TableCell>{order.customerInfo.name}</TableCell>
+                  <TableCell className="font-medium">{order.order_number}</TableCell>
+                  <TableCell>{order.customer_info?.name}</TableCell>
                   <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString()}
+                    {new Date(order.created_at).toLocaleDateString()}
                   </TableCell>
-                  <TableCell>{order.totalAmount.toFixed(2)} EGP</TableCell>
+                  <TableCell>{order.total_amount?.toFixed(2)} EGP</TableCell>
                   <TableCell>
                     <Badge variant={getStatusBadgeVariant(order.status)}>
                       {order.status}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
-                      {order.paymentStatus}
+                    <Badge variant={getPaymentStatusBadgeVariant(order.payment_status)}>
+                      {order.payment_status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -183,7 +148,7 @@ const OrdersPanel = () => {
           <DialogHeader>
             <DialogTitle className="text-xl text-green-800">Order Details</DialogTitle>
             <DialogDescription className="text-gray-600 dark:text-gray-400">
-              Order #{selectedOrder?.orderNumber} - {selectedOrder ? new Date(selectedOrder.createdAt).toLocaleDateString() : ''}
+              Order #{selectedOrder?.order_number} - {selectedOrder ? new Date(selectedOrder.created_at).toLocaleDateString() : ''}
             </DialogDescription>
           </DialogHeader>
           
@@ -195,20 +160,20 @@ const OrdersPanel = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Name</p>
-                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customerInfo.name}</p>
+                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customer_info?.name}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</p>
-                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customerInfo.email}</p>
+                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customer_info?.email}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Phone</p>
-                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customerInfo.phone}</p>
+                    <p className="text-gray-900 dark:text-gray-100">{selectedOrder.customer_info?.phone}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Address</p>
                     <p className="text-gray-900 dark:text-gray-100">
-                      {selectedOrder.customerInfo.address.street}, {selectedOrder.customerInfo.address.city}, {selectedOrder.customerInfo.address.zipCode}
+                      {selectedOrder.customer_info?.address?.street}, {selectedOrder.customer_info?.address?.city}, {selectedOrder.customer_info?.address?.zipCode}
                     </p>
                   </div>
                 </div>
@@ -230,14 +195,14 @@ const OrdersPanel = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {selectedOrder.items.map((item, index) => (
+                      {selectedOrder.items?.map((item, index) => (
                         <TableRow key={index}>
                           <TableCell className="text-gray-900 dark:text-gray-100">{item.productName}</TableCell>
                           <TableCell className="text-gray-900 dark:text-gray-100">{item.color || '-'}</TableCell>
                           <TableCell className="text-gray-900 dark:text-gray-100">{item.size || '-'}</TableCell>
                           <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.quantity}</TableCell>
-                          <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.unitPrice.toFixed(2)} EGP</TableCell>
-                          <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.totalPrice.toFixed(2)} EGP</TableCell>
+                          <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.unitPrice?.toFixed(2)} EGP</TableCell>
+                          <TableCell className="text-right text-gray-900 dark:text-gray-100">{item.totalPrice?.toFixed(2)} EGP</TableCell>
                         </TableRow>
                       ))}
                       <TableRow className="bg-green-50 dark:bg-green-900/20">
@@ -245,7 +210,7 @@ const OrdersPanel = () => {
                           Total Amount:
                         </TableCell>
                         <TableCell className="text-right font-bold text-gray-900 dark:text-gray-100">
-                          {selectedOrder.totalAmount.toFixed(2)} EGP
+                          {selectedOrder.total_amount?.toFixed(2)} EGP
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -253,30 +218,24 @@ const OrdersPanel = () => {
                 </div>
               </div>
               
-              {/* Payment Information */}
+              {/* Payment and Status Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
                   <h3 className="font-semibold text-green-800 dark:text-green-300 border-b border-green-200 dark:border-green-700 pb-2 mb-2">Payment Information</h3>
                   <div className="space-y-2">
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Payment Method</p>
-                      <p className="text-gray-900 dark:text-gray-100">{selectedOrder.paymentInfo?.method || 'N/A'}</p>
+                      <p className="text-gray-900 dark:text-gray-100">{selectedOrder.payment_info?.method || 'N/A'}</p>
                     </div>
-                    {selectedOrder.paymentInfo?.cardLast4 && (
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Card Details</p>
-                        <p className="text-gray-900 dark:text-gray-100">{selectedOrder.paymentInfo.cardBrand} ending in {selectedOrder.paymentInfo.cardLast4}</p>
-                      </div>
-                    )}
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Payment Status</p>
                       <div className="flex items-center justify-between mt-2">
-                        <Badge variant={getPaymentStatusBadgeVariant(selectedOrder.paymentStatus)}>
-                          {selectedOrder.paymentStatus}
+                        <Badge variant={getPaymentStatusBadgeVariant(selectedOrder.payment_status)}>
+                          {selectedOrder.payment_status}
                         </Badge>
                         <Select
-                          value={selectedOrder.paymentStatus}
-                          onValueChange={(value: Order["paymentStatus"]) => {
+                          value={selectedOrder.payment_status}
+                          onValueChange={(value) => {
                             handlePaymentStatusChange(selectedOrder.id, value);
                           }}
                         >
@@ -307,7 +266,7 @@ const OrdersPanel = () => {
                         </Badge>
                         <Select
                           value={selectedOrder.status}
-                          onValueChange={(value: Order["status"]) => {
+                          onValueChange={(value) => {
                             handleStatusChange(selectedOrder.id, value);
                           }}
                         >
@@ -327,12 +286,12 @@ const OrdersPanel = () => {
                     
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Order Date</p>
-                      <p className="text-gray-900 dark:text-gray-100">{new Date(selectedOrder.createdAt).toLocaleString()}</p>
+                      <p className="text-gray-900 dark:text-gray-100">{new Date(selectedOrder.created_at).toLocaleString()}</p>
                     </div>
                     
                     <div>
                       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Last Updated</p>
-                      <p className="text-gray-900 dark:text-gray-100">{new Date(selectedOrder.updatedAt).toLocaleString()}</p>
+                      <p className="text-gray-900 dark:text-gray-100">{new Date(selectedOrder.updated_at).toLocaleString()}</p>
                     </div>
                   </div>
                 </div>

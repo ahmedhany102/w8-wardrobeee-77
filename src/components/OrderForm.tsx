@@ -1,13 +1,12 @@
+
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
-import { Order, OrderItem } from '@/models/Order';
-import OrderDatabase from '@/models/OrderDatabase';
 import { useAuth } from '@/contexts/AuthContext';
-import CouponDatabase from '@/models/Coupon';
+import { useSupabaseOrders } from '@/hooks/useSupabaseData';
 
 interface OrderFormProps {
   cartItems: {
@@ -30,6 +29,7 @@ interface OrderFormProps {
 
 const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete, appliedCoupon }) => {
   const { user } = useAuth();
+  const { addOrder } = useSupabaseOrders();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
@@ -38,7 +38,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
     city: '',
     zipCode: '',
     notes: '',
-    paymentMethod: 'CASH', // Only Cash on Delivery is available
+    paymentMethod: 'CASH',
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,7 +64,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
       }
 
       // Convert cart items to order items
-      const orderItems: OrderItem[] = cartItems.map(item => ({
+      const orderItems = cartItems.map(item => ({
         productId: item.productId,
         productName: item.name,
         quantity: item.quantity,
@@ -79,9 +79,9 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
       const discountAmount = appliedCoupon ? (total * appliedCoupon.discount) / 100 : 0;
 
       // Create order object
-      const orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'> = {
-        orderNumber: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-        customerInfo: {
+      const orderData = {
+        order_number: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
+        customer_info: {
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -89,18 +89,19 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
             street: formData.street,
             city: formData.city,
             zipCode: formData.zipCode,
-          }
+          },
+          user_id: user?.id || null
         },
         items: orderItems,
-        totalAmount: total,
+        total_amount: total,
         status: 'PENDING',
-        paymentStatus: formData.paymentMethod === 'CASH' ? 'PENDING' : 'PAID',
-        paymentInfo: {
-          method: formData.paymentMethod as Order['paymentInfo']['method'],
+        payment_status: formData.paymentMethod === 'CASH' ? 'PENDING' : 'PAID',
+        payment_info: {
+          method: formData.paymentMethod,
         },
         notes: formData.notes,
         ...(appliedCoupon && {
-          couponInfo: {
+          coupon_info: {
             code: appliedCoupon.code,
             discountPercentage: appliedCoupon.discount,
             discountAmount: discountAmount
@@ -108,15 +109,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         })
       };
 
-      // Save order to database
-      const orderDb = OrderDatabase.getInstance();
-      const newOrder = await orderDb.saveOrder(orderData);
-
-      // If coupon was applied, increment its usage count
-      if (appliedCoupon) {
-        const couponDb = CouponDatabase.getInstance();
-        await couponDb.incrementUsage(appliedCoupon.code);
-      }
+      // Save order to Supabase
+      await addOrder(orderData);
 
       // Show success message
       toast.success('Order placed successfully!');
