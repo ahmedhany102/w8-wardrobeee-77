@@ -7,7 +7,7 @@ import { useSupabaseContactSettings } from '@/hooks/useSupabaseData';
 const Footer = () => {
   const { settings, loading } = useSupabaseContactSettings();
 
-  // Default values in case settings haven't loaded
+  // Default values with correct developer info
   const defaultSettings = {
     store_name: 'W8 for Men',
     address: 'Cairo, Egypt',

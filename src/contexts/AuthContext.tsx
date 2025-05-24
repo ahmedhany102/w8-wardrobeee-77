@@ -1,205 +1,247 @@
-// src/context/AuthContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { toast } from "sonner";
-import UserDatabase from "@/models/UserDatabase";
 
-interface User {
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import type { User, Session } from '@supabase/supabase-js';
+
+interface AuthUser {
   id: string;
   email: string;
-  name: string;
-  role: string;
-  isSuperAdmin: boolean;
-  displayName?: string; // Add displayName as optional property
+  name?: string;
+  role: 'ADMIN' | 'USER';
+  displayName?: string;
 }
 
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
+  user: AuthUser | null;
+  session: Session | null;
   login: (email: string, password: string) => Promise<boolean>;
-  adminLogin: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name?: string) => Promise<boolean>;
-  logout: () => void;
-  isAdmin: boolean;
-  checkAuthStatus: () => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com";
-const ADMIN_PASSWORD = "Ahmed hany11*";
-
-const MOCK_USERS_KEY = "mock_users";
-
-const getMockUsers = () => {
-  const users = localStorage.getItem(MOCK_USERS_KEY);
-  return users ? JSON.parse(users) : [];
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
-const saveMockUser = (email: string, password: string, name: string = "") => {
-  const users = getMockUsers();
-  if (users.find(u => u.email === email)) return false;
-  
-  const newUser = {
-    id: `user-${Date.now()}`,
-    email,
-    password,
-    name: name || email.split("@")[0],
-    role: "USER"
-  };
-  
-  users.push(newUser);
-  localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
-  recordActivity(`User registered: ${email}`, "user");
-  return newUser; // Return the new user object instead of just true
-};
-
-const recordActivity = (description: string, type: string = "system") => {
-  const logs = JSON.parse(localStorage.getItem("activities") || "[]");
-  logs.unshift({
-    id: `log-${Date.now()}`,
-    description,
-    timestamp: new Date().toISOString(),
-    type
-  });
-  localStorage.setItem("activities", JSON.stringify(logs.slice(0, 20)));
-};
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [loginAttempts, setLoginAttempts] = useState(0);
 
   useEffect(() => {
-    checkAuthStatus();
-  }, []);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user profile from profiles table
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (profile) {
+                const authUser: AuthUser = {
+                  id: profile.id,
+                  email: profile.email || session.user.email || '',
+                  name: profile.name,
+                  displayName: profile.name,
+                  role: profile.is_admin ? 'ADMIN' : 'USER'
+                };
+                console.log('Setting user from profile:', authUser);
+                setUser(authUser);
+              } else {
+                // Fallback to session user data
+                const authUser: AuthUser = {
+                  id: session.user.id,
+                  email: session.user.email || '',
+                  name: session.user.user_metadata?.name,
+                  displayName: session.user.user_metadata?.name,
+                  role: 'USER'
+                };
+                console.log('Setting user from session:', authUser);
+                setUser(authUser);
+              }
+            } catch (error) {
+              console.error('Error fetching user profile:', error);
+              // Fallback to session user data
+              const authUser: AuthUser = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.name,
+                displayName: session.user.user_metadata?.name,
+                role: 'USER'
+              };
+              setUser(authUser);
+            }
+          }, 0);
+        } else {
+          setUser(null);
+        }
+        
+        setLoading(false);
+      }
+    );
 
-  const checkAuthStatus = async () => {
-    setLoading(true);
-    const data = localStorage.getItem("currentUser");
-    if (data) {
-      setUser(JSON.parse(data));
-    } else {
-      setUser(null);
-    }
-    setLoading(false);
-  };
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    if (loginAttempts >= 5) {
-      toast.error("Too many login attempts.");
-      return false;
-    }
-
-    const users = getMockUsers();
-    const found = users.find(u => u.email === email && u.password === password);
-    if (found) {
-      const loggedUser: User = {
-        id: found.id,
-        email: found.email,
-        name: found.name,
-        role: "USER",
-        isSuperAdmin: false // Set explicit default value
-      };
-      localStorage.setItem("currentUser", JSON.stringify(loggedUser));
-      setUser(loggedUser);
-      setLoginAttempts(0);
-      recordActivity(`User logged in: ${email}`, "user");
-      return true;
-    } else {
-      setLoginAttempts(prev => prev + 1);
-      toast.error("Invalid email or password.");
-      recordActivity(`Failed login attempt: ${email}`, "security");
-      return false;
-    }
-  };
-
-  const adminLogin = async (email: string, password: string): Promise<boolean> => {
-    if (loginAttempts >= 5) {
-      toast.error("Too many admin login attempts.");
-      return false;
-    }
-
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      const adminUser: User = {
-        id: "admin-1",
-        email,
-        name: "Ahmed Hany",
-        role: "ADMIN",
-        isSuperAdmin: true // Set admin as super admin
-      };
-      localStorage.setItem("currentUser", JSON.stringify(adminUser));
-      setUser(adminUser);
-      setLoginAttempts(0);
-      recordActivity(`Admin logged in`, "admin");
-      return true;
-    } else {
-      setLoginAttempts(prev => prev + 1);
-      toast.error("Invalid admin credentials.");
-      return false;
-    }
-  };
-
-  const signup = async (email: string, password: string, name = ""): Promise<boolean> => {
-    if (email === ADMIN_EMAIL) {
-      toast.error("You cannot register with the admin email.");
-      return false;
-    }
-
-    // Save user and get the new user object
-    const newUser = saveMockUser(email, password, name);
-    if (!newUser) {
-      toast.error("Email already registered.");
-      return false;
-    }
-
-    // Add to UserDatabase
-    const db = UserDatabase.getInstance();
-    await db.addUser({
-      name: name || email.split("@")[0],
-      email,
-      password: btoa(password),
-      isAdmin: false,
-      isBlocked: false,
-      role: 'USER',
-      status: 'ACTIVE',
-      isSuperAdmin: false, // Add this property explicitly
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session);
+      setSession(session);
+      
+      if (session?.user) {
+        // Trigger the same logic as in onAuthStateChange
+        setTimeout(async () => {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (profile) {
+              const authUser: AuthUser = {
+                id: profile.id,
+                email: profile.email || session.user.email || '',
+                name: profile.name,
+                displayName: profile.name,
+                role: profile.is_admin ? 'ADMIN' : 'USER'
+              };
+              console.log('Setting initial user from profile:', authUser);
+              setUser(authUser);
+            } else {
+              const authUser: AuthUser = {
+                id: session.user.id,
+                email: session.user.email || '',
+                name: session.user.user_metadata?.name,
+                displayName: session.user.user_metadata?.name,
+                role: 'USER'
+              };
+              console.log('Setting initial user from session:', authUser);
+              setUser(authUser);
+            }
+          } catch (error) {
+            console.error('Error fetching initial user profile:', error);
+            const authUser: AuthUser = {
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name,
+              displayName: session.user.user_metadata?.name,
+              role: 'USER'
+            };
+            setUser(authUser);
+          }
+          setLoading(false);
+        }, 0);
+      } else {
+        setLoading(false);
+      }
     });
 
-    // Automatically log the user in instead of calling login method
-    const loggedUser: User = {
-      id: newUser.id,
-      email: newUser.email,
-      name: newUser.name,
-      role: "USER",
-      isSuperAdmin: false // Set explicit value
-    };
-    
-    localStorage.setItem("currentUser", JSON.stringify(loggedUser));
-    setUser(loggedUser);
-    recordActivity(`User registered and logged in: ${email}`, "user");
-    toast.success("Registration successful!");
-    
-    return true;
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      console.log('Attempting login for:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        toast.error(error.message);
+        return false;
+      }
+
+      if (data.user) {
+        console.log('Login successful for user:', data.user.id);
+        toast.success('Login successful!');
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error('Login failed. Please try again.');
+      return false;
+    }
   };
 
-  // Ensure the logout function is defined correctly without requiring arguments
-  const logout = () => {
-    localStorage.removeItem("currentUser");
-    setUser(null);
-    recordActivity("User logged out", "user");
+  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
+    try {
+      console.log('Attempting signup for:', email, name);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
+        },
+      });
+
+      if (error) {
+        console.error('Signup error:', error);
+        toast.error(error.message);
+        return false;
+      }
+
+      if (data.user) {
+        console.log('Signup successful for user:', data.user.id);
+        toast.success('Account created successfully!');
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast.error('Signup failed. Please try again.');
+      return false;
+    }
+  };
+
+  const logout = async (): Promise<void> => {
+    try {
+      console.log('Logging out user');
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout error:', error);
+        toast.error('Error logging out');
+      } else {
+        toast.success('Logged out successfully');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('Error logging out');
+    }
+  };
+
+  const value: AuthContextType = {
+    user,
+    session,
+    login,
+    signup,
+    logout,
+    loading,
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, login, adminLogin, signup, logout, isAdmin: user?.role === "ADMIN", checkAuthStatus }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
 };

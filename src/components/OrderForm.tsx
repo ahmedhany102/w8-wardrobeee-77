@@ -63,6 +63,8 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         return;
       }
 
+      console.log('Creating order with cart items:', cartItems);
+
       // Convert cart items to order items
       const orderItems = cartItems.map(item => ({
         productId: item.productId,
@@ -80,7 +82,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
 
       // Create order object
       const orderData = {
-        order_number: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
+        order_number: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
         customer_info: {
           name: formData.name,
           email: formData.email,
@@ -109,11 +111,15 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         })
       };
 
+      console.log('Submitting order data:', orderData);
+
       // Save order to Supabase
-      await addOrder(orderData);
+      const createdOrder = await addOrder(orderData);
+      
+      console.log('Order created successfully:', createdOrder);
 
       // Show success message
-      toast.success('Order placed successfully!');
+      toast.success('Order placed successfully! Order #' + orderData.order_number);
 
       // Clear cart if order placement was successful
       if (onOrderComplete) {
@@ -132,7 +138,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="name">Full Name</Label>
+          <Label htmlFor="name">Full Name *</Label>
           <Input
             id="name"
             name="name"
@@ -143,7 +149,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
           />
         </div>
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">Email *</Label>
           <Input
             id="email"
             name="email"
@@ -157,7 +163,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
       </div>
 
       <div>
-        <Label htmlFor="phone">Phone Number</Label>
+        <Label htmlFor="phone">Phone Number *</Label>
         <Input
           id="phone"
           name="phone"
@@ -169,7 +175,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
       </div>
 
       <div>
-        <Label htmlFor="street">Street Address</Label>
+        <Label htmlFor="street">Street Address *</Label>
         <Input
           id="street"
           name="street"
@@ -182,7 +188,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="city">City</Label>
+          <Label htmlFor="city">City *</Label>
           <Input
             id="city"
             name="city"
@@ -193,7 +199,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
           />
         </div>
         <div>
-          <Label htmlFor="zipCode">Zip Code</Label>
+          <Label htmlFor="zipCode">Zip Code *</Label>
           <Input
             id="zipCode"
             name="zipCode"
@@ -234,7 +240,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         className="w-full bg-green-800 hover:bg-green-900"
         disabled={isSubmitting}
       >
-        {isSubmitting ? 'Processing...' : 'Complete Order'}
+        {isSubmitting ? 'Processing Order...' : 'Complete Order'}
       </Button>
     </form>
   );

@@ -36,6 +36,13 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
   const statsLoading = productsLoading || usersLoading || ordersLoading;
 
+  console.log('Admin Dashboard Data:', {
+    products: products?.length || 0,
+    users: users?.length || 0,
+    orders: orders?.length || 0,
+    statsLoading
+  });
+
   return (
     <Layout hideFooter>
       <div className="container mx-auto py-4 px-4 md:px-0">
@@ -58,9 +65,9 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
         {/* Stats Dashboard */}
         <AdminDashboardStats 
-          totalProducts={products.length}
-          totalUsers={users.length}
-          totalOrders={orders.length}
+          totalProducts={products?.length || 0}
+          totalUsers={users?.length || 0}
+          totalOrders={orders?.length || 0}
           loading={statsLoading}
         />
 
@@ -108,6 +115,11 @@ const Admin = ({ activeTab = "dashboard" }) => {
                 <p className="mt-2 text-gray-600">
                   مرحباً بك في لوحة التحكم. يمكنك إدارة المنتجات والطلبات والمزيد من هنا.
                 </p>
+                <div className="mt-4 text-sm text-gray-500">
+                  <p>المنتجات: {products?.length || 0}</p>
+                  <p>المستخدمين: {users?.length || 0}</p>
+                  <p>الطلبات: {orders?.length || 0}</p>
+                </div>
               </div>
             </div>
           </TabsContent>
