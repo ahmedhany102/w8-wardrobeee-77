@@ -32,6 +32,7 @@ const Login = () => {
   // Redirect if already logged in
   React.useEffect(() => {
     if (user && !authLoading) {
+      console.log('User already logged in, redirecting to home');
       navigate("/");
     }
   }, [user, authLoading, navigate]);
@@ -53,6 +54,7 @@ const Login = () => {
       
       const success = await login(data.email, data.password);
       if (success) {
+        console.log("Login successful, navigating to home");
         navigate("/");
       }
     } catch (error) {

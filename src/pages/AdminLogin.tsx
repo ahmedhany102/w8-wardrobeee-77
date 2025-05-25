@@ -83,6 +83,7 @@ const AdminLogin = () => {
   // Redirect if already logged in as admin
   React.useEffect(() => {
     if (user && isAdmin) {
+      console.log('Admin already logged in, redirecting to admin panel');
       navigate("/admin");
     }
   }, [user, isAdmin, navigate]);
@@ -110,6 +111,7 @@ const AdminLogin = () => {
       if (success) {
         setAttempts(0);
         localStorage.setItem("adminLoginAttempts", "0");
+        console.log('Admin login successful, navigating to admin panel');
         navigate("/admin");
       } else {
         handleFailedAttempt();
