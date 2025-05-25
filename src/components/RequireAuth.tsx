@@ -13,10 +13,11 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
   const { user, loading, isAdmin, session } = useAuth();
   const location = useLocation();
   const [lastActivity, setLastActivity] = useState(Date.now());
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
   
   // Auto logout after inactivity (30 minutes)
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+  const WARNING_TIME = 5 * 60 * 1000; // Show warning 5 minutes before timeout
 
   useEffect(() => {
     // Set up activity listeners
@@ -24,6 +25,7 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     
     const updateActivity = () => {
       setLastActivity(Date.now());
+      setShowTimeoutWarning(false);
     };
     
     activityEvents.forEach(event => {
@@ -33,10 +35,15 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     // Check for inactivity periodically (every minute)
     const inactivityCheck = setInterval(() => {
       const now = Date.now();
-      if (now - lastActivity > INACTIVITY_TIMEOUT) {
+      const timeSinceActivity = now - lastActivity;
+      
+      if (timeSinceActivity > INACTIVITY_TIMEOUT) {
         // Log out due to inactivity
-        setIsAuthenticated(false);
         toast.error("You've been logged out due to inactivity");
+        window.location.href = "/login";
+      } else if (timeSinceActivity > (INACTIVITY_TIMEOUT - WARNING_TIME) && !showTimeoutWarning) {
+        setShowTimeoutWarning(true);
+        toast.warning("You'll be logged out in 5 minutes due to inactivity");
       }
     }, 60000); // Check every minute
     
@@ -47,23 +54,16 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
       });
       clearInterval(inactivityCheck);
     };
-  }, [lastActivity]);
+  }, [lastActivity, showTimeoutWarning]);
 
-  // Check if user has valid session
-  useEffect(() => {
-    if (!loading) {
-      const hasValidSession = session && user;
-      if (!hasValidSession && !loading) {
-        setIsAuthenticated(false);
-      } else {
-        setIsAuthenticated(true);
-      }
-    }
-  }, [session, user, loading]);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
+  console.log('RequireAuth - Auth State:', {
+    user: user?.email || 'No user',
+    session: session?.user?.email || 'No session',
+    loading,
+    isAdmin,
+    adminOnly,
+    location: location.pathname
+  });
 
   if (loading) {
     // Loading state with improved animation

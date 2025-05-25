@@ -41,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
@@ -52,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
+      console.log('Profile fetched:', profile);
       return profile;
     } catch (error) {
       console.error('Error in fetchUserProfile:', error);
@@ -61,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const createUserProfile = async (userId: string, email: string, name?: string) => {
     try {
+      console.log('Creating profile for:', email);
       const { data, error } = await supabase
         .from('profiles')
         .insert([{
@@ -79,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return null;
       }
 
+      console.log('Profile created:', data);
       return data;
     } catch (error) {
       console.error('Error in createUserProfile:', error);
@@ -88,9 +92,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateAuthUser = async (authUser: User) => {
     try {
+      console.log('Updating auth user:', authUser.email);
       let profile = await fetchUserProfile(authUser.id);
       
       if (!profile) {
+        console.log('Profile not found, creating new one');
         profile = await createUserProfile(
           authUser.id, 
           authUser.email || '', 
@@ -99,22 +105,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (profile) {
-        setUser({
+        const userData = {
           id: profile.id,
           email: profile.email || authUser.email || '',
           name: profile.name,
           role: profile.is_admin ? 'ADMIN' : 'USER',
           displayName: profile.name || authUser.email
-        });
+        };
+        
+        console.log('Setting user data:', userData);
+        setUser(userData);
+      } else {
+        console.error('Failed to get or create profile');
+        setUser(null);
       }
     } catch (error) {
       console.error('Error updating auth user:', error);
+      setUser(null);
     }
   };
 
   const checkAuthStatus = async () => {
     try {
+      console.log('Checking auth status...');
       setLoading(true);
+      
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
@@ -124,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      console.log('Current session:', session?.user?.email || 'No session');
       setSession(session);
       
       if (session?.user) {
@@ -141,17 +157,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    console.log('Setting up auth state listener...');
+    
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
+        console.log('Auth state changed:', event, session?.user?.email || 'No user');
         setSession(session);
         
         if (session?.user) {
-          // Use setTimeout to prevent infinite recursion
-          setTimeout(async () => {
-            await updateAuthUser(session.user);
-          }, 0);
+          await updateAuthUser(session.user);
         } else {
           setUser(null);
         }
@@ -171,6 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
       setLoading(true);
+      console.log('Attempting signup for:', email);
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -187,7 +203,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (data.user) {
-        toast.success('Account created successfully! Please check your email to confirm your account.');
+        console.log('Signup successful for:', email);
+        toast.success('Account created successfully! You can now log in.');
         return true;
       }
 
@@ -252,15 +269,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
 
-      // Try to sign in with existing credentials
+      // First, try to sign in with existing credentials
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) {
+        console.error('Admin login error:', error);
+        
         if (error.message.includes('Invalid login credentials')) {
-          // If user doesn't exist, create admin account
+          // User doesn't exist in auth, create admin account
           console.log('Admin user does not exist, creating...');
           
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
@@ -278,8 +297,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           if (signUpData.user) {
-            // Create admin profile
-            await supabase
+            // Create admin profile manually
+            const { error: profileError } = await supabase
               .from('profiles')
               .upsert({
                 id: signUpData.user.id,
@@ -291,36 +310,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 status: 'ACTIVE'
               });
 
-            // Try to sign in again
-            const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+            if (profileError) {
+              console.error('Error creating admin profile:', profileError);
+            }
+
+            // Now try to sign in
+            const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
               email,
               password
             });
 
-            if (retryError) {
-              console.error('Admin retry login error:', retryError);
+            if (loginError) {
+              console.error('Admin login after creation failed:', loginError);
               toast.error('Admin login failed after account creation');
               return false;
             }
 
-            if (retryData.user && retryData.session) {
-              setSession(retryData.session);
-              await updateAuthUser(retryData.user);
+            if (loginData.user && loginData.session) {
+              setSession(loginData.session);
+              await updateAuthUser(loginData.user);
               toast.success('Admin account created and logged in successfully!');
               return true;
             }
           }
         } else {
-          console.error('Admin login error:', error);
           toast.error(error.message || 'Admin login failed');
           return false;
         }
       } else if (data.user && data.session) {
         // Successful login - ensure user has admin privileges
+        console.log('Admin login successful');
         setSession(data.session);
         
         // Update profile to ensure admin status
-        await supabase
+        const { error: updateError } = await supabase
           .from('profiles')
           .upsert({
             id: data.user.id,
@@ -332,8 +355,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             status: 'ACTIVE'
           });
 
+        if (updateError) {
+          console.error('Error updating admin profile:', updateError);
+        }
+
         await updateAuthUser(data.user);
-        console.log('Admin login successful');
         toast.success('Admin login successful!');
         return true;
       }
@@ -350,6 +376,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async (): Promise<void> => {
     try {
+      console.log('Logging out...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -361,6 +388,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       toast.error(error.message || 'Failed to log out');
     }
   };
+
+  console.log('Auth Context State:', {
+    user: user?.email || 'No user',
+    session: session?.user?.email || 'No session',
+    loading,
+    isAdmin: user?.role === 'ADMIN'
+  });
 
   return (
     <AuthContext.Provider value={{
