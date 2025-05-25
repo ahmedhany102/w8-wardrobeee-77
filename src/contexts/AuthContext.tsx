@@ -1,4 +1,4 @@
-// src/contexts/AuthContext.tsx
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -39,30 +39,72 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return profile;
+    } catch (error) {
+      console.error('Error in fetchUserProfile:', error);
+      return null;
+    }
+  };
+
   const checkAuthStatus = async () => {
     try {
+      setLoading(true);
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
+      
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        setUser(null);
+        setSession(null);
+        return;
+      }
 
       setSession(session);
       
       if (session?.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError) throw profileError;
-
+        const profile = await fetchUserProfile(session.user.id);
+        
         if (profile) {
           setUser({
             id: profile.id,
-            email: profile.email || '',
+            email: profile.email || session.user.email || '',
             name: profile.name,
             role: profile.is_admin ? 'ADMIN' : 'USER',
-            displayName: profile.name
+            displayName: profile.name || session.user.email
           });
+        } else {
+          // If no profile exists, create one
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.name || session.user.email,
+              role: 'USER',
+              is_admin: false
+            }]);
+
+          if (!insertError) {
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: session.user.user_metadata?.name,
+              role: 'USER',
+              displayName: session.user.user_metadata?.name || session.user.email
+            });
+          }
         }
       } else {
         setUser(null);
@@ -77,29 +119,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    checkAuthStatus();
-
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+          // Use setTimeout to prevent infinite recursion
+          setTimeout(async () => {
+            const profile = await fetchUserProfile(session.user.id);
             
-          if (profile) {
-            setUser({
-              id: profile.id,
-              email: profile.email || '',
-              name: profile.name,
-              role: profile.is_admin ? 'ADMIN' : 'USER',
-              displayName: profile.name
-            });
-          }
+            if (profile) {
+              setUser({
+                id: profile.id,
+                email: profile.email || session.user.email || '',
+                name: profile.name,
+                role: profile.is_admin ? 'ADMIN' : 'USER',
+                displayName: profile.name || session.user.email
+              });
+            }
+          }, 0);
         } else {
           setUser(null);
         }
@@ -107,6 +147,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
       }
     );
+
+    // Initial session check
+    checkAuthStatus();
 
     return () => {
       subscription.unsubscribe();
@@ -121,30 +164,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email,
         password,
         options: {
-          data: {
-            name: name,
-          },
+          data: { name }
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Signup error:', error);
+        toast.error(error.message || 'Failed to create account');
+        return false;
+      }
 
       if (data.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: data.user.id,
-              email: email,
-              name: name,
-              role: 'USER',
-              is_admin: false
-            }
-          ]);
-
-        if (profileError) throw profileError;
-
         toast.success('Account created successfully! Please check your email to confirm your account.');
         return true;
       }
@@ -162,15 +192,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setLoading(true);
+      console.log('Attempting login for:', email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Login error:', error);
+        if (error.message.includes('Email not confirmed')) {
+          toast.error('Please confirm your email address before logging in.');
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password. Please try again.');
+        } else {
+          toast.error(error.message || 'Failed to log in');
+        }
+        return false;
+      }
 
-      if (data.user) {
+      if (data.user && data.session) {
+        console.log('Login successful for:', email);
         toast.success('Logged in successfully!');
         return true;
       }
@@ -188,29 +230,105 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
       setLoading(true);
+      console.log('Attempting admin login for:', email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // First check if this is the admin email
+      if (email !== 'ahmedhanyseifeldien@gmail.com') {
+        toast.error('Invalid admin credentials');
+        return false;
+      }
+
+      // For admin login, we need to handle both auth user creation and profile setup
+      let authResult;
+      
+      // Try to sign in first
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (signInError && signInError.message.includes('Invalid login credentials')) {
+        console.log('Admin user does not exist in auth, creating...');
+        
+        // Create the auth user for admin
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name: 'Ahmed Hany' }
+          }
+        });
 
-      if (data.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', data.user.id)
-          .single();
-
-        if (profileError) throw profileError;
-
-        if (!profile?.is_admin) {
-          await supabase.auth.signOut();
-          toast.error('Access denied. Admin privileges required.');
+        if (signUpError) {
+          console.error('Admin signup error:', signUpError);
+          toast.error('Failed to create admin account');
           return false;
         }
 
+        // Now try to sign in again
+        const { data: retrySignIn, error: retryError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (retryError) {
+          console.error('Admin retry login error:', retryError);
+          toast.error('Admin login failed');
+          return false;
+        }
+
+        authResult = retrySignIn;
+      } else if (signInError) {
+        console.error('Admin login error:', signInError);
+        toast.error(signInError.message || 'Admin login failed');
+        return false;
+      } else {
+        authResult = signInData;
+      }
+
+      if (authResult?.user) {
+        // Ensure admin profile exists and is properly configured
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authResult.user.id)
+          .maybeSingle();
+
+        if (!profile) {
+          // Create admin profile
+          const { error: createProfileError } = await supabase
+            .from('profiles')
+            .insert([{
+              id: authResult.user.id,
+              email: email,
+              name: 'Ahmed Hany',
+              is_admin: true,
+              is_super_admin: true,
+              role: 'ADMIN',
+              status: 'ACTIVE'
+            }]);
+
+          if (createProfileError) {
+            console.error('Error creating admin profile:', createProfileError);
+          }
+        } else if (!profile.is_admin) {
+          // Update existing profile to admin
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              is_admin: true,
+              is_super_admin: true,
+              role: 'ADMIN',
+              status: 'ACTIVE'
+            })
+            .eq('id', authResult.user.id);
+
+          if (updateError) {
+            console.error('Error updating admin profile:', updateError);
+          }
+        }
+
+        console.log('Admin login successful');
         toast.success('Admin login successful!');
         return true;
       }
@@ -218,7 +336,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     } catch (error: any) {
       console.error('Admin login error:', error);
-      toast.error(error.message || 'Failed to log in');
+      toast.error(error.message || 'Failed to log in as admin');
       return false;
     } finally {
       setLoading(false);

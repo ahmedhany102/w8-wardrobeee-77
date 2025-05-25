@@ -12,10 +12,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { supabase } from "@/integrations/supabase/client";
 
 const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com";
-const ADMIN_PASSWORD = "admin123456";
+const ADMIN_PASSWORD = "Ahmed hany11*";
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_TIME = 2 * 60 * 1000;
 
@@ -38,109 +37,26 @@ const AdminLogin = () => {
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [adminAccountChecked, setAdminAccountChecked] = useState(false);
 
-  // Create admin account if it doesn't exist
-  const ensureAdminAccount = async () => {
-    try {
-      console.log('Checking if admin account exists...');
-      
-      // Check if admin profile exists
-      const { data: adminProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', ADMIN_EMAIL)
-        .single();
-
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error('Error checking admin profile:', profileError);
-        return;
-      }
-
-      if (!adminProfile) {
-        console.log('Admin account not found, creating...');
-        toast.info('Setting up admin account...');
-        
-        // Create admin account
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: ADMIN_EMAIL,
-          password: ADMIN_PASSWORD,
-          email_confirm: true,
-          user_metadata: {
-            name: 'System Administrator'
-          }
-        });
-
-        if (authError) {
-          console.error('Error creating admin auth user:', authError);
-          // Try alternative method - sign up normally
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: ADMIN_EMAIL,
-            password: ADMIN_PASSWORD,
-            options: {
-              data: {
-                name: 'System Administrator'
-              }
-            }
-          });
-
-          if (signUpError) {
-            console.error('Error with signup fallback:', signUpError);
-            return;
-          }
-
-          if (signUpData.user) {
-            // Update profile to be admin
-            await supabase
-              .from('profiles')
-              .update({
-                name: 'System Administrator',
-                is_admin: true,
-                is_super_admin: true,
-                role: 'ADMIN'
-              })
-              .eq('id', signUpData.user.id);
-          }
-        } else if (authData.user) {
-          // Ensure profile is created with admin privileges
-          await supabase
-            .from('profiles')
-            .upsert({
-              id: authData.user.id,
-              email: ADMIN_EMAIL,
-              name: 'System Administrator',
-              is_admin: true,
-              is_super_admin: true,
-              role: 'ADMIN'
-            });
-        }
-
-        toast.success('Admin account created successfully!');
-      } else {
-        console.log('Admin account exists:', adminProfile);
-        // Ensure admin has proper privileges
-        if (!adminProfile.is_admin) {
-          await supabase
-            .from('profiles')
-            .update({
-              is_admin: true,
-              is_super_admin: true,
-              role: 'ADMIN'
-            })
-            .eq('id', adminProfile.id);
-          
-          console.log('Updated admin privileges');
-        }
-      }
-    } catch (error) {
-      console.error('Error ensuring admin account:', error);
-    } finally {
-      setAdminAccountChecked(true);
-    }
-  };
-
+  // Load attempt data from localStorage
   useEffect(() => {
-    ensureAdminAccount();
+    const storedAttempts = localStorage.getItem("adminLoginAttempts");
+    const storedLockUntil = localStorage.getItem("adminLockUntil");
+    
+    if (storedAttempts) {
+      setAttempts(parseInt(storedAttempts));
+    }
+    
+    if (storedLockUntil) {
+      const lockTime = parseInt(storedLockUntil);
+      if (lockTime > Date.now()) {
+        setLockedUntil(lockTime);
+      } else {
+        localStorage.removeItem("adminLockUntil");
+        localStorage.setItem("adminLoginAttempts", "0");
+        setAttempts(0);
+      }
+    }
   }, []);
 
   // Countdown timer for lockout
@@ -184,14 +100,11 @@ const AdminLogin = () => {
       return;
     }
 
-    if (!adminAccountChecked) {
-      toast.error('Please wait while we set up the admin account...');
-      return;
-    }
-
     setIsSubmitting(true);
     
     try {
+      console.log('Attempting admin login with:', data.email);
+      
       const success = await adminLogin(data.email, data.password);
       
       if (success) {
@@ -201,6 +114,10 @@ const AdminLogin = () => {
       } else {
         handleFailedAttempt();
       }
+    } catch (error) {
+      console.error('Admin login submission error:', error);
+      toast.error('An unexpected error occurred. Please try again.');
+      handleFailedAttempt();
     } finally {
       setIsSubmitting(false);
     }
@@ -221,10 +138,6 @@ const AdminLogin = () => {
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
   return (
     <Layout>
       <div className="flex justify-center items-center min-h-[80vh] w-full">
@@ -237,11 +150,9 @@ const AdminLogin = () => {
             <CardDescription className="text-center text-gray-200">
               Secure area - Authorized personnel only
             </CardDescription>
-            {!adminAccountChecked && (
-              <div className="text-center text-sm text-yellow-200">
-                Setting up admin account...
-              </div>
-            )}
+            <div className="text-center text-sm text-yellow-200 mt-2">
+              Email: {ADMIN_EMAIL}
+            </div>
           </CardHeader>
           <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50 dark:from-gray-800 dark:to-gray-900">
             {lockedUntil && lockedUntil > Date.now() ? (
@@ -266,7 +177,7 @@ const AdminLogin = () => {
                             placeholder="admin@example.com"
                             {...field}
                             autoComplete="username"
-                            disabled={isSubmitting || !adminAccountChecked}
+                            disabled={isSubmitting}
                             className="transition-all hover:border-green-500 focus:ring-green-700 dark:bg-gray-800 dark:text-white"
                           />
                         </FormControl>
@@ -287,7 +198,7 @@ const AdminLogin = () => {
                               placeholder="••••••••" 
                               {...field} 
                               autoComplete="current-password"
-                              disabled={isSubmitting || !adminAccountChecked}
+                              disabled={isSubmitting}
                               className="transition-all hover:border-green-500 focus:ring-green-700 pr-10 dark:bg-gray-800 dark:text-white"
                             />
                             <button
@@ -310,9 +221,16 @@ const AdminLogin = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-green-800 hover:bg-green-900 transition-transform hover:scale-[1.02] active:scale-[0.98]"
-                    disabled={isSubmitting || !adminAccountChecked}
+                    disabled={isSubmitting}
                   >
-                    {isSubmitting ? "Verifying..." : !adminAccountChecked ? "Setting up..." : "Admin Login"}
+                    {isSubmitting ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Verifying...
+                      </div>
+                    ) : (
+                      "Admin Login"
+                    )}
                   </Button>
                 </form>
               </Form>

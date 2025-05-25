@@ -53,10 +53,8 @@ const Login = () => {
       
       const success = await login(data.email, data.password);
       if (success) {
-        // Success handling is done in the login function
         navigate("/");
       }
-      // Error handling is done in the login function
     } catch (error) {
       console.error('Login submission error:', error);
       toast.error('An unexpected error occurred. Please try again.');
