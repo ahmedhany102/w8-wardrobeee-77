@@ -105,11 +105,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (profile) {
-        const userData = {
+        const userData: AuthUser = {
           id: profile.id,
           email: profile.email || authUser.email || '',
           name: profile.name,
-          role: profile.is_admin ? 'ADMIN' : 'USER',
+          role: profile.is_admin ? 'ADMIN' : 'USER' as 'ADMIN' | 'USER',
           displayName: profile.name || authUser.email
         };
         
