@@ -39,29 +39,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const clearAuthState = () => {
+    setUser(null);
+    setSession(null);
+    setLoading(false);
+  };
+
   const processUserSession = async (authUser: User | null, userSession: Session | null) => {
     console.log('Processing user session:', authUser?.email || 'No user');
     
     if (!authUser || !userSession) {
-      setUser(null);
-      setSession(null);
-      setLoading(false);
+      clearAuthState();
       return;
     }
 
     try {
-      // Fetch user profile
+      // Set session immediately
+      setSession(userSession);
+      
+      // Fetch user profile with better error handling
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUser.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Profile fetch error:', error);
+        
         // If profile doesn't exist, create it
-        if (error.code === 'PGRST116') {
+        if (error.code === 'PGRST116' || !profile) {
+          console.log('Creating new profile for user:', authUser.email);
           const isAdmin = authUser.email === 'ahmedhanyseifeldien@gmail.com';
+          
           const { data: newProfile, error: insertError } = await supabase
             .from('profiles')
             .insert({
@@ -78,9 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           if (insertError) {
             console.error('Failed to create profile:', insertError);
-            setUser(null);
-            setSession(null);
-            setLoading(false);
+            toast.error('Failed to create user profile');
+            clearAuthState();
             return;
           }
           
@@ -93,12 +102,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           };
           
           setUser(userData);
-          setSession(userSession);
         } else {
-          setUser(null);
-          setSession(null);
+          toast.error('Failed to load user profile');
+          clearAuthState();
+          return;
         }
-      } else {
+      } else if (profile) {
         const userData: AuthUser = {
           id: profile.id,
           email: profile.email,
@@ -108,12 +117,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         
         setUser(userData);
-        setSession(userSession);
+      } else {
+        console.error('No profile found for user');
+        clearAuthState();
+        return;
       }
     } catch (error) {
       console.error('Error processing user session:', error);
-      setUser(null);
-      setSession(null);
+      clearAuthState();
     } finally {
       setLoading(false);
     }
@@ -123,16 +134,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Setting up auth listener...');
     
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Initial session check:', session?.user?.email || 'No session');
-      processUserSession(session?.user || null, session);
-    });
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting initial session:', error);
+          clearAuthState();
+          return;
+        }
+        
+        console.log('Initial session check:', session?.user?.email || 'No session');
+        await processUserSession(session?.user || null, session);
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        clearAuthState();
+      }
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email || 'No user');
-        processUserSession(session?.user || null, session);
+        
+        // Handle different auth events
+        if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          await processUserSession(session?.user || null, session);
+        }
       }
     );
 
@@ -221,22 +250,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async (): Promise<void> => {
     try {
       console.log('Logging out...');
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
       
-      setUser(null);
-      setSession(null);
+      // Clear local state first
+      clearAuthState();
+      
+      // Then attempt Supabase logout
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.warn('Logout error (but continuing):', error);
+        // Don't show error to user, just log it
+      }
+      
       toast.success('Logged out successfully');
     } catch (error: any) {
-      console.error('Logout error:', error);
-      toast.error('Logout failed');
+      console.warn('Logout error (but continuing):', error);
+      // Always clear state even if logout fails
+      clearAuthState();
+      toast.success('Logged out successfully');
     }
   };
 
   const checkAuthStatus = async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    processUserSession(session?.user || null, session);
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        console.error('Auth status check error:', error);
+        clearAuthState();
+        return;
+      }
+      await processUserSession(session?.user || null, session);
+    } catch (error) {
+      console.error('Auth status check error:', error);
+      clearAuthState();
+    }
   };
 
   console.log('Auth Context Current State:', {
