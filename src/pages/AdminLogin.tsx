@@ -5,7 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { Shield } from "lucide-react";
 import Layout from "@/components/Layout";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -18,8 +18,8 @@ const adminLoginSchema = z.object({
   email: z.string().email({
     message: "Please enter a valid email address",
   }),
-  password: z.string().min(8, {
-    message: "Password must be at least 8 characters",
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters",
   }),
 });
 
@@ -29,7 +29,6 @@ const AdminLogin = () => {
   const { adminLogin, user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect if already logged in as admin
   useEffect(() => {
@@ -84,7 +83,7 @@ const AdminLogin = () => {
   return (
     <Layout>
       <div className="flex justify-center items-center min-h-[80vh] w-full">
-        <Card className="w-full max-w-md shadow-lg border-green-800 animate-fade-in">
+        <Card className="w-full max-w-md shadow-lg border-green-800">
           <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
             <div className="flex justify-center mb-2">
               <Shield className="h-10 w-10" />
@@ -97,7 +96,7 @@ const AdminLogin = () => {
               Email: {ADMIN_EMAIL}
             </div>
           </CardHeader>
-          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50 dark:from-gray-800 dark:to-gray-900">
+          <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -112,7 +111,7 @@ const AdminLogin = () => {
                           {...field}
                           autoComplete="username"
                           disabled={isSubmitting}
-                          className="transition-all hover:border-green-500 focus:ring-green-700 dark:bg-gray-800 dark:text-white"
+                          className="transition-all hover:border-green-500 focus:ring-green-700"
                         />
                       </FormControl>
                       <FormMessage />
@@ -126,27 +125,14 @@ const AdminLogin = () => {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <Input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••" 
-                            {...field} 
-                            autoComplete="current-password"
-                            disabled={isSubmitting}
-                            className="transition-all hover:border-green-500 focus:ring-green-700 pr-10 dark:bg-gray-800 dark:text-white"
-                          />
-                          <button
-                            type="button"
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-5 w-5 text-gray-500" />
-                            ) : (
-                              <Eye className="h-5 w-5 text-gray-500" />
-                            )}
-                          </button>
-                        </div>
+                        <Input 
+                          type="password"
+                          placeholder="••••••••" 
+                          {...field}
+                          autoComplete="current-password"
+                          disabled={isSubmitting}
+                          className="transition-all hover:border-green-500 focus:ring-green-700"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -154,7 +140,7 @@ const AdminLogin = () => {
                 />
                 <Button 
                   type="submit" 
-                  className="w-full bg-green-800 hover:bg-green-900 transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                  className="w-full bg-green-800 hover:bg-green-900"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
@@ -169,10 +155,10 @@ const AdminLogin = () => {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex justify-center bg-green-50 dark:bg-gray-900 rounded-b-md">
+          <CardFooter className="flex justify-center bg-green-50 rounded-b-md">
             <Button 
               variant="link" 
-              className="text-green-800 dark:text-green-400" 
+              className="text-green-800" 
               onClick={() => navigate("/login")}
             >
               Return to User Login
