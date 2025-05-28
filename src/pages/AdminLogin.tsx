@@ -45,7 +45,7 @@ const AdminLogin = () => {
   const form = useForm<AdminLoginFormValues>({
     resolver: zodResolver(adminLoginSchema),
     defaultValues: {
-      email: "", // Remove auto-fill for security
+      email: "", // SECURITY FIX: No pre-filled email
       password: "",
     },
   });

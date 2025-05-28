@@ -60,23 +60,25 @@ const AdminContactSettings = () => {
     try {
       console.log('Saving contact settings with validated data:', formData);
       
-      // Ensure we have clean data
+      // Validate required fields
       const cleanData = {
-        store_name: formData.store_name || '',
-        address: formData.address || '',
-        email: formData.email || '',
-        phone: formData.phone || '',
-        working_hours: formData.working_hours || '',
-        website: formData.website || '',
-        facebook: formData.facebook || '',
-        instagram: formData.instagram || '',
-        twitter: formData.twitter || '',
-        youtube: formData.youtube || '',
-        map_url: formData.map_url || '',
-        terms_and_conditions: formData.terms_and_conditions || '',
-        developer_name: formData.developer_name || 'Ahmed Hany',
-        developer_url: formData.developer_url || 'https://ahmedhany.dev'
+        store_name: formData.store_name?.trim() || 'W8 for Men',
+        address: formData.address?.trim() || '',
+        email: formData.email?.trim() || '',
+        phone: formData.phone?.trim() || '',
+        working_hours: formData.working_hours?.trim() || '',
+        website: formData.website?.trim() || '',
+        facebook: formData.facebook?.trim() || '',
+        instagram: formData.instagram?.trim() || '',
+        twitter: formData.twitter?.trim() || '',
+        youtube: formData.youtube?.trim() || '',
+        map_url: formData.map_url?.trim() || '',
+        terms_and_conditions: formData.terms_and_conditions?.trim() || '',
+        developer_name: 'Ahmed Hany', // Fixed value
+        developer_url: 'https://ahmedhany.dev' // Fixed value
       };
+      
+      console.log('Attempting to save settings:', cleanData);
       
       const success = await updateSettings(cleanData);
       

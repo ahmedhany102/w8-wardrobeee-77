@@ -12,8 +12,7 @@ interface RequireAuthProps {
 export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) => {
   const { user, loading, isAdmin, session } = useAuth();
   const location = useLocation();
-  const [hasShownError, setHasShownError] = useState(false);
-  const [initialLoad, setInitialLoad] = useState(true);
+  const [timeoutReached, setTimeoutReached] = useState(false);
 
   console.log('RequireAuth - Current State:', {
     user: user?.email || 'No user',
@@ -22,26 +21,23 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     isAdmin,
     adminOnly,
     location: location.pathname,
-    initialLoad
+    timeoutReached
   });
 
-  // Reset error state when location changes
+  // Set timeout for loading state to prevent infinite loading
   useEffect(() => {
-    setHasShownError(false);
-  }, [location.pathname]);
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Auth loading timeout reached');
+        setTimeoutReached(true);
+      }
+    }, 10000); // 10 second timeout
 
-  // Set initial load to false after first render
-  useEffect(() => {
-    if (!loading) {
-      const timer = setTimeout(() => {
-        setInitialLoad(false);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
+    return () => clearTimeout(timeout);
   }, [loading]);
 
-  // If we're still loading OR in initial load phase, show loading state
-  if (loading || initialLoad) {
+  // Show loading state only if not timed out
+  if (loading && !timeoutReached) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-white to-green-50">
         <div className="text-center">
@@ -52,21 +48,15 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     );
   }
 
-  // Check authentication
+  // If timeout reached or not loading, check authentication
   if (!user || !session) {
-    if (!hasShownError) {
-      toast.error("Please login to access this page");
-      setHasShownError(true);
-    }
+    toast.error("Please login to access this page");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check admin access
   if (adminOnly && !isAdmin) {
-    if (!hasShownError) {
-      toast.error("You don't have permission to access this page");
-      setHasShownError(true);
-    }
+    toast.error("You don't have permission to access this page");
     return <Navigate to="/" replace />;
   }
 

@@ -20,22 +20,37 @@ const ProductManagement = () => {
 
   const handleAddProduct = async (product) => {
     try {
-      // Clean product data for proper schema compatibility
+      // Validate and clean product data for proper schema compatibility
       const cleanProduct = {
-        name: product.name || '',
-        description: product.description || '',
+        name: product.name?.trim() || '',
+        description: product.description?.trim() || '',
         price: parseFloat(product.price) || 0,
-        type: product.type || 'T-Shirts',
-        category: 'Men', // Fixed category
-        main_image: product.main_image || '',
-        images: Array.isArray(product.images) ? product.images : [],
-        colors: Array.isArray(product.colors) ? product.colors : [],
-        sizes: Array.isArray(product.sizes) ? product.sizes : [],
+        type: product.type || 'T-Shirts', // Ensure valid type
+        category: 'Men', // Fixed category as per schema
+        main_image: product.main_image?.trim() || '',
+        images: Array.isArray(product.images) ? product.images.filter(img => img) : [],
+        colors: Array.isArray(product.colors) ? product.colors.filter(color => color) : [],
+        sizes: Array.isArray(product.sizes) ? product.sizes.map(size => ({
+          size: size.size || '',
+          stock: parseInt(size.stock) || 0,
+          price: parseFloat(size.price) || parseFloat(product.price) || 0
+        })) : [],
         discount: parseFloat(product.discount) || 0,
         featured: Boolean(product.featured),
         stock: parseInt(product.stock) || 0,
-        inventory: parseInt(product.inventory) || 0
+        inventory: parseInt(product.inventory) || parseInt(product.stock) || 0
       };
+      
+      // Validate required fields
+      if (!cleanProduct.name) {
+        toast.error('Product name is required');
+        return;
+      }
+      
+      if (cleanProduct.price <= 0) {
+        toast.error('Product price must be greater than 0');
+        return;
+      }
       
       console.log('Adding product with validated data:', cleanProduct);
       
@@ -54,21 +69,25 @@ const ProductManagement = () => {
     if (!editProduct) return;
     
     try {
-      // Clean the product data with validation
+      // Clean and validate the product data
       const cleanProduct = {
-        name: product.name || '',
-        description: product.description || '',
+        name: product.name?.trim() || '',
+        description: product.description?.trim() || '',
         price: parseFloat(product.price) || 0,
         type: product.type || 'T-Shirts',
         category: 'Men', // Fixed category
-        main_image: product.main_image || '',
-        images: Array.isArray(product.images) ? product.images : [],
-        colors: Array.isArray(product.colors) ? product.colors : [],
-        sizes: Array.isArray(product.sizes) ? product.sizes : [],
+        main_image: product.main_image?.trim() || '',
+        images: Array.isArray(product.images) ? product.images.filter(img => img) : [],
+        colors: Array.isArray(product.colors) ? product.colors.filter(color => color) : [],
+        sizes: Array.isArray(product.sizes) ? product.sizes.map(size => ({
+          size: size.size || '',
+          stock: parseInt(size.stock) || 0,
+          price: parseFloat(size.price) || parseFloat(product.price) || 0
+        })) : [],
         discount: parseFloat(product.discount) || 0,
         featured: Boolean(product.featured),
         stock: parseInt(product.stock) || 0,
-        inventory: parseInt(product.inventory) || 0
+        inventory: parseInt(product.inventory) || parseInt(product.stock) || 0
       };
       
       console.log('Updating product with validated data:', cleanProduct);

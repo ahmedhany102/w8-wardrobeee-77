@@ -27,7 +27,7 @@ interface OrderFormProps {
 }
 
 const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete, appliedCoupon }) => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { addOrder } = useSupabaseOrders();
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -63,7 +63,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
       }
 
       // Check if user is logged in
-      if (!user?.id) {
+      if (!user?.id || !session) {
         toast.error('Please log in to place an order');
         setIsSubmitting(false);
         return;
@@ -99,7 +99,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
             city: formData.city,
             zipCode: formData.zipCode,
           },
-          user_id: user.id // CRITICAL: Ensure user ID is included
+          user_id: user.id // CRITICAL: User ID must be string, not object
         },
         items: orderItems,
         total_amount: total,
@@ -118,7 +118,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         })
       };
 
-      console.log('Submitting order data:', orderData);
+      console.log('Submitting order data with user ID:', orderData);
 
       // Save order to Supabase with explicit user linking
       const createdOrder = await addOrder(orderData);

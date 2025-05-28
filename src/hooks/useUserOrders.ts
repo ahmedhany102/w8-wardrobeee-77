@@ -7,11 +7,11 @@ import { toast } from 'sonner';
 export const useUserOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, session } = useAuth();
 
   const fetchUserOrders = async () => {
-    if (!user?.id) {
-      console.log('No user ID available for fetching orders');
+    if (!user?.id || !session) {
+      console.log('No user or session available for fetching orders');
       setOrders([]);
       setLoading(false);
       return;
@@ -21,26 +21,12 @@ export const useUserOrders = () => {
       setLoading(true);
       console.log('Fetching orders for user:', user.id, user.email);
 
-      // First try the RPC function, then fallback to direct query
-      let data, error;
-      
-      try {
-        const result = await supabase.rpc('get_user_orders', { user_uuid: user.id });
-        data = result.data;
-        error = result.error;
-      } catch (rpcError) {
-        console.log('RPC function failed, using direct query:', rpcError);
-        
-        // Fallback to direct query
-        const result = await supabase
-          .from('orders')
-          .select('*')
-          .or(`customer_info->>user_id.eq.${user.id},customer_info->>email.eq.${user.email}`)
-          .order('created_at', { ascending: false });
-          
-        data = result.data;
-        error = result.error;
-      }
+      // Direct query with explicit user matching
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .or(`customer_info->>user_id.eq.${user.id},customer_info->>email.eq.${user.email}`)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching user orders:', error);
@@ -61,8 +47,13 @@ export const useUserOrders = () => {
   };
 
   useEffect(() => {
-    fetchUserOrders();
-  }, [user?.id]);
+    if (user?.id && session) {
+      fetchUserOrders();
+    } else {
+      setLoading(false);
+      setOrders([]);
+    }
+  }, [user?.id, session]);
 
   return { orders, loading, refetch: fetchUserOrders };
 };
