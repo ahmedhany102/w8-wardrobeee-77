@@ -45,7 +45,7 @@ const AdminLogin = () => {
   const form = useForm<AdminLoginFormValues>({
     resolver: zodResolver(adminLoginSchema),
     defaultValues: {
-      email: "", // SECURITY FIX: No pre-filled email
+      email: "", // SECURITY: Empty email field
       password: "",
     },
   });
@@ -55,7 +55,7 @@ const AdminLogin = () => {
     
     setIsSubmitting(true);
     try {
-      console.log("Attempting admin login for:", data.email);
+      console.log("Attempting admin login");
       
       const success = await adminLogin(data.email, data.password);
       if (success) {
@@ -88,9 +88,9 @@ const AdminLogin = () => {
       <div className="flex justify-center items-center min-h-[80vh] w-full">
         <Card className="w-full max-w-md shadow-lg border-green-800">
           <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
-            <CardTitle className="text-center text-2xl">Admin Login</CardTitle>
+            <CardTitle className="text-center text-2xl">Admin Access</CardTitle>
             <CardDescription className="text-center text-gray-100">
-              Restricted access for administrators only
+              Administrative Panel Login
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50">
@@ -101,10 +101,10 @@ const AdminLogin = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Admin Email</FormLabel>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="Enter admin email"
+                          placeholder="Enter email"
                           {...field}
                           autoComplete="username"
                           disabled={isSubmitting}
@@ -143,10 +143,10 @@ const AdminLogin = () => {
                   {isSubmitting ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Verifying Admin Access...
+                      Signing In...
                     </div>
                   ) : (
-                    "Admin Login"
+                    "Sign In"
                   )}
                 </Button>
               </form>

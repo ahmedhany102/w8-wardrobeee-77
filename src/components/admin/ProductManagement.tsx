@@ -20,28 +20,30 @@ const ProductManagement = () => {
 
   const handleAddProduct = async (product) => {
     try {
-      // Validate and clean product data for proper schema compatibility
+      console.log('Adding product with data:', product);
+      
+      // Comprehensive validation and data cleaning
       const cleanProduct = {
         name: product.name?.trim() || '',
         description: product.description?.trim() || '',
         price: parseFloat(product.price) || 0,
-        type: product.type || 'T-Shirts', // Ensure valid type
-        category: 'Men', // Fixed category as per schema
+        type: product.type || 'T-Shirts',
+        category: 'Men',
         main_image: product.main_image?.trim() || '',
-        images: Array.isArray(product.images) ? product.images.filter(img => img) : [],
-        colors: Array.isArray(product.colors) ? product.colors.filter(color => color) : [],
+        images: Array.isArray(product.images) ? product.images.filter(img => img && img.trim()) : [],
+        colors: Array.isArray(product.colors) ? product.colors.filter(color => color && color.trim()) : [],
         sizes: Array.isArray(product.sizes) ? product.sizes.map(size => ({
           size: size.size || '',
           stock: parseInt(size.stock) || 0,
           price: parseFloat(size.price) || parseFloat(product.price) || 0
-        })) : [],
+        })).filter(size => size.size) : [],
         discount: parseFloat(product.discount) || 0,
         featured: Boolean(product.featured),
         stock: parseInt(product.stock) || 0,
         inventory: parseInt(product.inventory) || parseInt(product.stock) || 0
       };
       
-      // Validate required fields
+      // Detailed validation
       if (!cleanProduct.name) {
         toast.error('Product name is required');
         return;
@@ -51,14 +53,22 @@ const ProductManagement = () => {
         toast.error('Product price must be greater than 0');
         return;
       }
+
+      if (!cleanProduct.type || !['T-Shirts', 'Trousers', 'Shoes', 'Jackets'].includes(cleanProduct.type)) {
+        toast.error('Valid product type is required (T-Shirts, Trousers, Shoes, or Jackets)');
+        return;
+      }
       
-      console.log('Adding product with validated data:', cleanProduct);
+      console.log('Validated product data:', cleanProduct);
       
       const result = await addProduct(cleanProduct);
-      console.log('Product added result:', result);
+      console.log('Product added successfully:', result);
       
       setShowAddDialog(false);
       toast.success('Product added successfully!');
+      
+      // Refresh the products list
+      await refetch();
     } catch (error) {
       console.error("Error adding product:", error);
       toast.error("Failed to add product: " + (error.message || 'Unknown error'));
@@ -69,35 +79,40 @@ const ProductManagement = () => {
     if (!editProduct) return;
     
     try {
+      console.log('Updating product with data:', product);
+      
       // Clean and validate the product data
       const cleanProduct = {
         name: product.name?.trim() || '',
         description: product.description?.trim() || '',
         price: parseFloat(product.price) || 0,
         type: product.type || 'T-Shirts',
-        category: 'Men', // Fixed category
+        category: 'Men',
         main_image: product.main_image?.trim() || '',
-        images: Array.isArray(product.images) ? product.images.filter(img => img) : [],
-        colors: Array.isArray(product.colors) ? product.colors.filter(color => color) : [],
+        images: Array.isArray(product.images) ? product.images.filter(img => img && img.trim()) : [],
+        colors: Array.isArray(product.colors) ? product.colors.filter(color => color && color.trim()) : [],
         sizes: Array.isArray(product.sizes) ? product.sizes.map(size => ({
           size: size.size || '',
           stock: parseInt(size.stock) || 0,
           price: parseFloat(size.price) || parseFloat(product.price) || 0
-        })) : [],
+        })).filter(size => size.size) : [],
         discount: parseFloat(product.discount) || 0,
         featured: Boolean(product.featured),
         stock: parseInt(product.stock) || 0,
         inventory: parseInt(product.inventory) || parseInt(product.stock) || 0
       };
       
-      console.log('Updating product with validated data:', cleanProduct);
+      console.log('Validated update data:', cleanProduct);
       
       const result = await updateProduct(editProduct.id, cleanProduct);
-      console.log('Product updated result:', result);
+      console.log('Product updated successfully:', result);
       
       setShowEditDialog(false);
       setEditProduct(null);
       toast.success('Product updated successfully!');
+      
+      // Refresh the products list
+      await refetch();
     } catch (error) {
       console.error("Error updating product:", error);
       toast.error("Failed to update product: " + (error.message || 'Unknown error'));
@@ -112,6 +127,7 @@ const ProductManagement = () => {
       setShowDeleteDialog(false);
       setDeleteProductId(null);
       toast.success('Product deleted successfully!');
+      await refetch();
     } catch (error) {
       console.error("Error deleting product:", error);
       toast.error("Failed to delete product: " + (error.message || 'Unknown error'));
@@ -181,9 +197,10 @@ const ProductManagement = () => {
                     <TableHead className="w-16">Image</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead className="hidden md:table-cell">Type</TableHead>
+                    <TableHead className="hidden lg:table-cell">Colors</TableHead>
                     <TableHead className="hidden lg:table-cell">Sizes</TableHead>
                     <TableHead className="hidden md:table-cell">Stock</TableHead>
-                    <TableHead className="hidden md:table-cell">Discount</TableHead>
+                    <TableHead className="hidden md:table-cell">Price</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -202,6 +219,10 @@ const ProductManagement = () => {
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{product.type || '-'}</TableCell>
                       <TableCell className="hidden lg:table-cell">
+                        {product.colors && Array.isArray(product.colors) && product.colors.length > 0 ? 
+                          <div className="max-w-[100px] truncate">{product.colors.join(", ")}</div> : "-"}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         {product.sizes && Array.isArray(product.sizes) && product.sizes.length > 0 ? 
                           <div className="max-w-[120px] truncate">{product.sizes.map(s => s.size).join(", ")}</div> : "-"}
                       </TableCell>
@@ -210,7 +231,7 @@ const ProductManagement = () => {
                           product.sizes.reduce((total, size) => total + (size?.stock || 0), 0) : 
                           product.stock || 0}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{product.discount ? `${product.discount}%` : "-"}</TableCell>
+                      <TableCell className="hidden md:table-cell">${product.price}</TableCell>
                       <TableCell className="text-right space-x-1">
                         <div className="flex justify-end gap-1">
                           <Button

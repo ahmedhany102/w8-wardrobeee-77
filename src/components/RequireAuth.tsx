@@ -12,7 +12,7 @@ interface RequireAuthProps {
 export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) => {
   const { user, loading, isAdmin, session } = useAuth();
   const location = useLocation();
-  const [timeoutReached, setTimeoutReached] = useState(false);
+  const [forceNavigation, setForceNavigation] = useState(false);
 
   console.log('RequireAuth - Current State:', {
     user: user?.email || 'No user',
@@ -21,23 +21,30 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     isAdmin,
     adminOnly,
     location: location.pathname,
-    timeoutReached
+    forceNavigation
   });
 
-  // Set timeout for loading state to prevent infinite loading
+  // Force navigation after 8 seconds to prevent infinite loading
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (loading) {
-        console.warn('Auth loading timeout reached');
-        setTimeoutReached(true);
+        console.warn('Auth loading timeout reached, forcing navigation');
+        setForceNavigation(true);
       }
-    }, 10000); // 10 second timeout
+    }, 8000);
 
     return () => clearTimeout(timeout);
   }, [loading]);
 
-  // Show loading state only if not timed out
-  if (loading && !timeoutReached) {
+  // Clear force navigation when loading state changes
+  useEffect(() => {
+    if (!loading) {
+      setForceNavigation(false);
+    }
+  }, [loading]);
+
+  // Show loading state only for a reasonable time
+  if (loading && !forceNavigation) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-white to-green-50">
         <div className="text-center">
@@ -48,18 +55,21 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     );
   }
 
-  // If timeout reached or not loading, check authentication
+  // If forced navigation or not loading, check authentication
   if (!user || !session) {
+    console.log('No user or session, redirecting to login');
     toast.error("Please login to access this page");
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Check admin access
   if (adminOnly && !isAdmin) {
+    console.log('Admin required but user is not admin');
     toast.error("You don't have permission to access this page");
     return <Navigate to="/" replace />;
   }
 
   // Authentication successful
+  console.log('Authentication successful, rendering content');
   return children ? children : <Outlet />;
 };

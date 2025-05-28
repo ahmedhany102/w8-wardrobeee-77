@@ -44,8 +44,8 @@ const AdminContactSettings = () => {
         youtube: settings.youtube || '',
         map_url: settings.map_url || '',
         terms_and_conditions: settings.terms_and_conditions || '',
-        developer_name: settings.developer_name || 'Ahmed Hany',
-        developer_url: settings.developer_url || 'https://ahmedhany.dev'
+        developer_name: 'Ahmed Hany',
+        developer_url: 'https://ahmedhany.dev'
       });
     }
   }, [settings]);
@@ -58,9 +58,9 @@ const AdminContactSettings = () => {
   const saveSettings = async () => {
     setIsSaving(true);
     try {
-      console.log('Saving contact settings with validated data:', formData);
+      console.log('Saving contact settings with data:', formData);
       
-      // Validate required fields
+      // Validate and clean the data
       const cleanData = {
         store_name: formData.store_name?.trim() || 'W8 for Men',
         address: formData.address?.trim() || '',
@@ -74,17 +74,22 @@ const AdminContactSettings = () => {
         youtube: formData.youtube?.trim() || '',
         map_url: formData.map_url?.trim() || '',
         terms_and_conditions: formData.terms_and_conditions?.trim() || '',
-        developer_name: 'Ahmed Hany', // Fixed value
-        developer_url: 'https://ahmedhany.dev' // Fixed value
+        developer_name: 'Ahmed Hany',
+        developer_url: 'https://ahmedhany.dev'
       };
       
-      console.log('Attempting to save settings:', cleanData);
+      console.log('Cleaned data to save:', cleanData);
       
       const success = await updateSettings(cleanData);
       
       if (success) {
         console.log('Settings saved successfully');
         toast.success('Settings saved successfully!');
+        
+        // Force a page refresh to see changes immediately
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         console.error('Failed to save settings - no success returned');
         toast.error('Failed to save settings');

@@ -69,8 +69,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         return;
       }
 
-      console.log('Creating order with cart items:', cartItems);
-      console.log('User placing order:', user);
+      console.log('Creating order for user:', {
+        id: user.id,
+        email: user.email,
+        name: user.name
+      });
 
       // Convert cart items to order items
       const orderItems = cartItems.map(item => ({
@@ -91,6 +94,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
       const orderData = {
         order_number: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
         customer_info: {
+          user_id: user.id, // CRITICAL: Store user ID as string
           name: formData.name,
           email: formData.email,
           phone: formData.phone,
@@ -98,8 +102,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
             street: formData.street,
             city: formData.city,
             zipCode: formData.zipCode,
-          },
-          user_id: user.id // CRITICAL: User ID must be string, not object
+          }
         },
         items: orderItems,
         total_amount: total,
@@ -118,9 +121,9 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         })
       };
 
-      console.log('Submitting order data with user ID:', orderData);
+      console.log('Submitting order with data:', orderData);
 
-      // Save order to Supabase with explicit user linking
+      // Save order to Supabase
       const createdOrder = await addOrder(orderData);
       
       console.log('Order created successfully:', createdOrder);

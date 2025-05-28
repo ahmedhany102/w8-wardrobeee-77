@@ -19,24 +19,38 @@ export const useUserOrders = () => {
 
     try {
       setLoading(true);
-      console.log('Fetching orders for user:', user.id, user.email);
+      console.log('Fetching orders for user ID:', user.id);
+      console.log('User email:', user.email);
 
-      // Direct query with explicit user matching
-      const { data, error } = await supabase
+      // Try multiple approaches to find user orders
+      const { data: directOrders, error: directError } = await supabase
         .from('orders')
         .select('*')
-        .or(`customer_info->>user_id.eq.${user.id},customer_info->>email.eq.${user.email}`)
+        .eq('customer_info->>user_id', user.id)
         .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('Error fetching user orders:', error);
-        toast.error('Failed to load your orders');
-        setOrders([]);
-        return;
+
+      if (directError) {
+        console.error('Direct query error:', directError);
       }
-      
-      console.log('Fetched user orders:', data);
-      setOrders(data || []);
+
+      const { data: emailOrders, error: emailError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_info->>email', user.email)
+        .order('created_at', { ascending: false });
+
+      if (emailError) {
+        console.error('Email query error:', emailError);
+      }
+
+      // Combine results and remove duplicates
+      const allOrders = [...(directOrders || []), ...(emailOrders || [])];
+      const uniqueOrders = allOrders.filter((order, index, self) => 
+        index === self.findIndex(o => o.id === order.id)
+      );
+
+      console.log('Found orders:', uniqueOrders);
+      setOrders(uniqueOrders);
     } catch (error) {
       console.error('Error fetching user orders:', error);
       toast.error('Failed to load your orders');
@@ -48,12 +62,14 @@ export const useUserOrders = () => {
 
   useEffect(() => {
     if (user?.id && session) {
+      console.log('User changed, fetching orders for:', user.id);
       fetchUserOrders();
     } else {
+      console.log('No user, clearing orders');
       setLoading(false);
       setOrders([]);
     }
-  }, [user?.id, session]);
+  }, [user?.id, user?.email, session]);
 
   return { orders, loading, refetch: fetchUserOrders };
 };
