@@ -13,6 +13,7 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
   const { user, loading, isAdmin, session } = useAuth();
   const location = useLocation();
   const [hasShownError, setHasShownError] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   console.log('RequireAuth - Current State:', {
     user: user?.email || 'No user',
@@ -20,7 +21,8 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     loading,
     isAdmin,
     adminOnly,
-    location: location.pathname
+    location: location.pathname,
+    initialLoad
   });
 
   // Reset error state when location changes
@@ -28,8 +30,18 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     setHasShownError(false);
   }, [location.pathname]);
 
-  // If we're still loading, show loading state
-  if (loading) {
+  // Set initial load to false after first render
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => {
+        setInitialLoad(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  // If we're still loading OR in initial load phase, show loading state
+  if (loading || initialLoad) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-white to-green-50">
         <div className="text-center">

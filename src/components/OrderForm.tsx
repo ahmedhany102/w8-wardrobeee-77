@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -63,7 +62,15 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         return;
       }
 
+      // Check if user is logged in
+      if (!user?.id) {
+        toast.error('Please log in to place an order');
+        setIsSubmitting(false);
+        return;
+      }
+
       console.log('Creating order with cart items:', cartItems);
+      console.log('User placing order:', user);
 
       // Convert cart items to order items
       const orderItems = cartItems.map(item => ({
@@ -80,7 +87,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
       // Calculate discount amount if coupon is applied
       const discountAmount = appliedCoupon ? (total * appliedCoupon.discount) / 100 : 0;
 
-      // Create order object with proper user linking
+      // Create order object with EXPLICIT user linking
       const orderData = {
         order_number: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
         customer_info: {
@@ -92,7 +99,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
             city: formData.city,
             zipCode: formData.zipCode,
           },
-          user_id: user?.id || null // Critical: Link order to user
+          user_id: user.id // CRITICAL: Ensure user ID is included
         },
         items: orderItems,
         total_amount: total,
@@ -111,15 +118,15 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         })
       };
 
-      console.log('Submitting order data with user_id:', orderData.customer_info.user_id);
+      console.log('Submitting order data:', orderData);
 
-      // Save order to Supabase
+      // Save order to Supabase with explicit user linking
       const createdOrder = await addOrder(orderData);
       
       console.log('Order created successfully:', createdOrder);
 
       // Show success message
-      toast.success('Order placed successfully! Order #' + orderData.order_number);
+      toast.success(`Order placed successfully! Order #${orderData.order_number}`);
 
       // Clear cart if order placement was successful
       if (onOrderComplete) {
@@ -128,7 +135,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
 
     } catch (error) {
       console.error('Error creating order:', error);
-      toast.error('Failed to place order. Please try again.');
+      toast.error('Failed to place order: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);
     }

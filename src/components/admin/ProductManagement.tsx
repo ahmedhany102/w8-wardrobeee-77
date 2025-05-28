@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,29 +20,33 @@ const ProductManagement = () => {
 
   const handleAddProduct = async (product) => {
     try {
-      // Remove any problematic fields that might cause schema issues
+      // Clean product data for proper schema compatibility
       const cleanProduct = {
-        name: product.name,
+        name: product.name || '',
         description: product.description || '',
-        price: product.price || 0,
+        price: parseFloat(product.price) || 0,
         type: product.type || 'T-Shirts',
-        category: 'Men',
+        category: 'Men', // Fixed category
         main_image: product.main_image || '',
-        images: product.images || [],
-        colors: product.colors || [],
-        sizes: product.sizes || [],
-        discount: product.discount || 0,
-        featured: product.featured || false,
-        stock: product.stock || 0,
-        inventory: product.inventory || 0
+        images: Array.isArray(product.images) ? product.images : [],
+        colors: Array.isArray(product.colors) ? product.colors : [],
+        sizes: Array.isArray(product.sizes) ? product.sizes : [],
+        discount: parseFloat(product.discount) || 0,
+        featured: Boolean(product.featured),
+        stock: parseInt(product.stock) || 0,
+        inventory: parseInt(product.inventory) || 0
       };
       
-      console.log('Adding product with clean data:', cleanProduct);
-      await addProduct(cleanProduct);
+      console.log('Adding product with validated data:', cleanProduct);
+      
+      const result = await addProduct(cleanProduct);
+      console.log('Product added result:', result);
+      
       setShowAddDialog(false);
+      toast.success('Product added successfully!');
     } catch (error) {
       console.error("Error adding product:", error);
-      toast.error("Failed to add product: " + error.message);
+      toast.error("Failed to add product: " + (error.message || 'Unknown error'));
     }
   };
 
@@ -51,42 +54,48 @@ const ProductManagement = () => {
     if (!editProduct) return;
     
     try {
-      // Clean the product data to avoid schema issues
+      // Clean the product data with validation
       const cleanProduct = {
-        name: product.name,
+        name: product.name || '',
         description: product.description || '',
-        price: product.price || 0,
+        price: parseFloat(product.price) || 0,
         type: product.type || 'T-Shirts',
-        category: 'Men',
+        category: 'Men', // Fixed category
         main_image: product.main_image || '',
-        images: product.images || [],
-        colors: product.colors || [],
-        sizes: product.sizes || [],
-        discount: product.discount || 0,
-        featured: product.featured || false,
-        stock: product.stock || 0,
-        inventory: product.inventory || 0
+        images: Array.isArray(product.images) ? product.images : [],
+        colors: Array.isArray(product.colors) ? product.colors : [],
+        sizes: Array.isArray(product.sizes) ? product.sizes : [],
+        discount: parseFloat(product.discount) || 0,
+        featured: Boolean(product.featured),
+        stock: parseInt(product.stock) || 0,
+        inventory: parseInt(product.inventory) || 0
       };
       
-      console.log('Updating product with clean data:', cleanProduct);
-      await updateProduct(editProduct.id, cleanProduct);
+      console.log('Updating product with validated data:', cleanProduct);
+      
+      const result = await updateProduct(editProduct.id, cleanProduct);
+      console.log('Product updated result:', result);
+      
       setShowEditDialog(false);
       setEditProduct(null);
+      toast.success('Product updated successfully!');
     } catch (error) {
       console.error("Error updating product:", error);
-      toast.error("Failed to update product: " + error.message);
+      toast.error("Failed to update product: " + (error.message || 'Unknown error'));
     }
   };
 
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return;
     try {
+      console.log('Deleting product:', deleteProductId);
       await deleteProduct(deleteProductId);
       setShowDeleteDialog(false);
       setDeleteProductId(null);
+      toast.success('Product deleted successfully!');
     } catch (error) {
       console.error("Error deleting product:", error);
-      toast.error("Failed to delete product: " + error.message);
+      toast.error("Failed to delete product: " + (error.message || 'Unknown error'));
     }
   };
 

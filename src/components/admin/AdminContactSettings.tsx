@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +30,7 @@ const AdminContactSettings = () => {
 
   useEffect(() => {
     if (settings) {
+      console.log('Loading settings into form:', settings);
       setFormData({
         store_name: settings.store_name || '',
         address: settings.address || '',
@@ -58,16 +58,38 @@ const AdminContactSettings = () => {
   const saveSettings = async () => {
     setIsSaving(true);
     try {
-      console.log('Saving contact settings:', formData);
-      const success = await updateSettings(formData);
+      console.log('Saving contact settings with validated data:', formData);
+      
+      // Ensure we have clean data
+      const cleanData = {
+        store_name: formData.store_name || '',
+        address: formData.address || '',
+        email: formData.email || '',
+        phone: formData.phone || '',
+        working_hours: formData.working_hours || '',
+        website: formData.website || '',
+        facebook: formData.facebook || '',
+        instagram: formData.instagram || '',
+        twitter: formData.twitter || '',
+        youtube: formData.youtube || '',
+        map_url: formData.map_url || '',
+        terms_and_conditions: formData.terms_and_conditions || '',
+        developer_name: formData.developer_name || 'Ahmed Hany',
+        developer_url: formData.developer_url || 'https://ahmedhany.dev'
+      };
+      
+      const success = await updateSettings(cleanData);
+      
       if (success) {
-        toast.success('Settings saved successfully');
+        console.log('Settings saved successfully');
+        toast.success('Settings saved successfully!');
       } else {
+        console.error('Failed to save settings - no success returned');
         toast.error('Failed to save settings');
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Error saving settings: ' + error.message);
+      toast.error('Error saving settings: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSaving(false);
     }
