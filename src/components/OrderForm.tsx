@@ -80,7 +80,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
       // Calculate discount amount if coupon is applied
       const discountAmount = appliedCoupon ? (total * appliedCoupon.discount) / 100 : 0;
 
-      // Create order object
+      // Create order object with proper user linking
       const orderData = {
         order_number: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
         customer_info: {
@@ -92,7 +92,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
             city: formData.city,
             zipCode: formData.zipCode,
           },
-          user_id: user?.id || null
+          user_id: user?.id || null // Critical: Link order to user
         },
         items: orderItems,
         total_amount: total,
@@ -111,7 +111,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         })
       };
 
-      console.log('Submitting order data:', orderData);
+      console.log('Submitting order data with user_id:', orderData.customer_info.user_id);
 
       // Save order to Supabase
       const createdOrder = await addOrder(orderData);

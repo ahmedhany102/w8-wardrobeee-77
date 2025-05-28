@@ -10,10 +10,9 @@ interface RequireAuthProps {
 }
 
 export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) => {
-  const { user, loading, isAdmin, session, checkAuthStatus } = useAuth();
+  const { user, loading, isAdmin, session } = useAuth();
   const location = useLocation();
   const [hasShownError, setHasShownError] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
 
   console.log('RequireAuth - Current State:', {
     user: user?.email || 'No user',
@@ -24,22 +23,13 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     location: location.pathname
   });
 
-  // Verify session on mount for protected routes
+  // Reset error state when location changes
   useEffect(() => {
-    const verifySession = async () => {
-      if (!loading && !session && !isChecking) {
-        setIsChecking(true);
-        console.log('No session found, checking auth status...');
-        await checkAuthStatus();
-        setIsChecking(false);
-      }
-    };
+    setHasShownError(false);
+  }, [location.pathname]);
 
-    verifySession();
-  }, [loading, session, checkAuthStatus, isChecking]);
-
-  // If we're still loading or checking, show loading state
-  if (loading || isChecking) {
+  // If we're still loading, show loading state
+  if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-white to-green-50">
         <div className="text-center">

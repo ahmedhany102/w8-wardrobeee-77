@@ -1,18 +1,16 @@
 
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield } from "lucide-react";
 import Layout from "@/components/Layout";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-
-const ADMIN_EMAIL = "ahmedhanyseifeldien@gmail.com";
 
 const adminLoginSchema = z.object({
   email: z.string().email({
@@ -26,42 +24,47 @@ const adminLoginSchema = z.object({
 type AdminLoginFormValues = z.infer<typeof adminLoginSchema>;
 
 const AdminLogin = () => {
-  const { adminLogin, user, isAdmin, loading: authLoading } = useAuth();
+  const { adminLogin, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already logged in as admin
-  useEffect(() => {
-    if (user && isAdmin && !authLoading) {
-      console.log('Admin already logged in, redirecting to admin panel');
-      navigate("/admin");
+  React.useEffect(() => {
+    if (user && !authLoading) {
+      console.log('User already logged in, checking admin status...');
+      if (user.role === 'ADMIN') {
+        console.log('Admin user detected, redirecting to admin dashboard');
+        navigate("/admin");
+      } else {
+        console.log('Non-admin user, redirecting to home');
+        navigate("/");
+      }
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [user, authLoading, navigate]);
 
   const form = useForm<AdminLoginFormValues>({
     resolver: zodResolver(adminLoginSchema),
     defaultValues: {
-      email: ADMIN_EMAIL,
+      email: "", // Remove auto-fill for security
       password: "",
     },
   });
 
   const onSubmit = async (data: AdminLoginFormValues) => {
     if (isSubmitting) return;
-
-    setIsSubmitting(true);
     
+    setIsSubmitting(true);
     try {
-      console.log('Attempting admin login with:', data.email);
+      console.log("Attempting admin login for:", data.email);
       
       const success = await adminLogin(data.email, data.password);
-      
       if (success) {
-        console.log('Admin login successful, navigating to admin panel');
+        console.log("Admin login successful, navigating to admin dashboard");
         navigate("/admin");
       }
     } catch (error) {
       console.error('Admin login submission error:', error);
+      toast.error('Admin login failed. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -85,16 +88,10 @@ const AdminLogin = () => {
       <div className="flex justify-center items-center min-h-[80vh] w-full">
         <Card className="w-full max-w-md shadow-lg border-green-800">
           <CardHeader className="bg-gradient-to-r from-green-900 to-black text-white rounded-t-md">
-            <div className="flex justify-center mb-2">
-              <Shield className="h-10 w-10" />
-            </div>
             <CardTitle className="text-center text-2xl">Admin Login</CardTitle>
-            <CardDescription className="text-center text-gray-200">
-              Secure area - Authorized personnel only
+            <CardDescription className="text-center text-gray-100">
+              Restricted access for administrators only
             </CardDescription>
-            <div className="text-center text-sm text-yellow-200 mt-2">
-              Email: {ADMIN_EMAIL}
-            </div>
           </CardHeader>
           <CardContent className="pt-6 bg-gradient-to-b from-white to-green-50">
             <Form {...form}>
@@ -107,7 +104,7 @@ const AdminLogin = () => {
                       <FormLabel>Admin Email</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="admin@example.com"
+                          placeholder="Enter admin email"
                           {...field}
                           autoComplete="username"
                           disabled={isSubmitting}
@@ -146,7 +143,7 @@ const AdminLogin = () => {
                   {isSubmitting ? (
                     <div className="flex items-center">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Verifying...
+                      Verifying Admin Access...
                     </div>
                   ) : (
                     "Admin Login"
@@ -155,14 +152,12 @@ const AdminLogin = () => {
               </form>
             </Form>
           </CardContent>
-          <CardFooter className="flex justify-center bg-green-50 rounded-b-md">
-            <Button 
-              variant="link" 
-              className="text-green-800" 
-              onClick={() => navigate("/login")}
-            >
-              Return to User Login
-            </Button>
+          <CardFooter className="flex flex-col space-y-2 bg-green-50 rounded-b-md py-4">
+            <div className="text-center w-full">
+              <Link to="/login" className="text-sm text-green-800 hover:text-green-700">
+                Regular User Login
+              </Link>
+            </div>
           </CardFooter>
         </Card>
       </div>

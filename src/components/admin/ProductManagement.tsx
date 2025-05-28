@@ -21,36 +21,60 @@ const ProductManagement = () => {
 
   const handleAddProduct = async (product) => {
     try {
-      const productWithCategory = {
-        ...product,
-        category: 'Men'
+      // Remove any problematic fields that might cause schema issues
+      const cleanProduct = {
+        name: product.name,
+        description: product.description || '',
+        price: product.price || 0,
+        type: product.type || 'T-Shirts',
+        category: 'Men',
+        main_image: product.main_image || '',
+        images: product.images || [],
+        colors: product.colors || [],
+        sizes: product.sizes || [],
+        discount: product.discount || 0,
+        featured: product.featured || false,
+        stock: product.stock || 0,
+        inventory: product.inventory || 0
       };
       
-      await addProduct(productWithCategory);
-      toast.success("Product added successfully");
+      console.log('Adding product with clean data:', cleanProduct);
+      await addProduct(cleanProduct);
       setShowAddDialog(false);
     } catch (error) {
       console.error("Error adding product:", error);
-      toast.error("Failed to add product");
+      toast.error("Failed to add product: " + error.message);
     }
   };
 
   const handleEditProduct = async (product) => {
     if (!editProduct) return;
     
-    const productWithCategory = {
-      ...product,
-      category: 'Men'
-    };
-    
     try {
-      await updateProduct(editProduct.id, productWithCategory);
-      toast.success("Product updated successfully");
+      // Clean the product data to avoid schema issues
+      const cleanProduct = {
+        name: product.name,
+        description: product.description || '',
+        price: product.price || 0,
+        type: product.type || 'T-Shirts',
+        category: 'Men',
+        main_image: product.main_image || '',
+        images: product.images || [],
+        colors: product.colors || [],
+        sizes: product.sizes || [],
+        discount: product.discount || 0,
+        featured: product.featured || false,
+        stock: product.stock || 0,
+        inventory: product.inventory || 0
+      };
+      
+      console.log('Updating product with clean data:', cleanProduct);
+      await updateProduct(editProduct.id, cleanProduct);
       setShowEditDialog(false);
       setEditProduct(null);
     } catch (error) {
       console.error("Error updating product:", error);
-      toast.error("Failed to update product");
+      toast.error("Failed to update product: " + error.message);
     }
   };
 
@@ -58,12 +82,11 @@ const ProductManagement = () => {
     if (!deleteProductId) return;
     try {
       await deleteProduct(deleteProductId);
-      toast.success("Product deleted successfully");
       setShowDeleteDialog(false);
       setDeleteProductId(null);
     } catch (error) {
       console.error("Error deleting product:", error);
-      toast.error("Failed to delete product");
+      toast.error("Failed to delete product: " + error.message);
     }
   };
 
@@ -129,7 +152,6 @@ const ProductManagement = () => {
                   <TableRow>
                     <TableHead className="w-16">Image</TableHead>
                     <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Category</TableHead>
                     <TableHead className="hidden md:table-cell">Type</TableHead>
                     <TableHead className="hidden lg:table-cell">Sizes</TableHead>
                     <TableHead className="hidden md:table-cell">Stock</TableHead>
@@ -150,7 +172,6 @@ const ProductManagement = () => {
                       <TableCell className="font-medium truncate" title={product.name}>
                         <div className="max-w-[120px] truncate">{product.name}</div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">Men</TableCell>
                       <TableCell className="hidden md:table-cell">{product.type || '-'}</TableCell>
                       <TableCell className="hidden lg:table-cell">
                         {product.sizes && Array.isArray(product.sizes) && product.sizes.length > 0 ? 

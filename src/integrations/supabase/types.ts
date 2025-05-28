@@ -299,7 +299,6 @@ export type Database = {
         Row: {
           ad_product_id: string | null
           category: string | null
-          category_path: string[] | null
           color: string | null
           color_images: Json | null
           colors: string[] | null
@@ -326,7 +325,6 @@ export type Database = {
         Insert: {
           ad_product_id?: string | null
           category?: string | null
-          category_path?: string[] | null
           color?: string | null
           color_images?: Json | null
           colors?: string[] | null
@@ -353,7 +351,6 @@ export type Database = {
         Update: {
           ad_product_id?: string | null
           category?: string | null
-          category_path?: string[] | null
           color?: string | null
           color_images?: Json | null
           colors?: string[] | null
@@ -588,6 +585,23 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_user_orders: {
+        Args: { user_uuid: string }
+        Returns: {
+          coupon_info: Json | null
+          created_at: string | null
+          customer_info: Json
+          id: string
+          items: Json
+          notes: string | null
+          order_number: string
+          payment_info: Json | null
+          payment_status: string
+          status: string
+          total_amount: number
+          updated_at: string | null
+        }[]
       }
     }
     Enums: {

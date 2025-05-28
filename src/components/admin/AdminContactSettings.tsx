@@ -27,6 +27,7 @@ const AdminContactSettings = () => {
     developer_url: 'https://ahmedhany.dev'
   });
   const [activeTab, setActiveTab] = useState('contact');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -55,7 +56,9 @@ const AdminContactSettings = () => {
   };
 
   const saveSettings = async () => {
+    setIsSaving(true);
     try {
+      console.log('Saving contact settings:', formData);
       const success = await updateSettings(formData);
       if (success) {
         toast.success('Settings saved successfully');
@@ -64,14 +67,19 @@ const AdminContactSettings = () => {
       }
     } catch (error) {
       console.error('Error saving settings:', error);
-      toast.error('Error saving settings');
+      toast.error('Error saving settings: ' + error.message);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <div className="text-center">Loading contact settings...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-800 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading contact settings...</p>
+        </div>
       </div>
     );
   }
@@ -294,8 +302,19 @@ const AdminContactSettings = () => {
       </Tabs>
 
       <CardFooter className="flex justify-end">
-        <Button onClick={saveSettings} className="bg-green-600 hover:bg-green-700">
-          Save Changes
+        <Button 
+          onClick={saveSettings} 
+          className="bg-green-600 hover:bg-green-700"
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Saving...
+            </div>
+          ) : (
+            'Save Changes'
+          )}
         </Button>
       </CardFooter>
     </div>
