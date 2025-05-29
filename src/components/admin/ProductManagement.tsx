@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,117 +21,161 @@ const ProductManagement = () => {
 
   const handleAddProduct = async (product) => {
     try {
-      console.log('Adding product with data:', product);
+      console.log('Starting product addition with data:', product);
       
-      // Comprehensive validation and data cleaning
-      const cleanProduct = {
-        name: product.name?.trim() || '',
-        description: product.description?.trim() || '',
-        price: parseFloat(product.price) || 0,
-        type: product.type || 'T-Shirts',
-        category: 'Men',
-        main_image: product.main_image?.trim() || '',
-        images: Array.isArray(product.images) ? product.images.filter(img => img && img.trim()) : [],
-        colors: Array.isArray(product.colors) ? product.colors.filter(color => color && color.trim()) : [],
-        sizes: Array.isArray(product.sizes) ? product.sizes.map(size => ({
-          size: size.size || '',
-          stock: parseInt(size.stock) || 0,
-          price: parseFloat(size.price) || parseFloat(product.price) || 0
-        })).filter(size => size.size) : [],
-        discount: parseFloat(product.discount) || 0,
-        featured: Boolean(product.featured),
-        stock: parseInt(product.stock) || 0,
-        inventory: parseInt(product.inventory) || parseInt(product.stock) || 0
-      };
-      
-      // Detailed validation
-      if (!cleanProduct.name) {
+      // Validate required fields first
+      if (!product.name?.trim()) {
         toast.error('Product name is required');
         return;
       }
       
-      if (cleanProduct.price <= 0) {
-        toast.error('Product price must be greater than 0');
+      if (!product.price || parseFloat(product.price) <= 0) {
+        toast.error('Valid product price is required');
         return;
       }
 
-      if (!cleanProduct.type || !['T-Shirts', 'Trousers', 'Shoes', 'Jackets'].includes(cleanProduct.type)) {
-        toast.error('Valid product type is required (T-Shirts, Trousers, Shoes, or Jackets)');
+      if (!product.type) {
+        toast.error('Product type is required');
         return;
       }
+
+      // Prepare clean product data with proper validation
+      const productData = {
+        name: product.name.trim(),
+        description: product.description?.trim() || '',
+        price: parseFloat(product.price),
+        type: product.type,
+        category: product.category || 'Men',
+        main_image: product.main_image || '',
+        images: Array.isArray(product.images) ? product.images.filter(Boolean) : [],
+        colors: Array.isArray(product.colors) ? product.colors.filter(Boolean) : [],
+        sizes: Array.isArray(product.sizes) ? product.sizes.filter(size => size?.size) : [],
+        discount: parseFloat(product.discount) || 0,
+        featured: Boolean(product.featured),
+        stock: parseInt(product.stock) || 0,
+        inventory: parseInt(product.inventory) || parseInt(product.stock) || 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
       
-      console.log('Validated product data:', cleanProduct);
+      console.log('Cleaned product data for insert:', productData);
       
-      const result = await addProduct(cleanProduct);
-      console.log('Product added successfully:', result);
+      // Attempt to add the product
+      const result = await addProduct(productData);
       
-      setShowAddDialog(false);
-      toast.success('Product added successfully!');
+      if (result) {
+        console.log('Product added successfully:', result);
+        setShowAddDialog(false);
+        toast.success('Product added successfully!');
+        
+        // Force a fresh fetch to ensure UI is updated
+        setTimeout(() => {
+          refetch();
+        }, 500);
+      } else {
+        console.error('Product addition failed - no result returned');
+        toast.error('Failed to add product - no response from server');
+      }
       
-      // Refresh the products list
-      await refetch();
     } catch (error) {
-      console.error("Error adding product:", error);
-      toast.error("Failed to add product: " + (error.message || 'Unknown error'));
+      console.error("Error in handleAddProduct:", error);
+      toast.error("Failed to add product: " + (error?.message || 'Unknown error'));
     }
   };
 
   const handleEditProduct = async (product) => {
-    if (!editProduct) return;
+    if (!editProduct?.id) {
+      toast.error('No product selected for editing');
+      return;
+    }
     
     try {
-      console.log('Updating product with data:', product);
+      console.log('Starting product update for ID:', editProduct.id);
+      console.log('Update data:', product);
       
-      // Clean and validate the product data
-      const cleanProduct = {
-        name: product.name?.trim() || '',
+      // Validate required fields
+      if (!product.name?.trim()) {
+        toast.error('Product name is required');
+        return;
+      }
+      
+      if (!product.price || parseFloat(product.price) <= 0) {
+        toast.error('Valid product price is required');
+        return;
+      }
+
+      // Prepare clean update data
+      const updateData = {
+        name: product.name.trim(),
         description: product.description?.trim() || '',
-        price: parseFloat(product.price) || 0,
+        price: parseFloat(product.price),
         type: product.type || 'T-Shirts',
-        category: 'Men',
-        main_image: product.main_image?.trim() || '',
-        images: Array.isArray(product.images) ? product.images.filter(img => img && img.trim()) : [],
-        colors: Array.isArray(product.colors) ? product.colors.filter(color => color && color.trim()) : [],
-        sizes: Array.isArray(product.sizes) ? product.sizes.map(size => ({
-          size: size.size || '',
-          stock: parseInt(size.stock) || 0,
-          price: parseFloat(size.price) || parseFloat(product.price) || 0
-        })).filter(size => size.size) : [],
+        category: product.category || 'Men',
+        main_image: product.main_image || '',
+        images: Array.isArray(product.images) ? product.images.filter(Boolean) : [],
+        colors: Array.isArray(product.colors) ? product.colors.filter(Boolean) : [],
+        sizes: Array.isArray(product.sizes) ? product.sizes.filter(size => size?.size) : [],
         discount: parseFloat(product.discount) || 0,
         featured: Boolean(product.featured),
         stock: parseInt(product.stock) || 0,
-        inventory: parseInt(product.inventory) || parseInt(product.stock) || 0
+        inventory: parseInt(product.inventory) || parseInt(product.stock) || 0,
+        updated_at: new Date().toISOString()
       };
       
-      console.log('Validated update data:', cleanProduct);
+      console.log('Cleaned update data:', updateData);
       
-      const result = await updateProduct(editProduct.id, cleanProduct);
-      console.log('Product updated successfully:', result);
+      const result = await updateProduct(editProduct.id, updateData);
       
-      setShowEditDialog(false);
-      setEditProduct(null);
-      toast.success('Product updated successfully!');
+      if (result) {
+        console.log('Product updated successfully:', result);
+        setShowEditDialog(false);
+        setEditProduct(null);
+        toast.success('Product updated successfully!');
+        
+        // Force a fresh fetch
+        setTimeout(() => {
+          refetch();
+        }, 500);
+      } else {
+        console.error('Product update failed - no result returned');
+        toast.error('Failed to update product - no response from server');
+      }
       
-      // Refresh the products list
-      await refetch();
     } catch (error) {
-      console.error("Error updating product:", error);
-      toast.error("Failed to update product: " + (error.message || 'Unknown error'));
+      console.error("Error in handleEditProduct:", error);
+      toast.error("Failed to update product: " + (error?.message || 'Unknown error'));
     }
   };
 
   const handleDeleteProduct = async () => {
-    if (!deleteProductId) return;
+    if (!deleteProductId) {
+      toast.error('No product selected for deletion');
+      return;
+    }
+    
     try {
-      console.log('Deleting product:', deleteProductId);
-      await deleteProduct(deleteProductId);
-      setShowDeleteDialog(false);
-      setDeleteProductId(null);
-      toast.success('Product deleted successfully!');
-      await refetch();
+      console.log('Deleting product with ID:', deleteProductId);
+      
+      const result = await deleteProduct(deleteProductId);
+      
+      if (result) {
+        console.log('Product deleted successfully');
+        setShowDeleteDialog(false);
+        setDeleteProductId(null);
+        toast.success('Product deleted successfully!');
+        
+        // Force a fresh fetch
+        setTimeout(() => {
+          refetch();
+        }, 500);
+      } else {
+        console.error('Product deletion failed - no result returned');
+        toast.error('Failed to delete product - no response from server');
+      }
+      
     } catch (error) {
-      console.error("Error deleting product:", error);
-      toast.error("Failed to delete product: " + (error.message || 'Unknown error'));
+      console.error("Error in handleDeleteProduct:", error);
+      toast.error("Failed to delete product: " + (error?.message || 'Unknown error'));
     }
   };
 
@@ -146,6 +191,12 @@ const ProductManagement = () => {
     
     return matchesSearch && matchesCategory;
   });
+
+  // Log current products for debugging
+  useEffect(() => {
+    console.log('Current products in state:', products);
+    console.log('Filtered products:', filteredProducts);
+  }, [products, filteredProducts]);
 
   return (
     <div className="space-y-6">
@@ -188,6 +239,9 @@ const ProductManagement = () => {
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-10">
               <p className="text-gray-500">No products found</p>
+              {products.length === 0 && (
+                <p className="text-sm text-gray-400 mt-2">Click "Add New Product" to get started</p>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
