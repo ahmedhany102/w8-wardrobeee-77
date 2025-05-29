@@ -43,17 +43,53 @@ export const useSupabaseProducts = () => {
     try {
       console.log('Adding product to Supabase:', productData);
       
-      // Validate required fields
-      if (!productData.name || !productData.price) {
-        const errorMsg = 'Name and price are required';
+      // Strict validation - reject if missing required fields
+      if (!productData.name?.trim()) {
+        const errorMsg = 'Product name is required';
+        console.error('Validation error:', errorMsg);
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      if (!productData.price || parseFloat(productData.price) <= 0) {
+        const errorMsg = 'Valid product price is required';
         console.error('Validation error:', errorMsg);
         toast.error(errorMsg);
         throw new Error(errorMsg);
       }
 
+      if (!productData.type) {
+        const errorMsg = 'Product type is required';
+        console.error('Validation error:', errorMsg);
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // Clean and prepare data for insert
+      const cleanProductData = {
+        name: productData.name.trim(),
+        description: productData.description?.trim() || '',
+        price: parseFloat(productData.price),
+        type: productData.type,
+        category: productData.category || 'Men',
+        main_image: productData.main_image || '',
+        images: Array.isArray(productData.images) ? productData.images.filter(Boolean) : [],
+        colors: Array.isArray(productData.colors) ? productData.colors.filter(Boolean) : [],
+        sizes: Array.isArray(productData.sizes) ? productData.sizes.filter(size => size?.size) : [],
+        discount: parseFloat(productData.discount) || 0,
+        featured: Boolean(productData.featured),
+        stock: parseInt(productData.stock) || 0,
+        inventory: parseInt(productData.inventory) || parseInt(productData.stock) || 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('Cleaned product data for database insert:', cleanProductData);
+      
+      // Insert into database
       const { data, error } = await supabase
         .from('products')
-        .insert([productData])
+        .insert([cleanProductData])
         .select()
         .single();
       
@@ -64,18 +100,19 @@ export const useSupabaseProducts = () => {
       }
       
       if (!data) {
-        const errorMsg = 'No data returned from insert';
+        const errorMsg = 'No data returned from database insert';
         console.error(errorMsg);
         toast.error(errorMsg);
         throw new Error(errorMsg);
       }
       
-      console.log('Product added successfully to database:', data);
+      console.log('Product successfully added to database:', data);
       toast.success('Product added successfully');
       
-      // Refresh the products list immediately
+      // Immediately refresh products from database to ensure UI matches DB
       await fetchProducts();
       return data;
+      
     } catch (error) {
       console.error('Exception in addProduct:', error);
       throw error;
@@ -84,7 +121,7 @@ export const useSupabaseProducts = () => {
 
   const updateProduct = async (id, updates) => {
     try {
-      console.log('Updating product in Supabase:', id, updates);
+      console.log('Updating product in database:', id, updates);
       
       if (!id) {
         const errorMsg = 'Product ID is required for update';
@@ -93,12 +130,44 @@ export const useSupabaseProducts = () => {
         throw new Error(errorMsg);
       }
 
+      // Validate required fields for updates
+      if (updates.name && !updates.name.trim()) {
+        const errorMsg = 'Product name cannot be empty';
+        console.error('Validation error:', errorMsg);
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+      if (updates.price && parseFloat(updates.price) <= 0) {
+        const errorMsg = 'Valid product price is required';
+        console.error('Validation error:', errorMsg);
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+
+      // Clean update data
+      const cleanUpdates = {
+        ...(updates.name && { name: updates.name.trim() }),
+        ...(updates.description !== undefined && { description: updates.description?.trim() || '' }),
+        ...(updates.price && { price: parseFloat(updates.price) }),
+        ...(updates.type && { type: updates.type }),
+        ...(updates.category && { category: updates.category }),
+        ...(updates.main_image !== undefined && { main_image: updates.main_image || '' }),
+        ...(updates.images && { images: Array.isArray(updates.images) ? updates.images.filter(Boolean) : [] }),
+        ...(updates.colors && { colors: Array.isArray(updates.colors) ? updates.colors.filter(Boolean) : [] }),
+        ...(updates.sizes && { sizes: Array.isArray(updates.sizes) ? updates.sizes.filter(size => size?.size) : [] }),
+        ...(updates.discount !== undefined && { discount: parseFloat(updates.discount) || 0 }),
+        ...(updates.featured !== undefined && { featured: Boolean(updates.featured) }),
+        ...(updates.stock !== undefined && { stock: parseInt(updates.stock) || 0 }),
+        ...(updates.inventory !== undefined && { inventory: parseInt(updates.inventory) || parseInt(updates.stock) || 0 }),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('Cleaned update data:', cleanUpdates);
+      
       const { data, error } = await supabase
         .from('products')
-        .update({ 
-          ...updates, 
-          updated_at: new Date().toISOString() 
-        })
+        .update(cleanUpdates)
         .eq('id', id)
         .select()
         .single();
@@ -110,18 +179,19 @@ export const useSupabaseProducts = () => {
       }
       
       if (!data) {
-        const errorMsg = 'No data returned from update';
+        const errorMsg = 'No data returned from database update';
         console.error(errorMsg);
         toast.error(errorMsg);
         throw new Error(errorMsg);
       }
       
-      console.log('Product updated successfully in database:', data);
+      console.log('Product successfully updated in database:', data);
       toast.success('Product updated successfully');
       
-      // Refresh the products list
+      // Refresh products from database
       await fetchProducts();
       return data;
+      
     } catch (error) {
       console.error('Exception in updateProduct:', error);
       throw error;
@@ -130,7 +200,7 @@ export const useSupabaseProducts = () => {
 
   const deleteProduct = async (id) => {
     try {
-      console.log('Deleting product from Supabase:', id);
+      console.log('Deleting product from database:', id);
       
       if (!id) {
         const errorMsg = 'Product ID is required for deletion';
@@ -150,17 +220,25 @@ export const useSupabaseProducts = () => {
         throw error;
       }
       
-      console.log('Product deleted successfully from database');
+      console.log('Product successfully deleted from database');
       toast.success('Product deleted successfully');
       
-      // Refresh the products list
+      // Refresh products from database
       await fetchProducts();
       return true;
+      
     } catch (error) {
       console.error('Exception in deleteProduct:', error);
       throw error;
     }
   };
 
-  return { products, loading, addProduct, updateProduct, deleteProduct, refetch: fetchProducts };
+  return { 
+    products, 
+    loading, 
+    addProduct, 
+    updateProduct, 
+    deleteProduct, 
+    refetch: fetchProducts 
+  };
 };

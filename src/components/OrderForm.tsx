@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -55,53 +56,82 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
     setIsSubmitting(true);
 
     try {
-      // Validate form
-      if (!formData.name || !formData.email || !formData.phone || !formData.street || !formData.city || !formData.zipCode) {
-        toast.error('Please fill in all required fields');
-        setIsSubmitting(false);
+      // Validate form data
+      if (!formData.name?.trim()) {
+        toast.error('Full name is required');
+        return;
+      }
+      
+      if (!formData.email?.trim()) {
+        toast.error('Email is required');
+        return;
+      }
+      
+      if (!formData.phone?.trim()) {
+        toast.error('Phone number is required');
+        return;
+      }
+      
+      if (!formData.street?.trim()) {
+        toast.error('Street address is required');
+        return;
+      }
+      
+      if (!formData.city?.trim()) {
+        toast.error('City is required');
+        return;
+      }
+      
+      if (!formData.zipCode?.trim()) {
+        toast.error('Zip code is required');
         return;
       }
 
-      // Check if user is logged in
+      // Validate cart items
+      if (!cartItems || cartItems.length === 0) {
+        toast.error('Cart is empty - cannot place order');
+        return;
+      }
+
+      // Check authentication
       if (!user?.id || !session) {
-        toast.error('Please log in to place an order');
-        setIsSubmitting(false);
+        toast.error('You must be logged in to place an order');
         return;
       }
 
-      console.log('Creating order for user:', {
-        id: user.id,
+      console.log('Creating order for authenticated user:', {
+        userId: user.id,
         email: user.email,
-        name: user.name
+        cartItems: cartItems.length
       });
 
-      // Convert cart items to order items
+      // Convert cart items to order items format
       const orderItems = cartItems.map(item => ({
         productId: item.productId,
         productName: item.name,
         quantity: item.quantity,
         unitPrice: item.price,
         totalPrice: item.price * item.quantity,
-        imageUrl: item.imageUrl,
+        imageUrl: item.imageUrl || '',
         color: item.color || '-',
         size: item.size || '-',
       }));
 
-      // Calculate discount amount if coupon is applied
+      // Calculate discount if coupon applied
       const discountAmount = appliedCoupon ? (total * appliedCoupon.discount) / 100 : 0;
 
-      // Create order object with EXPLICIT user linking
+      // Prepare order data with explicit user linking
       const orderData = {
         order_number: `ORD-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`,
         customer_info: {
-          user_id: user.id, // CRITICAL: Store user ID as string
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
+          user_id: user.id, // CRITICAL: Store user ID for proper linking
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
           address: {
-            street: formData.street,
-            city: formData.city,
-            zipCode: formData.zipCode,
+            street: formData.street.trim(),
+            city: formData.city.trim(),
+            zipCode: formData.zipCode.trim(),
           }
         },
         items: orderItems,
@@ -111,7 +141,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         payment_info: {
           method: formData.paymentMethod,
         },
-        notes: formData.notes,
+        notes: formData.notes?.trim() || '',
         ...(appliedCoupon && {
           coupon_info: {
             code: appliedCoupon.code,
@@ -121,23 +151,23 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         })
       };
 
-      console.log('Submitting order with data:', orderData);
+      console.log('Submitting order with proper user linking:', orderData);
 
-      // Save order to Supabase
+      // Save order to database
       const createdOrder = await addOrder(orderData);
       
-      console.log('Order created successfully:', createdOrder);
+      console.log('Order successfully created and saved:', createdOrder);
 
       // Show success message
       toast.success(`Order placed successfully! Order #${orderData.order_number}`);
 
-      // Clear cart if order placement was successful
+      // Clear cart and complete order process
       if (onOrderComplete) {
         onOrderComplete();
       }
 
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('Order creation failed:', error);
       toast.error('Failed to place order: ' + (error.message || 'Unknown error'));
     } finally {
       setIsSubmitting(false);

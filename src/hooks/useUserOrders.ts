@@ -11,7 +11,7 @@ export const useUserOrders = () => {
 
   const fetchUserOrders = async () => {
     if (!user?.id || !session) {
-      console.log('No user or session available for fetching orders');
+      console.log('No authenticated user available for fetching orders');
       setOrders([]);
       setLoading(false);
       return;
@@ -19,20 +19,23 @@ export const useUserOrders = () => {
 
     try {
       setLoading(true);
-      console.log('Fetching orders for user ID:', user.id);
-      console.log('User email:', user.email);
+      console.log('Fetching orders for authenticated user:', {
+        id: user.id,
+        email: user.email
+      });
 
-      // Try multiple approaches to find user orders
-      const { data: directOrders, error: directError } = await supabase
+      // Primary query: Find orders by user_id in customer_info
+      const { data: userIdOrders, error: userIdError } = await supabase
         .from('orders')
         .select('*')
         .eq('customer_info->>user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (directError) {
-        console.error('Direct query error:', directError);
+      if (userIdError) {
+        console.error('Error fetching orders by user ID:', userIdError);
       }
 
+      // Fallback query: Find orders by email in customer_info
       const { data: emailOrders, error: emailError } = await supabase
         .from('orders')
         .select('*')
@@ -40,19 +43,20 @@ export const useUserOrders = () => {
         .order('created_at', { ascending: false });
 
       if (emailError) {
-        console.error('Email query error:', emailError);
+        console.error('Error fetching orders by email:', emailError);
       }
 
-      // Combine results and remove duplicates
-      const allOrders = [...(directOrders || []), ...(emailOrders || [])];
+      // Combine and deduplicate results
+      const allOrders = [...(userIdOrders || []), ...(emailOrders || [])];
       const uniqueOrders = allOrders.filter((order, index, self) => 
         index === self.findIndex(o => o.id === order.id)
       );
 
-      console.log('Found orders:', uniqueOrders);
+      console.log('Successfully found user orders:', uniqueOrders);
       setOrders(uniqueOrders);
+      
     } catch (error) {
-      console.error('Error fetching user orders:', error);
+      console.error('Exception while fetching user orders:', error);
       toast.error('Failed to load your orders');
       setOrders([]);
     } finally {
@@ -62,14 +66,18 @@ export const useUserOrders = () => {
 
   useEffect(() => {
     if (user?.id && session) {
-      console.log('User changed, fetching orders for:', user.id);
+      console.log('User authenticated, fetching orders for:', user.id);
       fetchUserOrders();
     } else {
-      console.log('No user, clearing orders');
+      console.log('No authenticated user, clearing orders');
       setLoading(false);
       setOrders([]);
     }
   }, [user?.id, user?.email, session]);
 
-  return { orders, loading, refetch: fetchUserOrders };
+  return { 
+    orders, 
+    loading, 
+    refetch: fetchUserOrders 
+  };
 };
