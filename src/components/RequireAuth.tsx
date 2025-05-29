@@ -19,7 +19,8 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     loading,
     isAdmin,
     adminOnly,
-    location: location.pathname
+    location: location.pathname,
+    userRole: user?.role || 'No role'
   });
 
   // Show loading spinner while auth is being determined
@@ -29,6 +30,9 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
           <p className="mt-4 text-green-800 font-medium">جاري التحقق من المصادقة...</p>
+          <p className="mt-2 text-sm text-gray-600">
+            Session: {session ? '✅' : '❌'} | User: {user ? '✅' : '❌'}
+          </p>
         </div>
       </div>
     );
@@ -43,7 +47,11 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
 
   // Check admin permissions
   if (adminOnly && !isAdmin) {
-    console.log('⛔ Admin access required but user is not admin');
+    console.log('⛔ Admin access required but user is not admin', {
+      userRole: user.role,
+      isAdmin,
+      adminOnly
+    });
     toast.error("ليس لديك صلاحية للوصول إلى هذه الصفحة");
     return <Navigate to="/" replace />;
   }

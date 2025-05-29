@@ -43,10 +43,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🧹 Clearing auth state');
     setUser(null);
     setSession(null);
-    // Clear localStorage/sessionStorage tokens
     localStorage.removeItem('sb-auth-token');
     sessionStorage.removeItem('sb-auth-token');
     localStorage.removeItem('sb-user');
+  };
+
+  const fetchUserProfile = async (userId: string, userEmail: string) => {
+    try {
+      console.log('📋 Fetching user profile for:', userId, userEmail);
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Profile fetch error:', error);
+        throw error;
+      }
+
+      if (!profile) {
+        console.log('👤 Creating new profile for user:', userEmail);
+        const isAdmin = userEmail === 'ahmedhanyseifeldien@gmail.com';
+        
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: userEmail,
+            name: userEmail?.split('@')[0] || 'User',
+            role: isAdmin ? 'ADMIN' : 'USER',
+            is_admin: isAdmin,
+            is_super_admin: isAdmin,
+            status: 'ACTIVE'
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('❌ Failed to create profile:', insertError);
+          throw insertError;
+        }
+        
+        const userData: AuthUser = {
+          id: newProfile.id,
+          email: newProfile.email,
+          name: newProfile.name,
+          role: newProfile.is_admin ? 'ADMIN' : 'USER',
+          displayName: newProfile.name
+        };
+        
+        console.log('✅ New profile created:', userData);
+        return userData;
+      } else {
+        const userData: AuthUser = {
+          id: profile.id,
+          email: profile.email,
+          name: profile.name,
+          role: profile.is_admin ? 'ADMIN' : 'USER',
+          displayName: profile.name
+        };
+        
+        console.log('✅ Existing profile loaded:', userData);
+        return userData;
+      }
+    } catch (error) {
+      console.error('💥 Error in fetchUserProfile:', error);
+      throw error;
+    }
   };
 
   const processUserSession = async (authUser: User | null, userSession: Session | null) => {
@@ -60,83 +125,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     try {
-      // Store session tokens for persistence
-      console.log('💾 Storing session tokens');
+      // Store session first
+      setSession(userSession);
+      
+      // Save tokens to storage
       localStorage.setItem('sb-auth-token', userSession.access_token);
       sessionStorage.setItem('sb-auth-token', userSession.access_token);
       localStorage.setItem('sb-user', JSON.stringify(authUser));
       
-      // Set session immediately
-      setSession(userSession);
+      // Fetch and set user profile
+      const userData = await fetchUserProfile(authUser.id, authUser.email!);
+      setUser(userData);
       
-      // Fetch user profile from database
-      console.log('📋 Fetching user profile from database');
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authUser.id)
-        .maybeSingle();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ Profile fetch error:', error);
-        toast.error('Failed to load user profile');
-        clearAuthState();
-        setLoading(false);
-        return;
-      }
-
-      // Create profile if doesn't exist
-      if (!profile) {
-        console.log('👤 Creating new profile for user:', authUser.email);
-        const isAdmin = authUser.email === 'ahmedhanyseifeldien@gmail.com';
-        
-        const { data: newProfile, error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: authUser.id,
-            email: authUser.email,
-            name: authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'User',
-            role: isAdmin ? 'ADMIN' : 'USER',
-            is_admin: isAdmin,
-            is_super_admin: isAdmin,
-            status: 'ACTIVE'
-          })
-          .select()
-          .single();
-
-        if (insertError) {
-          console.error('❌ Failed to create profile:', insertError);
-          toast.error('Failed to create user profile');
-          clearAuthState();
-          setLoading(false);
-          return;
-        }
-        
-        const userData: AuthUser = {
-          id: newProfile.id,
-          email: newProfile.email,
-          name: newProfile.name,
-          role: newProfile.is_admin ? 'ADMIN' : 'USER',
-          displayName: newProfile.name
-        };
-        
-        console.log('✅ New profile created and user set:', userData.email);
-        setUser(userData);
-      } else {
-        const userData: AuthUser = {
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          role: profile.is_admin ? 'ADMIN' : 'USER',
-          displayName: profile.name
-        };
-        
-        console.log('✅ Existing profile loaded and user set:', userData.email);
-        setUser(userData);
-      }
     } catch (error) {
       console.error('💥 Error processing user session:', error);
       clearAuthState();
+      toast.error('Failed to load user profile');
     } finally {
       setLoading(false);
     }
@@ -144,60 +148,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log('🚀 Setting up auth system...');
+    let mounted = true;
     
-    // Check for existing tokens first
-    const checkStoredTokens = async () => {
-      const storedToken = localStorage.getItem('sb-auth-token') || sessionStorage.getItem('sb-auth-token');
-      
-      if (storedToken) {
-        console.log('🔑 Found stored token, checking validity');
+    const initializeAuth = async () => {
+      try {
+        // Check for existing session
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        try {
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.error('❌ Session validation error:', error);
-            clearAuthState();
-            setLoading(false);
-            return;
-          }
-          
-          if (session) {
-            console.log('✅ Valid session found from stored token');
-            await processUserSession(session.user, session);
-          } else {
-            console.log('❌ No valid session despite stored token');
+        if (error) {
+          console.error('❌ Session check error:', error);
+          if (mounted) {
             clearAuthState();
             setLoading(false);
           }
-        } catch (error) {
-          console.error('💥 Token validation failed:', error);
+          return;
+        }
+        
+        if (session && mounted) {
+          console.log('✅ Found existing session:', session.user.email);
+          await processUserSession(session.user, session);
+        } else {
+          console.log('🔍 No existing session found');
+          if (mounted) {
+            clearAuthState();
+            setLoading(false);
+          }
+        }
+      } catch (error) {
+        console.error('💥 Auth initialization error:', error);
+        if (mounted) {
           clearAuthState();
           setLoading(false);
         }
-      } else {
-        console.log('🔍 No stored tokens found');
-        setLoading(false);
       }
     };
 
-    checkStoredTokens();
+    // Initialize auth first
+    initializeAuth();
 
-    // Listen for auth changes
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth state changed:', event, session?.user?.email || 'No user');
+        
+        if (!mounted) return;
         
         if (event === 'SIGNED_OUT') {
           clearAuthState();
           setLoading(false);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          await processUserSession(session?.user || null, session);
+          if (session?.user) {
+            await processUserSession(session.user, session);
+          }
         }
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -215,28 +223,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('❌ Login error:', error);
         toast.error(error.message || 'تعذر تسجيل الدخول');
+        setLoading(false);
         return false;
       }
 
       if (data.session && data.user) {
-        console.log('✅ Login successful, storing tokens');
-        
-        // Store tokens immediately
-        localStorage.setItem('sb-auth-token', data.session.access_token);
-        sessionStorage.setItem('sb-auth-token', data.session.access_token);
-        localStorage.setItem('sb-user', JSON.stringify(data.user));
-        
+        console.log('✅ Login successful');
         toast.success('تم تسجيل الدخول بنجاح!');
+        // processUserSession will be called by onAuthStateChange
         return true;
       }
 
+      setLoading(false);
       return false;
     } catch (error: any) {
       console.error('💥 Login exception:', error);
       toast.error('فشل تسجيل الدخول');
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
   };
 
@@ -267,32 +271,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('❌ Signup error:', error);
         toast.error(error.message || 'فشل إنشاء الحساب');
+        setLoading(false);
         return false;
       }
 
       if (data.user) {
         toast.success('تم إنشاء الحساب بنجاح!');
+        setLoading(false);
         return true;
       }
 
+      setLoading(false);
       return false;
     } catch (error: any) {
       console.error('💥 Signup exception:', error);
       toast.error('فشل إنشاء الحساب');
-      return false;
-    } finally {
       setLoading(false);
+      return false;
     }
   };
 
   const logout = async (): Promise<void> => {
     try {
       console.log('🚪 Logging out...');
+      setLoading(true);
       
-      // Clear local state and storage first
+      // Clear local state first
       clearAuthState();
       
-      // Then attempt Supabase logout
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -319,6 +326,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error('❌ Auth status check error:', error);
         clearAuthState();
+        setLoading(false);
         return;
       }
       
@@ -326,7 +334,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('💥 Auth status check exception:', error);
       clearAuthState();
+      setLoading(false);
     }
+  };
+
+  const contextValue = {
+    user,
+    session,
+    login,
+    adminLogin,
+    signup,
+    logout,
+    loading,
+    isAdmin: user?.role === 'ADMIN',
+    checkAuthStatus
   };
 
   console.log('🏪 Auth Context Current State:', {
@@ -337,17 +358,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   });
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      login,
-      adminLogin,
-      signup,
-      logout,
-      loading,
-      isAdmin: user?.role === 'ADMIN',
-      checkAuthStatus
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
