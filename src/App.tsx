@@ -38,11 +38,10 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    // Ensure QueryClientProvider wraps the entire app
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="dark" attribute="class">
-        <AuthProvider>
-          <Router>
+        <Router>
+          <AuthProvider>
             <div className="flex flex-col min-h-screen w-full">
               <Routes>
                 <Route path="/" element={<Index />} />
@@ -79,8 +78,8 @@ function App() {
             <BottomNavigation />
             <SonnerToaster position="top-right" richColors closeButton />
             <Toaster />
-          </Router>
-        </AuthProvider>
+          </AuthProvider>
+        </Router>
       </ThemeProvider>
     </QueryClientProvider>
   );
