@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useSupabaseContactSettings } from '@/hooks/useSupabaseData';
+import { useSupabaseContactSettings } from '@/hooks/useSupabaseContactSettings';
 
 const AdminContactSettings = () => {
   const { settings, loading, updateSettings } = useSupabaseContactSettings();

@@ -5,7 +5,7 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useSupabaseOrders } from '@/hooks/useSupabaseData';
+import { useSupabaseOrders } from '@/hooks/useSupabaseOrders';
 
 interface OrderFormProps {
   cartItems: {
