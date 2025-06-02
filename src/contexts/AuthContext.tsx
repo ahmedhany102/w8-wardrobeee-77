@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -167,7 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('✅ Session found, fetching user data with timeout...');
       setSession(currentSession);
 
-      // Fetch user with retry and timeout
+      // CRITICAL FIX: Fetch user with retry and timeout
       const userPromise = fetchUserWithRetry();
       const timeoutPromise = new Promise<User | null>(resolve => 
         setTimeout(() => {

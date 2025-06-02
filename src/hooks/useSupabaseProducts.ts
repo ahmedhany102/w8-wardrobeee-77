@@ -19,6 +19,7 @@ export const useSupabaseProducts = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('status', 'active')
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -42,6 +43,16 @@ export const useSupabaseProducts = () => {
   const addProduct = async (productData) => {
     try {
       console.log('Adding product to Supabase:', productData);
+      
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        const errorMsg = 'You must be logged in to add products';
+        console.error('User authentication error:', userError);
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
       
       // Strict validation - reject if missing required fields
       if (!productData.name?.trim()) {
@@ -67,12 +78,14 @@ export const useSupabaseProducts = () => {
 
       // Clean and prepare data for insert
       const cleanProductData = {
+        user_id: user.id, // Link to authenticated user
         name: productData.name.trim(),
         description: productData.description?.trim() || '',
         price: parseFloat(productData.price),
         type: productData.type,
         category: productData.category || 'Men',
         main_image: productData.main_image || '',
+        image_url: productData.main_image || '', // For backward compatibility
         images: Array.isArray(productData.images) ? productData.images.filter(Boolean) : [],
         colors: Array.isArray(productData.colors) ? productData.colors.filter(Boolean) : [],
         sizes: Array.isArray(productData.sizes) ? productData.sizes.filter(size => size?.size) : [],
@@ -80,8 +93,7 @@ export const useSupabaseProducts = () => {
         featured: Boolean(productData.featured),
         stock: parseInt(productData.stock) || 0,
         inventory: parseInt(productData.inventory) || parseInt(productData.stock) || 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        status: 'active'
       };
       
       console.log('Cleaned product data for database insert:', cleanProductData);
@@ -130,6 +142,16 @@ export const useSupabaseProducts = () => {
         throw new Error(errorMsg);
       }
 
+      // Get current user to verify ownership
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        const errorMsg = 'You must be logged in to update products';
+        console.error('User authentication error:', userError);
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+
       // Validate required fields for updates
       if (updates.name && !updates.name.trim()) {
         const errorMsg = 'Product name cannot be empty';
@@ -152,15 +174,17 @@ export const useSupabaseProducts = () => {
         ...(updates.price && { price: parseFloat(updates.price) }),
         ...(updates.type && { type: updates.type }),
         ...(updates.category && { category: updates.category }),
-        ...(updates.main_image !== undefined && { main_image: updates.main_image || '' }),
+        ...(updates.main_image !== undefined && { 
+          main_image: updates.main_image || '',
+          image_url: updates.main_image || '' // Keep both for compatibility
+        }),
         ...(updates.images && { images: Array.isArray(updates.images) ? updates.images.filter(Boolean) : [] }),
         ...(updates.colors && { colors: Array.isArray(updates.colors) ? updates.colors.filter(Boolean) : [] }),
         ...(updates.sizes && { sizes: Array.isArray(updates.sizes) ? updates.sizes.filter(size => size?.size) : [] }),
         ...(updates.discount !== undefined && { discount: parseFloat(updates.discount) || 0 }),
         ...(updates.featured !== undefined && { featured: Boolean(updates.featured) }),
         ...(updates.stock !== undefined && { stock: parseInt(updates.stock) || 0 }),
-        ...(updates.inventory !== undefined && { inventory: parseInt(updates.inventory) || parseInt(updates.stock) || 0 }),
-        updated_at: new Date().toISOString()
+        ...(updates.inventory !== undefined && { inventory: parseInt(updates.inventory) || parseInt(updates.stock) || 0 })
       };
       
       console.log('Cleaned update data:', cleanUpdates);
@@ -169,6 +193,7 @@ export const useSupabaseProducts = () => {
         .from('products')
         .update(cleanUpdates)
         .eq('id', id)
+        .eq('user_id', user.id) // Ensure user can only update their own products
         .select()
         .single();
       
@@ -209,10 +234,21 @@ export const useSupabaseProducts = () => {
         throw new Error(errorMsg);
       }
 
+      // Get current user to verify ownership
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        const errorMsg = 'You must be logged in to delete products';
+        console.error('User authentication error:', userError);
+        toast.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('user_id', user.id); // Ensure user can only delete their own products
       
       if (error) {
         console.error('Supabase delete error:', error);

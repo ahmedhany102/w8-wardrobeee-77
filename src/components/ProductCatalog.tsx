@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Product, ProductDatabase } from '@/models/Product';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from './ui/button';
 import { useNavigate } from 'react-router-dom';
 import SearchBar from './SearchBar';
+import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 
 const ProductCatalog: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { products, loading } = useSupabaseProducts();
+  const [filteredProducts, setFilteredProducts] = useState([]);
   const [activeTab, setActiveTab] = useState('ALL');
-  const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
+  const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
   const [showCartDialog, setShowCartDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchProducts();
+    // Update filtered products when products change
+    setFilteredProducts(products);
+    
     // Load cart from localStorage on component mount
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
@@ -50,26 +51,7 @@ const ProductCatalog: React.FC = () => {
     return () => {
       window.removeEventListener('cartUpdated', handleCartUpdate);
     };
-  }, []);
-
-  const fetchProducts = async () => {
-    setIsLoading(true);
-    try {
-      const productDb = ProductDatabase.getInstance();
-      const allProducts = await productDb.getAllProducts();
-      // Only keep men's products
-      const filteredByGender = allProducts.filter(
-        product => product && product.category !== 'حريمي' && product.category !== 'أطفال'
-      );
-      setProducts(filteredByGender);
-      setFilteredProducts(filteredByGender);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('Failed to load products');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [products]);
 
   // Handle search functionality
   const handleSearch = (query: string) => {
@@ -122,7 +104,7 @@ const ProductCatalog: React.FC = () => {
     }
   };
 
-  const handleAddToCart = async (product: Product, size: string, quantity: number = 1) => {
+  const handleAddToCart = async (product: any, size: string, quantity: number = 1) => {
     if (!user) {
       localStorage.setItem('pendingProduct', JSON.stringify(product));
       toast.info('Please login to add items to your cart');
@@ -276,7 +258,7 @@ const ProductCatalog: React.FC = () => {
           </TabsList>
         </div>
 
-        {isLoading ? (
+        {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-800"></div>
           </div>
