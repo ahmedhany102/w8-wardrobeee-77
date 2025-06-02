@@ -14,19 +14,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: window.localStorage // Explicitly use localStorage for session storage
+    storage: window.localStorage
   }
 });
 
-// Add enhanced auth state monitoring for debugging
+// Enhanced auth state monitoring for debugging
 supabase.auth.onAuthStateChange((event, session) => {
-  console.log('🔔 Enhanced Supabase Auth Event:', event);
+  console.log('🔔 Supabase Auth Event:', event);
   console.log('🔑 Session exists:', !!session);
   
   if (session) {
     console.log('👤 User:', session.user.email);
     console.log('🕒 Session expires at:', new Date(session.expires_at! * 1000));
-    console.log('🔄 Auto-refresh enabled: true');
+    console.log('🔄 Auto-refresh enabled');
   }
   
   if (event === 'TOKEN_REFRESHED') {

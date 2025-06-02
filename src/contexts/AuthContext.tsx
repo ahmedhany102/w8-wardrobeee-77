@@ -52,11 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
   };
 
-  const redirectToLoginPage = () => {
-    console.log('🔄 Redirecting to login page');
-    window.location.href = '/login';
-  };
-
   const fetchUserWithRetry = async (retries = 2, delayMs = 500): Promise<User | null> => {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
@@ -231,27 +226,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
-            console.log('🔐 User signed in, fetching profile with enhanced logic...');
+            console.log('🔐 User signed in, fetching profile...');
             setSession(session);
             
-            // Use the same timeout logic for auth state changes
-            const userPromise = fetchUserWithRetry();
-            const timeoutPromise = new Promise<User | null>(resolve => 
-              setTimeout(() => resolve(null), 1000)
-            );
-
-            const user = await Promise.race([userPromise, timeoutPromise]);
-            
-            if (!user) {
-              console.log('🚨 User data timeout on auth state change');
-              await clearSessionData();
-              toast.error('Session validation failed. Please login again.');
-              setLoading(false);
-              return;
-            }
-
             try {
-              const userData = await fetchUserProfile(user.id, user.email!);
+              const userData = await fetchUserProfile(session.user.id, session.user.email!);
               setUser(userData);
               console.log('✅ Profile loaded after sign in:', userData);
             } catch (error) {
@@ -283,14 +262,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('❌ Login error:', error);
-        toast.error(error.message || 'تعذر تسجيل الدخول');
+        toast.error(error.message || 'Login failed');
         setLoading(false);
         return false;
       }
 
       if (data.session && data.user) {
         console.log('✅ Login successful');
-        toast.success('تم تسجيل الدخول بنجاح!');
+        toast.success('Login successful!');
         // Auth state change listener will handle the rest
         return true;
       }
@@ -299,7 +278,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     } catch (error: any) {
       console.error('💥 Login exception:', error);
-      toast.error('فشل تسجيل الدخول');
+      toast.error('Login failed');
       setLoading(false);
       return false;
     }
@@ -309,7 +288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('👑 Admin login attempt for:', email);
     
     if (email !== 'ahmedhanyseifeldien@gmail.com') {
-      toast.error('بيانات المدير غير صحيحة');
+      toast.error('Invalid admin credentials');
       return false;
     }
 
@@ -331,13 +310,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('❌ Signup error:', error);
-        toast.error(error.message || 'فشل إنشاء الحساب');
+        toast.error(error.message || 'Signup failed');
         setLoading(false);
         return false;
       }
 
       if (data.user) {
-        toast.success('تم إنشاء الحساب بنجاح!');
+        toast.success('Account created successfully!');
         setLoading(false);
         return true;
       }
@@ -346,7 +325,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     } catch (error: any) {
       console.error('💥 Signup exception:', error);
-      toast.error('فشل إنشاء الحساب');
+      toast.error('Signup failed');
       setLoading(false);
       return false;
     }
@@ -360,11 +339,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await clearSessionData();
       
       console.log('✅ Logout completed');
-      toast.success('تم تسجيل الخروج بنجاح');
+      toast.success('Logged out successfully');
     } catch (error: any) {
       console.warn('⚠️ Logout exception:', error);
       await clearSessionData();
-      toast.success('تم تسجيل الخروج بنجاح');
+      toast.success('Logged out successfully');
     } finally {
       setLoading(false);
     }
@@ -386,7 +365,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     checkAuthStatus
   };
 
-  console.log('🏪 Enhanced Auth Context State:', {
+  console.log('🏪 Auth Context State:', {
     user: user?.email || 'No user',
     session: !!session,
     loading,
