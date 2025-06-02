@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: newProfile.id,
           email: newProfile.email,
           name: newProfile.name,
-          role: newProfile.is_admin ? 'ADMIN' : 'USER',
+          role: (newProfile.is_admin ? 'ADMIN' : 'USER') as 'ADMIN' | 'USER',
           displayName: newProfile.name
         };
       } else {
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: profile.id,
           email: profile.email,
           name: profile.name,
-          role: profile.is_admin ? 'ADMIN' : 'USER',
+          role: (profile.is_admin ? 'ADMIN' : 'USER') as 'ADMIN' | 'USER',
           displayName: profile.name
         };
       }
