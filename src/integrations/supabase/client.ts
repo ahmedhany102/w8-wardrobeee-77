@@ -18,13 +18,18 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
   }
 });
 
-// Add auth state monitoring for debugging
+// Add enhanced auth state monitoring for debugging
 supabase.auth.onAuthStateChange((event, session) => {
-  console.log('🔔 Supabase Auth Event:', event);
+  console.log('🔔 Enhanced Supabase Auth Event:', event);
   console.log('🔑 Session exists:', !!session);
   
   if (session) {
     console.log('👤 User:', session.user.email);
     console.log('🕒 Session expires at:', new Date(session.expires_at! * 1000));
+    console.log('🔄 Auto-refresh enabled: true');
+  }
+  
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('✅ Session token automatically refreshed');
   }
 });
