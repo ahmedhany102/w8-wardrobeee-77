@@ -39,13 +39,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const clearAuthState = () => {
-    console.log('🧹 Clearing auth state');
+  const clearAuthState = async () => {
+    console.log('🧹 Clearing auth state and signing out');
     setUser(null);
     setSession(null);
-    localStorage.removeItem('sb-auth-token');
-    sessionStorage.removeItem('sb-auth-token');
-    localStorage.removeItem('sb-user');
+    
+    // Clear all storage
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Sign out from Supabase
+    await supabase.auth.signOut();
   };
 
   const fetchUserProfile = async (userId: string, userEmail: string) => {
@@ -86,27 +90,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw insertError;
         }
         
-        const userData: AuthUser = {
+        return {
           id: newProfile.id,
           email: newProfile.email,
           name: newProfile.name,
           role: newProfile.is_admin ? 'ADMIN' : 'USER',
           displayName: newProfile.name
         };
-        
-        console.log('✅ New profile created:', userData);
-        return userData;
       } else {
-        const userData: AuthUser = {
+        return {
           id: profile.id,
           email: profile.email,
           name: profile.name,
           role: profile.is_admin ? 'ADMIN' : 'USER',
           displayName: profile.name
         };
-        
-        console.log('✅ Existing profile loaded:', userData);
-        return userData;
       }
     } catch (error) {
       console.error('💥 Error in fetchUserProfile:', error);
@@ -114,33 +112,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const processUserSession = async (authUser: User | null, userSession: Session | null) => {
-    console.log('🔄 Processing user session:', authUser?.email || 'No user');
-    
-    if (!authUser || !userSession) {
-      console.log('❌ No valid user or session');
-      clearAuthState();
-      setLoading(false);
-      return;
-    }
-
+  const validateSessionAndUser = async () => {
     try {
-      // Store session first
-      setSession(userSession);
+      console.log('🔍 Validating session and user...');
       
-      // Save tokens to storage
-      localStorage.setItem('sb-auth-token', userSession.access_token);
-      sessionStorage.setItem('sb-auth-token', userSession.access_token);
-      localStorage.setItem('sb-user', JSON.stringify(authUser));
+      // First check if we have a session
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('❌ Session check error:', sessionError);
+        await clearAuthState();
+        setLoading(false);
+        return;
+      }
+
+      if (!currentSession) {
+        console.log('🔍 No session found');
+        await clearAuthState();
+        setLoading(false);
+        return;
+      }
+
+      // Now validate the user from that session
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !currentUser) {
+        console.error('❌ User validation failed:', userError?.message || 'No user found');
+        console.log('🚨 Session exists but user is invalid - clearing session');
+        await clearAuthState();
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Valid session and user found:', currentUser.email);
+      
+      // Set session first
+      setSession(currentSession);
       
       // Fetch and set user profile
-      const userData = await fetchUserProfile(authUser.id, authUser.email!);
-      setUser(userData);
+      try {
+        const userData = await fetchUserProfile(currentUser.id, currentUser.email!);
+        setUser(userData);
+        console.log('✅ User profile loaded successfully:', userData);
+      } catch (profileError) {
+        console.error('❌ Failed to load user profile:', profileError);
+        await clearAuthState();
+      }
       
     } catch (error) {
-      console.error('💥 Error processing user session:', error);
-      clearAuthState();
-      toast.error('Failed to load user profile');
+      console.error('💥 Auth validation exception:', error);
+      await clearAuthState();
     } finally {
       setLoading(false);
     }
@@ -148,64 +169,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log('🚀 Setting up auth system...');
-    let mounted = true;
     
-    const initializeAuth = async () => {
-      try {
-        // Check for existing session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ Session check error:', error);
-          if (mounted) {
-            clearAuthState();
-            setLoading(false);
-          }
-          return;
-        }
-        
-        if (session && mounted) {
-          console.log('✅ Found existing session:', session.user.email);
-          await processUserSession(session.user, session);
-        } else {
-          console.log('🔍 No existing session found');
-          if (mounted) {
-            clearAuthState();
-            setLoading(false);
-          }
-        }
-      } catch (error) {
-        console.error('💥 Auth initialization error:', error);
-        if (mounted) {
-          clearAuthState();
-          setLoading(false);
-        }
-      }
-    };
-
-    // Initialize auth first
-    initializeAuth();
+    // Validate session and user on startup
+    validateSessionAndUser();
 
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth state changed:', event, session?.user?.email || 'No user');
         
-        if (!mounted) return;
-        
         if (event === 'SIGNED_OUT') {
-          clearAuthState();
+          console.log('👋 User signed out');
+          setUser(null);
+          setSession(null);
           setLoading(false);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
-            await processUserSession(session.user, session);
+            console.log('🔐 User signed in, fetching profile...');
+            setSession(session);
+            try {
+              const userData = await fetchUserProfile(session.user.id, session.user.email!);
+              setUser(userData);
+              console.log('✅ Profile loaded after sign in:', userData);
+            } catch (error) {
+              console.error('❌ Failed to load profile after sign in:', error);
+              await clearAuthState();
+            } finally {
+              setLoading(false);
+            }
           }
         }
       }
     );
 
     return () => {
-      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -230,7 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.session && data.user) {
         console.log('✅ Login successful');
         toast.success('تم تسجيل الدخول بنجاح!');
-        // processUserSession will be called by onAuthStateChange
+        // Auth state change listener will handle the rest
         return true;
       }
 
@@ -296,21 +293,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('🚪 Logging out...');
       setLoading(true);
       
-      // Clear local state first
-      clearAuthState();
-      
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.warn('⚠️ Logout error (but continuing):', error);
-      }
+      await clearAuthState();
       
       console.log('✅ Logout completed');
       toast.success('تم تسجيل الخروج بنجاح');
     } catch (error: any) {
-      console.warn('⚠️ Logout exception (but continuing):', error);
-      clearAuthState();
+      console.warn('⚠️ Logout exception:', error);
+      await clearAuthState();
       toast.success('تم تسجيل الخروج بنجاح');
     } finally {
       setLoading(false);
@@ -318,24 +307,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const checkAuthStatus = async () => {
-    setLoading(true);
-    try {
-      console.log('🔍 Checking auth status...');
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('❌ Auth status check error:', error);
-        clearAuthState();
-        setLoading(false);
-        return;
-      }
-      
-      await processUserSession(session?.user || null, session);
-    } catch (error) {
-      console.error('💥 Auth status check exception:', error);
-      clearAuthState();
-      setLoading(false);
-    }
+    await validateSessionAndUser();
   };
 
   const contextValue = {
