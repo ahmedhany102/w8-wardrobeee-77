@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useSupabaseProducts } from "@/hooks/useSupabaseData";
+import { useSupabaseProducts } from "@/hooks/useSupabaseProducts";
+import { ProductFormData } from "@/types/product";
 import ProductManagementHeader from "./ProductManagementHeader";
 import ProductManagementStats from "./ProductManagementStats";
 import ProductManagementTable from "./ProductManagementTable";
@@ -13,50 +14,15 @@ const ProductManagement = () => {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [editProduct, setEditProduct] = useState(null);
-  const [deleteProductId, setDeleteProductId] = useState(null);
+  const [editProduct, setEditProduct] = useState<any>(null);
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
 
-  const handleAddProduct = async (product) => {
+  const handleAddProduct = async (product: ProductFormData) => {
     try {
       console.log('Starting product addition with data:', product);
       
-      // Validate required fields first
-      if (!product.name?.trim()) {
-        toast.error('Product name is required');
-        return;
-      }
-      
-      if (!product.price || parseFloat(product.price) <= 0) {
-        toast.error('Valid product price is required');
-        return;
-      }
-
-      if (!product.type) {
-        toast.error('Product type is required');
-        return;
-      }
-
-      // Prepare clean product data with proper validation
-      const productData = {
-        name: product.name.trim(),
-        description: product.description?.trim() || '',
-        price: parseFloat(product.price),
-        type: product.type,
-        category: product.category || 'Men',
-        main_image: product.main_image || '',
-        images: Array.isArray(product.images) ? product.images.filter(Boolean) : [],
-        colors: Array.isArray(product.colors) ? product.colors.filter(Boolean) : [],
-        sizes: Array.isArray(product.sizes) ? product.sizes.filter(size => size?.size) : [],
-        discount: parseFloat(product.discount) || 0,
-        featured: Boolean(product.featured),
-        stock: parseInt(product.stock) || 0,
-        inventory: parseInt(product.inventory) || parseInt(product.stock) || 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      
-      const result = await addProduct(productData);
+      const result = await addProduct(product);
       
       if (result) {
         setShowAddDialog(false);
@@ -68,49 +34,20 @@ const ProductManagement = () => {
         toast.error('Failed to add product - no response from server');
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in handleAddProduct:", error);
       toast.error("Failed to add product: " + (error?.message || 'Unknown error'));
     }
   };
 
-  const handleEditProduct = async (product) => {
+  const handleEditProduct = async (product: ProductFormData) => {
     if (!editProduct?.id) {
       toast.error('No product selected for editing');
       return;
     }
     
     try {
-      // Validate required fields
-      if (!product.name?.trim()) {
-        toast.error('Product name is required');
-        return;
-      }
-      
-      if (!product.price || parseFloat(product.price) <= 0) {
-        toast.error('Valid product price is required');
-        return;
-      }
-
-      // Prepare clean update data
-      const updateData = {
-        name: product.name.trim(),
-        description: product.description?.trim() || '',
-        price: parseFloat(product.price),
-        type: product.type || 'T-Shirts',
-        category: product.category || 'Men',
-        main_image: product.main_image || '',
-        images: Array.isArray(product.images) ? product.images.filter(Boolean) : [],
-        colors: Array.isArray(product.colors) ? product.colors.filter(Boolean) : [],
-        sizes: Array.isArray(product.sizes) ? product.sizes.filter(size => size?.size) : [],
-        discount: parseFloat(product.discount) || 0,
-        featured: Boolean(product.featured),
-        stock: parseInt(product.stock) || 0,
-        inventory: parseInt(product.inventory) || parseInt(product.stock) || 0,
-        updated_at: new Date().toISOString()
-      };
-      
-      const result = await updateProduct(editProduct.id, updateData);
+      const result = await updateProduct(editProduct.id, product);
       
       if (result) {
         setShowEditDialog(false);
@@ -123,7 +60,7 @@ const ProductManagement = () => {
         toast.error('Failed to update product - no response from server');
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in handleEditProduct:", error);
       toast.error("Failed to update product: " + (error?.message || 'Unknown error'));
     }
@@ -149,7 +86,7 @@ const ProductManagement = () => {
         toast.error('Failed to delete product - no response from server');
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in handleDeleteProduct:", error);
       toast.error("Failed to delete product: " + (error?.message || 'Unknown error'));
     }
@@ -174,12 +111,12 @@ const ProductManagement = () => {
     console.log('Filtered products:', filteredProducts);
   }, [products, filteredProducts]);
 
-  const handleEditClick = (product) => {
+  const handleEditClick = (product: any) => {
     setEditProduct(product);
     setShowEditDialog(true);
   };
 
-  const handleDeleteClick = (productId) => {
+  const handleDeleteClick = (productId: string) => {
     setDeleteProductId(productId);
     setShowDeleteDialog(true);
   };

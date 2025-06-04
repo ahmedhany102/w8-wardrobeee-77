@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +12,7 @@ import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 
 const ProductCatalog: React.FC = () => {
   const { products, loading } = useSupabaseProducts();
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('ALL');
   const [cart, setCart] = useState<{product: any, quantity: number}[]>([]);
   const [showCartDialog, setShowCartDialog] = useState(false);
@@ -202,7 +203,7 @@ const ProductCatalog: React.FC = () => {
     <div className="container mx-auto px-4 py-4">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold text-green-500">Our Products</h2>
-        {showCartButton && (
+        {user && !isAdmin && (
           <div className="relative">
             <Button
               onClick={() => setShowCartDialog(true)}
