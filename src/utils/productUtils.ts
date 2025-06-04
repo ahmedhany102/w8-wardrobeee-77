@@ -1,5 +1,5 @@
 
-import { ProductFormData, CleanProductData, ProductUpdateData, ProductSize } from '@/types/product';
+import { ProductFormData, CleanProductData, ProductUpdateData, ProductSize, DatabaseProductData } from '@/types/product';
 
 export const validateRequiredFields = (productData: ProductFormData): string | null => {
   if (!productData.name?.trim()) {
@@ -29,7 +29,7 @@ export const validateUpdateFields = (updates: ProductUpdateData): string | null 
   return null;
 };
 
-export const cleanProductDataForInsert = (productData: ProductFormData, userId: string): CleanProductData => {
+export const cleanProductDataForInsert = (productData: ProductFormData, userId: string): DatabaseProductData => {
   return {
     user_id: userId,
     name: productData.name.trim(),
@@ -45,13 +45,12 @@ export const cleanProductDataForInsert = (productData: ProductFormData, userId: 
     discount: parseFloat(productData.discount?.toString() || '0') || 0,
     featured: Boolean(productData.featured),
     stock: parseInt(productData.stock?.toString() || '0') || 0,
-    inventory: parseInt(productData.inventory?.toString() || productData.stock?.toString() || '0') || 0,
-    status: 'active'
+    inventory: parseInt(productData.inventory?.toString() || productData.stock?.toString() || '0') || 0
   };
 };
 
-export const cleanProductDataForUpdate = (updates: ProductUpdateData): Partial<CleanProductData> => {
-  const cleanUpdates: Partial<CleanProductData> = {};
+export const cleanProductDataForUpdate = (updates: ProductUpdateData): Partial<DatabaseProductData> => {
+  const cleanUpdates: Partial<DatabaseProductData> = {};
 
   if (updates.name) cleanUpdates.name = updates.name.trim();
   if (updates.description !== undefined) cleanUpdates.description = updates.description?.trim() || '';

@@ -94,7 +94,6 @@ export const useProductOperations = () => {
         .from('products')
         .update(cleanUpdates)
         .eq('id', id)
-        .eq('user_id', user.id)
         .select()
         .single();
       
@@ -145,8 +144,7 @@ export const useProductOperations = () => {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
       
       if (error) {
         console.error('Supabase delete error:', error);
