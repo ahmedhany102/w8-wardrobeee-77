@@ -35,11 +35,17 @@ export const useSupabaseProducts = () => {
       
       let query = supabase.from('products').select('*');
       
-      // If not admin, only fetch user's own products for management
-      // But for catalog view, fetch all products
-      if (!isAdmin && window.location.pathname.includes('admin')) {
-        const userId = user?.id || '';
-        query = query.eq('user_id', userId);
+      // FIXED: Proper logic for product filtering
+      if (window.location.pathname.includes('admin')) {
+        if (!isAdmin) {
+          // Non-admins only see their own products in admin view
+          const userId = user?.id || '';
+          query = query.eq('user_id', userId);
+          console.log('Non-admin user - filtering products for user:', userId);
+        } else {
+          console.log('Admin user - showing all products');
+        }
+        // Admins see all products by default (no filter applied)
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -58,6 +64,7 @@ export const useSupabaseProducts = () => {
       toast.error('Failed to load products: ' + error.message);
       setProducts([]);
     } finally {
+      // CRITICAL: Always set loading to false
       setLoading(false);
     }
   };
@@ -116,8 +123,8 @@ export const useSupabaseProducts = () => {
         return null;
       }
 
-      // Simplified update object to avoid TypeScript recursion issues
-      const updateData: any = {};
+      // FIXED: Simplified update object to avoid TypeScript recursion
+      const updateData: Record<string, any> = {};
       
       if (updates.name) updateData.name = updates.name.trim();
       if (updates.description !== undefined) updateData.description = updates.description?.trim() || '';

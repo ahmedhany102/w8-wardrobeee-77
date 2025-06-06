@@ -299,8 +299,9 @@ export type Database = {
         Row: {
           ad_product_id: string | null
           category: string | null
+          category_path: string[] | null
           color: string | null
-          color_images: Json | null
+          color_images: string | null
           colors: string[] | null
           created_at: string | null
           description: string | null
@@ -313,20 +314,22 @@ export type Database = {
           images: string[] | null
           inventory: number | null
           main_image: string | null
-          name: string
-          price: number
+          name: string | null
+          price: number | null
           rating: number | null
           size: string | null
-          sizes: Json | null
+          sizes: string | null
           stock: number | null
           type: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           ad_product_id?: string | null
           category?: string | null
+          category_path?: string[] | null
           color?: string | null
-          color_images?: Json | null
+          color_images?: string | null
           colors?: string[] | null
           created_at?: string | null
           description?: string | null
@@ -339,20 +342,22 @@ export type Database = {
           images?: string[] | null
           inventory?: number | null
           main_image?: string | null
-          name: string
-          price?: number
+          name?: string | null
+          price?: number | null
           rating?: number | null
           size?: string | null
-          sizes?: Json | null
+          sizes?: string | null
           stock?: number | null
           type?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           ad_product_id?: string | null
           category?: string | null
+          category_path?: string[] | null
           color?: string | null
-          color_images?: Json | null
+          color_images?: string | null
           colors?: string[] | null
           created_at?: string | null
           description?: string | null
@@ -365,14 +370,15 @@ export type Database = {
           images?: string[] | null
           inventory?: number | null
           main_image?: string | null
-          name?: string
-          price?: number
+          name?: string | null
+          price?: number | null
           rating?: number | null
           size?: string | null
-          sizes?: Json | null
+          sizes?: string | null
           stock?: number | null
           type?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
