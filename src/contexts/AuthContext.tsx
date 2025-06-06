@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -119,17 +118,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Set up periodic session check to prevent stuck loading
-    const sessionCheckInterval = setInterval(() => {
-      if (loading) {
-        console.log('⚠️ Detected stuck loading state, forcing refresh...');
-        forceSessionRefresh();
-      }
-    }, 10000); // Check every 10 seconds
-
     return () => {
       subscription.unsubscribe();
-      clearInterval(sessionCheckInterval);
     };
   }, []);
 

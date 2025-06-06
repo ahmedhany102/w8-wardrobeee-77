@@ -116,8 +116,8 @@ export const useSupabaseProducts = () => {
         return null;
       }
 
-      // Create update object with explicit typing to avoid deep type inference
-      const updateData: Record<string, any> = {};
+      // Simplified update object to avoid TypeScript recursion issues
+      const updateData: any = {};
       
       if (updates.name) updateData.name = updates.name.trim();
       if (updates.description !== undefined) updateData.description = updates.description?.trim() || '';
