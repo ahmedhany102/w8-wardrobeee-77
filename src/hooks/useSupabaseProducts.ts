@@ -38,7 +38,8 @@ export const useSupabaseProducts = () => {
       // If not admin, only fetch user's own products for management
       // But for catalog view, fetch all products
       if (!isAdmin && window.location.pathname.includes('admin')) {
-        query = query.eq('user_id', user?.id);
+        const userId: string = user?.id || '';
+        query = query.eq('user_id', userId);
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -76,7 +77,8 @@ export const useSupabaseProducts = () => {
         return null;
       }
 
-      const cleanData = cleanProductDataForInsert(productData, user.id);
+      const userId: string = user.id;
+      const cleanData = cleanProductDataForInsert(productData, userId);
       
       const { data, error } = await supabase
         .from('products')
@@ -115,12 +117,13 @@ export const useSupabaseProducts = () => {
       }
 
       const cleanUpdates = cleanProductDataForUpdate(updates);
+      const userId: string = user.id;
       
       const { data, error } = await supabase
         .from('products')
         .update(cleanUpdates)
         .eq('id', id)
-        .eq('user_id', user.id) // Ensure user can only update their own products
+        .eq('user_id', userId) // Ensure user can only update their own products
         .select()
         .single();
 
@@ -148,11 +151,12 @@ export const useSupabaseProducts = () => {
     }
 
     try {
+      const userId: string = user.id;
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', id)
-        .eq('user_id', user.id); // Ensure user can only delete their own products
+        .eq('user_id', userId); // Ensure user can only delete their own products
 
       if (error) {
         console.error('❌ Failed to delete product:', error);
