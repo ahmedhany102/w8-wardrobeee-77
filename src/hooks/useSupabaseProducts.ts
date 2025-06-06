@@ -38,7 +38,7 @@ export const useSupabaseProducts = () => {
       // If not admin, only fetch user's own products for management
       // But for catalog view, fetch all products
       if (!isAdmin && window.location.pathname.includes('admin')) {
-        const userId: string = user?.id || '';
+        const userId = user?.id || '';
         query = query.eq('user_id', userId);
       }
       
@@ -77,7 +77,7 @@ export const useSupabaseProducts = () => {
         return null;
       }
 
-      const userId: string = user.id;
+      const userId = user.id;
       const cleanData = cleanProductDataForInsert(productData, userId);
       
       const { data, error } = await supabase
@@ -116,12 +116,12 @@ export const useSupabaseProducts = () => {
         return null;
       }
 
-      // Simplify the update data preparation to avoid complex type inference
-      const updateData: Record<string, any> = {};
+      // Create a simple update object with explicit typing
+      const updateData: any = {};
       
       if (updates.name) updateData.name = updates.name.trim();
       if (updates.description !== undefined) updateData.description = updates.description?.trim() || '';
-      if (updates.price) updateData.price = parseFloat(updates.price.toString());
+      if (updates.price) updateData.price = parseFloat(String(updates.price));
       if (updates.type) updateData.type = updates.type;
       if (updates.category) updateData.category = updates.category;
       if (updates.main_image !== undefined) {
@@ -131,12 +131,12 @@ export const useSupabaseProducts = () => {
       if (updates.images) updateData.images = Array.isArray(updates.images) ? updates.images.filter(Boolean) : [];
       if (updates.colors) updateData.colors = Array.isArray(updates.colors) ? updates.colors.filter(Boolean) : [];
       if (updates.sizes) updateData.sizes = Array.isArray(updates.sizes) ? updates.sizes.filter(size => size?.size) : [];
-      if (updates.discount !== undefined) updateData.discount = parseFloat(updates.discount.toString()) || 0;
+      if (updates.discount !== undefined) updateData.discount = parseFloat(String(updates.discount)) || 0;
       if (updates.featured !== undefined) updateData.featured = Boolean(updates.featured);
-      if (updates.stock !== undefined) updateData.stock = parseInt(updates.stock.toString()) || 0;
-      if (updates.inventory !== undefined) updateData.inventory = parseInt(updates.inventory.toString()) || parseInt(updates.stock?.toString() || '0') || 0;
+      if (updates.stock !== undefined) updateData.stock = parseInt(String(updates.stock)) || 0;
+      if (updates.inventory !== undefined) updateData.inventory = parseInt(String(updates.inventory)) || parseInt(String(updates.stock || 0)) || 0;
 
-      const userId: string = user.id;
+      const userId = user.id;
       
       const { data, error } = await supabase
         .from('products')
@@ -170,7 +170,7 @@ export const useSupabaseProducts = () => {
     }
 
     try {
-      const userId: string = user.id;
+      const userId = user.id;
       const { error } = await supabase
         .from('products')
         .delete()

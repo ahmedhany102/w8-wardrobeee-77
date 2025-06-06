@@ -13,6 +13,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { supabase } from "@/integrations/supabase/client";
 
 const passwordSchema = z.object({
   currentPassword: z.string().min(1, { message: "Current password is required" }),
@@ -31,6 +32,7 @@ type PasswordFormValues = z.infer<typeof passwordSchema>;
 const Profile = () => {
   const { user, loading } = useAuth();
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -41,17 +43,34 @@ const Profile = () => {
     },
   });
 
-  const onSubmit = (data: PasswordFormValues) => {
-    // In a real app, this would call an API to change the password
-    // For now, we'll just simulate success
-    console.log("Password change data:", data);
+  const onSubmit = async (data: PasswordFormValues) => {
+    if (!user) {
+      toast.error('You must be logged in to change your password');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      toast.success("Password changed successfully");
-      setIsPasswordModalOpen(false);
-      form.reset();
-    }, 1500);
+    try {
+      // Use Supabase Auth to update the user's password
+      const { error } = await supabase.auth.updateUser({
+        password: data.newPassword,
+      });
+
+      if (error) {
+        console.error("Error updating password:", error.message);
+        toast.error("Password update failed: " + error.message);
+      } else {
+        toast.success("Password updated successfully");
+        setIsPasswordModalOpen(false);
+        form.reset();
+      }
+    } catch (error: any) {
+      console.error("Exception updating password:", error);
+      toast.error("Password update failed: " + (error?.message || 'Unknown error'));
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   if (loading) {
@@ -137,6 +156,7 @@ const Profile = () => {
                         type="password" 
                         placeholder="Enter your current password" 
                         {...field} 
+                        disabled={isUpdatingPassword}
                       />
                     </FormControl>
                     <FormMessage />
@@ -155,6 +175,7 @@ const Profile = () => {
                         type="password" 
                         placeholder="Create a new password" 
                         {...field} 
+                        disabled={isUpdatingPassword}
                       />
                     </FormControl>
                     <FormMessage />
@@ -173,6 +194,7 @@ const Profile = () => {
                         type="password" 
                         placeholder="Confirm your new password" 
                         {...field} 
+                        disabled={isUpdatingPassword}
                       />
                     </FormControl>
                     <FormMessage />
@@ -185,11 +207,23 @@ const Profile = () => {
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsPasswordModalOpen(false)}
+                  disabled={isUpdatingPassword}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-green-800 hover:bg-green-900">
-                  Update Password
+                <Button 
+                  type="submit" 
+                  className="bg-green-800 hover:bg-green-900"
+                  disabled={isUpdatingPassword}
+                >
+                  {isUpdatingPassword ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Updating...
+                    </div>
+                  ) : (
+                    "Update Password"
+                  )}
                 </Button>
               </DialogFooter>
             </form>

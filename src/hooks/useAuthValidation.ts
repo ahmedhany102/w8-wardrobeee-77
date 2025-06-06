@@ -41,6 +41,20 @@ export const useAuthValidation = () => {
       console.log('✅ Session found, fetching user data with reduced timeout...');
       setSession(currentSession);
 
+      // Set up a timeout to prevent infinite loading
+      const sessionTimeout = setTimeout(() => {
+        console.log('⏰ Session validation timeout - clearing auth state');
+        supabase.auth.signOut().then(() => {
+          setSession(null);
+          setUser(null);
+          setLoading(false);
+          // Redirect to login if not already there
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+            window.location.href = '/login';
+          }
+        });
+      }, 1000);
+
       // CRITICAL FIX: Reduced timeout to 500ms and better error handling
       const userPromise = fetchUserWithRetry(1, 300); // 1 retry, 300ms delay
       const timeoutPromise = new Promise<null>(resolve => 
@@ -52,6 +66,9 @@ export const useAuthValidation = () => {
 
       const user = await Promise.race([userPromise, timeoutPromise]);
 
+      // Clear the session timeout if we got here successfully
+      clearTimeout(sessionTimeout);
+
       if (!user) {
         console.log('🚨 User data timeout or failed - clearing session and redirecting');
         await clearSessionData();
@@ -59,6 +76,9 @@ export const useAuthValidation = () => {
         setUser(null);
         toast.error('Session expired. Please login again.');
         setLoading(false);
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+          window.location.href = '/login';
+        }
         return;
       }
 
@@ -109,6 +129,9 @@ export const useAuthValidation = () => {
       setSession(null);
       setUser(null);
       toast.error('Authentication error. Please login again.');
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/signup') {
+        window.location.href = '/login';
+      }
     } finally {
       setLoading(false);
     }
