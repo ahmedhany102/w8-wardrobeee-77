@@ -83,8 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         console.log('🔔 Auth state changed:', event, session?.user?.email || 'No user');
         
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-          console.log('👋 User signed out or deleted');
+        if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out');
           setUser(null);
           setSession(null);
           setLoading(false);

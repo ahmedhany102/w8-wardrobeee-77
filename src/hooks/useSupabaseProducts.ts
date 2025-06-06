@@ -6,8 +6,16 @@ import { useProductOperations } from './useProductOperations';
 import { ProductFormData, ProductUpdateData } from '@/types/product';
 import { useAuth } from '@/contexts/AuthContext';
 
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  user_id?: string;
+  [key: string]: any;
+}
+
 export const useSupabaseProducts = () => {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const { user, isAdmin } = useAuth();
   const { addProduct: addProductOperation, updateProduct: updateProductOperation, deleteProduct: deleteProductOperation } = useProductOperations();
