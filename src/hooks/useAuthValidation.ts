@@ -17,61 +17,97 @@ export const useAuthValidation = () => {
       console.log('🔍 Validating session and user...');
       setLoading(true);
       
-      // Check if we have a session
+      // Check if we have a session with shorter timeout
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
         console.error('❌ Session check error:', sessionError);
         await clearSessionData();
+        setSession(null);
+        setUser(null);
         setLoading(false);
         return;
       }
 
       if (!currentSession) {
-        console.log('🔍 No session found');
+        console.log('🔍 No session found - user needs to login');
         await clearSessionData();
+        setSession(null);
+        setUser(null);
         setLoading(false);
         return;
       }
 
-      console.log('✅ Session found, fetching user data with timeout...');
+      console.log('✅ Session found, fetching user data with reduced timeout...');
       setSession(currentSession);
 
-      // CRITICAL FIX: Fetch user with retry and timeout
-      const userPromise = fetchUserWithRetry();
+      // CRITICAL FIX: Reduced timeout to 500ms and better error handling
+      const userPromise = fetchUserWithRetry(1, 300); // 1 retry, 300ms delay
       const timeoutPromise = new Promise<null>(resolve => 
         setTimeout(() => {
-          console.log('⏰ User fetch timeout reached (1000ms)');
+          console.log('⏰ User fetch timeout reached (500ms) - clearing session');
           resolve(null);
-        }, 1000)
+        }, 500)
       );
 
       const user = await Promise.race([userPromise, timeoutPromise]);
 
       if (!user) {
-        console.log('🚨 User data not received within timeout or failed - clearing session');
+        console.log('🚨 User data timeout or failed - clearing session and redirecting');
         await clearSessionData();
-        toast.error('Session expired or invalid. Please login again.');
+        setSession(null);
+        setUser(null);
+        toast.error('Session expired. Please login again.');
         setLoading(false);
         return;
       }
 
       console.log('✅ Valid user found:', user.email);
       
-      // Fetch and set user profile
+      // Fetch and set user profile with timeout protection
       try {
-        const userData = await fetchUserProfile(user.id, user.email!);
-        setUser(userData);
-        console.log('✅ User profile loaded successfully:', userData);
+        const profilePromise = fetchUserProfile(user.id, user.email!);
+        const profileTimeoutPromise = new Promise<null>((resolve) => 
+          setTimeout(() => {
+            console.log('⏰ Profile fetch timeout - proceeding with basic user data');
+            resolve(null);
+          }, 500)
+        );
+
+        const userData = await Promise.race([profilePromise, profileTimeoutPromise]);
+        
+        if (userData) {
+          setUser(userData);
+          console.log('✅ User profile loaded successfully:', userData);
+        } else {
+          // Fallback to basic user data if profile fetch times out
+          const basicUserData: AuthUser = {
+            id: user.id,
+            email: user.email!,
+            name: user.email?.split('@')[0] || 'User',
+            role: user.email === 'ahmedhanyseifeldien@gmail.com' ? 'ADMIN' : 'USER'
+          };
+          setUser(basicUserData);
+          console.log('⚠️ Using fallback user data due to profile timeout');
+        }
       } catch (profileError) {
         console.error('❌ Failed to load user profile:', profileError);
-        await clearSessionData();
-        toast.error('Failed to load user profile. Please login again.');
+        // Don't clear session, just use basic user data
+        const basicUserData: AuthUser = {
+          id: user.id,
+          email: user.email!,
+          name: user.email?.split('@')[0] || 'User',
+          role: user.email === 'ahmedhanyseifeldien@gmail.com' ? 'ADMIN' : 'USER'
+        };
+        setUser(basicUserData);
+        toast.warning('Profile loading delayed - some features may be limited');
       }
       
     } catch (error) {
       console.error('💥 Auth validation exception:', error);
       await clearSessionData();
+      setSession(null);
+      setUser(null);
       toast.error('Authentication error. Please login again.');
     } finally {
       setLoading(false);

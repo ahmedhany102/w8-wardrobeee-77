@@ -30,15 +30,17 @@ export const validateUpdateFields = (updates: ProductUpdateData): string | null 
 };
 
 export const cleanProductDataForInsert = (productData: ProductFormData, userId: string): DatabaseProductData => {
-  return {
-    user_id: userId,
+  console.log('🧹 Cleaning product data for insert:', { productData, userId });
+  
+  const cleanData: DatabaseProductData = {
+    user_id: userId, // Ensure user_id is always set
     name: productData.name.trim(),
     description: productData.description?.trim() || '',
     price: parseFloat(productData.price.toString()),
     type: productData.type,
     category: productData.category || 'Men',
     main_image: productData.main_image || '',
-    image_url: productData.main_image || '',
+    image_url: productData.main_image || '', // Ensure image_url is set
     images: Array.isArray(productData.images) ? productData.images.filter(Boolean) : [],
     colors: Array.isArray(productData.colors) ? productData.colors.filter(Boolean) : [],
     sizes: Array.isArray(productData.sizes) ? productData.sizes.filter(size => size?.size) : [],
@@ -47,9 +49,14 @@ export const cleanProductDataForInsert = (productData: ProductFormData, userId: 
     stock: parseInt(productData.stock?.toString() || '0') || 0,
     inventory: parseInt(productData.inventory?.toString() || productData.stock?.toString() || '0') || 0
   };
+  
+  console.log('✅ Cleaned product data:', cleanData);
+  return cleanData;
 };
 
 export const cleanProductDataForUpdate = (updates: ProductUpdateData): Partial<DatabaseProductData> => {
+  console.log('🧹 Cleaning product data for update:', updates);
+  
   const cleanUpdates: Partial<DatabaseProductData> = {};
 
   if (updates.name) cleanUpdates.name = updates.name.trim();
@@ -69,5 +76,6 @@ export const cleanProductDataForUpdate = (updates: ProductUpdateData): Partial<D
   if (updates.stock !== undefined) cleanUpdates.stock = parseInt(updates.stock.toString()) || 0;
   if (updates.inventory !== undefined) cleanUpdates.inventory = parseInt(updates.inventory.toString()) || parseInt(updates.stock?.toString() || '0') || 0;
 
+  console.log('✅ Cleaned update data:', cleanUpdates);
   return cleanUpdates;
 };
