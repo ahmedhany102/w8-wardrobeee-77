@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ProductFormData, ProductUpdateData } from '@/types/product';
 import { useAuth } from '@/contexts/AuthContext';
-import { validateRequiredFields, validateUpdateFields, cleanProductDataForInsert, cleanProductDataForUpdate } from '@/utils/productUtils';
+import { validateRequiredFields, validateUpdateFields, cleanProductDataForInsert } from '@/utils/productUtils';
 
 interface Product {
   id: string;
@@ -116,14 +116,33 @@ export const useSupabaseProducts = () => {
         return null;
       }
 
-      const cleanUpdates = cleanProductDataForUpdate(updates);
+      // Simplify the update data preparation to avoid complex type inference
+      const updateData: Record<string, any> = {};
+      
+      if (updates.name) updateData.name = updates.name.trim();
+      if (updates.description !== undefined) updateData.description = updates.description?.trim() || '';
+      if (updates.price) updateData.price = parseFloat(updates.price.toString());
+      if (updates.type) updateData.type = updates.type;
+      if (updates.category) updateData.category = updates.category;
+      if (updates.main_image !== undefined) {
+        updateData.main_image = updates.main_image || '';
+        updateData.image_url = updates.main_image || '';
+      }
+      if (updates.images) updateData.images = Array.isArray(updates.images) ? updates.images.filter(Boolean) : [];
+      if (updates.colors) updateData.colors = Array.isArray(updates.colors) ? updates.colors.filter(Boolean) : [];
+      if (updates.sizes) updateData.sizes = Array.isArray(updates.sizes) ? updates.sizes.filter(size => size?.size) : [];
+      if (updates.discount !== undefined) updateData.discount = parseFloat(updates.discount.toString()) || 0;
+      if (updates.featured !== undefined) updateData.featured = Boolean(updates.featured);
+      if (updates.stock !== undefined) updateData.stock = parseInt(updates.stock.toString()) || 0;
+      if (updates.inventory !== undefined) updateData.inventory = parseInt(updates.inventory.toString()) || parseInt(updates.stock?.toString() || '0') || 0;
+
       const userId: string = user.id;
       
       const { data, error } = await supabase
         .from('products')
-        .update(cleanUpdates)
+        .update(updateData)
         .eq('id', id)
-        .eq('user_id', userId) // Ensure user can only update their own products
+        .eq('user_id', userId)
         .select()
         .single();
 
