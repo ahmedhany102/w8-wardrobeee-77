@@ -9,10 +9,19 @@ import { validateRequiredFields, validateUpdateFields, cleanProductDataForInsert
 interface Product {
   id: string;
   name: string;
+  description?: string;
   price: number;
-  user_id?: string;
-  sizes?: Array<{ size: string; stock: number; price?: number }>;
+  type?: string;
+  category?: string;
+  main_image?: string;
+  images?: string[];
   colors?: string[];
+  sizes?: Array<{ size: string; stock: number; price?: number }>;
+  discount?: number;
+  featured?: boolean;
+  stock?: number;
+  inventory?: number;
+  user_id?: string;
   [key: string]: any;
 }
 
@@ -43,13 +52,25 @@ const validateProductData = (product: any): Product | null => {
     }
   }
 
+  // Ensure images is always an array
+  if (product.images && !Array.isArray(product.images)) {
+    console.warn('⚠️ Product images is not an array, converting:', product.images);
+    try {
+      product.images = typeof product.images === 'string' ? JSON.parse(product.images) : [];
+    } catch {
+      product.images = [];
+    }
+  }
+
   // Set defaults for missing fields
   return {
     ...product,
     sizes: product.sizes || [],
     colors: product.colors || [],
+    images: product.images || [],
     price: typeof product.price === 'number' ? product.price : 0,
-    name: product.name || 'Unnamed Product'
+    name: product.name || 'Unnamed Product',
+    description: product.description || ''
   };
 };
 
@@ -59,37 +80,18 @@ export const useSupabaseProducts = () => {
   const { user, isAdmin } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchProducts();
-    } else {
-      setProducts([]);
-      setLoading(false);
-    }
+    // Always fetch products regardless of auth state for public visibility
+    fetchProducts();
   }, [user, isAdmin]);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching products with enhanced validation...');
+      console.log('🔄 Fetching products with public access...');
       
       let query = supabase.from('products').select('*');
       
-      // Improved filtering logic
-      const isAdminView = window.location.pathname.includes('admin');
-      
-      if (isAdminView && !isAdmin) {
-        // Non-admins only see their own products in admin view
-        const userId = user?.id || '';
-        query = query.eq('user_id', userId);
-        console.log('🔒 Non-admin user - filtering products for user:', userId);
-      } else if (isAdminView && isAdmin) {
-        console.log('👑 Admin user - showing all products');
-        // Admins see all products (no filter)
-      } else {
-        // Public catalog view - show all products
-        console.log('🌐 Public catalog view - showing all products');
-      }
-      
+      // Products are now publicly visible thanks to RLS policy
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) {
@@ -125,7 +127,7 @@ export const useSupabaseProducts = () => {
     }
 
     try {
-      console.log('🎯 Adding product with validation...');
+      console.log('🎯 Adding product with complete data validation...', productData);
       
       const validationError = validateRequiredFields(productData);
       if (validationError) {
@@ -135,6 +137,8 @@ export const useSupabaseProducts = () => {
 
       const userId = user.id;
       const cleanData = cleanProductDataForInsert(productData, userId);
+      
+      console.log('📤 Sending to database:', cleanData);
       
       const { data, error } = await supabase
         .from('products')

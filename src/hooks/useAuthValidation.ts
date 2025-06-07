@@ -13,27 +13,48 @@ export const useAuthValidation = () => {
     setSession: (session: Session | null) => void,
     setUser: (user: AuthUser | null) => void
   ) => {
+    let timeoutId: NodeJS.Timeout | null = null;
+    
     try {
-      console.log('🔍 Starting comprehensive session validation...');
+      console.log('🔍 Starting session validation with timeout protection...');
       setLoading(true);
+      
+      // Set up timeout protection - auto-logout after 3 seconds if stuck
+      timeoutId = setTimeout(() => {
+        console.warn('⏰ Session validation timeout - auto-logout triggered');
+        toast.error('Session expired. Please log in again.');
+        clearSessionData();
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+      }, 3000);
       
       // Clear any potentially corrupted localStorage data first
       try {
-        const authData = localStorage.getItem('sb-ahxncedumnyeipizkbwa-auth-token');
+        const authKey = `sb-${supabase.supabaseUrl.split('//')[1].split('.')[0]}-auth-token`;
+        const authData = localStorage.getItem(authKey);
         if (authData) {
           const parsed = JSON.parse(authData);
           if (!parsed || !parsed.access_token || !parsed.user) {
             console.log('🧹 Clearing corrupted localStorage auth data');
-            localStorage.removeItem('sb-ahxncedumnyeipizkbwa-auth-token');
+            localStorage.removeItem(authKey);
           }
         }
       } catch (e) {
         console.log('🧹 Clearing corrupted localStorage due to parse error');
-        localStorage.removeItem('sb-ahxncedumnyeipizkbwa-auth-token');
+        Object.keys(localStorage)
+          .filter(key => key.startsWith('sb-'))
+          .forEach(key => localStorage.removeItem(key));
       }
       
       // Get session with proper error handling
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      // Clear timeout since we got a response
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       
       if (sessionError) {
         console.error('❌ Session validation error:', sessionError);
@@ -75,9 +96,14 @@ export const useAuthValidation = () => {
       
     } catch (error) {
       console.error('💥 Critical auth validation exception:', error);
+      // Clear timeout if still active
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
       await clearSessionData();
       setSession(null);
       setUser(null);
+      toast.error('Authentication failed. Please try logging in again.');
     } finally {
       // CRITICAL: Always set loading to false
       setLoading(false);

@@ -23,10 +23,11 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
 
   const navigate = useNavigate();
   
-  // Get the default image
+  // Get the default image - handle both arrays and strings
   const mainImage =
     (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
-    (product.images && Array.isArray(product.images) && product.images[0]) ||
+    (product.main_image && product.main_image !== "" ? product.main_image : null) ||
+    (product.images && Array.isArray(product.images) && product.images.length > 0 && product.images[0]) ||
     "/placeholder.svg";
   
   // Safe calculation for out of stock - ensure sizes is an array
@@ -116,8 +117,14 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         <p className="text-gray-500 text-xs truncate">
           {product?.categoryPath && Array.isArray(product.categoryPath) ? 
             product.categoryPath.join(" > ") : 
-            (product?.category || "-")}
+            (product?.category || product?.type || "-")}
         </p>
+        {/* Show description if available */}
+        {product.description && (
+          <p className="text-gray-600 text-xs truncate mt-1">
+            {product.description}
+          </p>
+        )}
         <div className="mt-1">
           {product.hasDiscount && product.discount && product.discount > 0 ? (
             <div className="flex items-center gap-1">

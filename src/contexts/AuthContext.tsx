@@ -30,7 +30,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log('🚀 Initializing auth system with comprehensive session handling...');
+    console.log('🚀 Initializing auth system with timeout protection...');
     
     // Set up auth state change listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -71,8 +71,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // THEN validate initial session
-    validateSessionAndUser(setSession, setUser);
+    // THEN validate initial session with timeout protection
+    const initializeAuth = async () => {
+      try {
+        await validateSessionAndUser(setSession, setUser);
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
 
     return () => {
       subscription.unsubscribe();

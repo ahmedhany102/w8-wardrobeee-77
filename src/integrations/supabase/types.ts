@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ads: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          position: number | null
+          redirect_url: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          position?: number | null
+          redirect_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          position?: number | null
+          redirect_url?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       appointments: {
         Row: {
           appointment_date: string
@@ -170,6 +206,48 @@ export type Database = {
         }
         Relationships: []
       }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expiration_date: string | null
+          id: string
+          is_active: boolean | null
+          minimum_amount: number | null
+          updated_at: string
+          usage_limit: number | null
+          used_count: number | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value: number
+          expiration_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          minimum_amount?: number | null
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expiration_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          minimum_amount?: number | null
+          updated_at?: string
+          usage_limit?: number | null
+          used_count?: number | null
+        }
+        Relationships: []
+      }
       doctor_specialties: {
         Row: {
           created_at: string
@@ -302,7 +380,7 @@ export type Database = {
           category_path: string[] | null
           color: string | null
           color_images: string | null
-          colors: string[] | null
+          colors: Json | null
           created_at: string | null
           description: string | null
           details: string | null
@@ -311,14 +389,14 @@ export type Database = {
           has_discount: boolean | null
           id: string
           image_url: string | null
-          images: string[] | null
+          images: Json | null
           inventory: number | null
           main_image: string | null
           name: string | null
           price: number | null
           rating: number | null
           size: string | null
-          sizes: string | null
+          sizes: Json | null
           stock: number | null
           type: string | null
           updated_at: string | null
@@ -330,7 +408,7 @@ export type Database = {
           category_path?: string[] | null
           color?: string | null
           color_images?: string | null
-          colors?: string[] | null
+          colors?: Json | null
           created_at?: string | null
           description?: string | null
           details?: string | null
@@ -339,14 +417,14 @@ export type Database = {
           has_discount?: boolean | null
           id?: string
           image_url?: string | null
-          images?: string[] | null
+          images?: Json | null
           inventory?: number | null
           main_image?: string | null
           name?: string | null
           price?: number | null
           rating?: number | null
           size?: string | null
-          sizes?: string | null
+          sizes?: Json | null
           stock?: number | null
           type?: string | null
           updated_at?: string | null
@@ -358,7 +436,7 @@ export type Database = {
           category_path?: string[] | null
           color?: string | null
           color_images?: string | null
-          colors?: string[] | null
+          colors?: Json | null
           created_at?: string | null
           description?: string | null
           details?: string | null
@@ -367,14 +445,14 @@ export type Database = {
           has_discount?: boolean | null
           id?: string
           image_url?: string | null
-          images?: string[] | null
+          images?: Json | null
           inventory?: number | null
           main_image?: string | null
           name?: string | null
           price?: number | null
           rating?: number | null
           size?: string | null
-          sizes?: string | null
+          sizes?: Json | null
           stock?: number | null
           type?: string | null
           updated_at?: string | null
