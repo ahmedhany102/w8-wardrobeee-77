@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -28,56 +29,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await validateSessionAndUser(setSession, setUser);
   };
 
-  // Force session refresh with timeout protection
-  const forceSessionRefresh = async () => {
-    try {
-      console.log('🔄 Force refreshing session...');
-      setLoading(true);
-      
-      const refreshPromise = supabase.auth.refreshSession();
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Session refresh timeout')), 3000)
-      );
-      
-      const { data, error } = await Promise.race([refreshPromise, timeoutPromise]) as any;
-      
-      if (error) {
-        console.error('❌ Session refresh failed:', error);
-        await clearSessionData();
-        setSession(null);
-        setUser(null);
-        toast.error('Session expired. Please login again.');
-      } else if (data.session) {
-        console.log('✅ Session refreshed successfully');
-        setSession(data.session);
-        // Update user profile if needed
-        if (data.session.user) {
-          try {
-            const userData = await fetchUserProfile(data.session.user.id, data.session.user.email!);
-            setUser(userData);
-          } catch (profileError) {
-            console.warn('Profile update failed after refresh:', profileError);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('💥 Force refresh exception:', error);
-      await clearSessionData();
-      setSession(null);
-      setUser(null);
-      toast.error('Session refresh failed. Please login again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    console.log('🚀 Setting up enhanced auth system...');
+    console.log('🚀 Setting up auth system...');
     
     // Validate session and user on startup
     validateSessionAndUser(setSession, setUser);
 
-    // Set up auth state change listener with improved error handling
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth state changed:', event, session?.user?.email || 'No user');
@@ -89,7 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setLoading(false);
         } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
-            console.log('🔐 User signed in or token refreshed, fetching profile...');
+            console.log('🔐 User signed in or token refreshed');
             setSession(session);
             
             try {
@@ -98,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log('✅ Profile loaded after auth change:', userData);
             } catch (error) {
               console.error('❌ Failed to load profile after auth change:', error);
-              // Don't fail completely, use basic user data
+              // Use basic user data as fallback
               const basicUserData: AuthUser = {
                 id: session.user.id,
                 email: session.user.email!,
@@ -106,14 +64,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 role: session.user.email === 'ahmedhanyseifeldien@gmail.com' ? 'ADMIN' : 'USER'
               };
               setUser(basicUserData);
-              toast.warning('Profile loading delayed - some features may be limited');
-            } finally {
-              setLoading(false);
             }
+            setLoading(false);
           }
-        } else if (event === 'PASSWORD_RECOVERY') {
-          console.log('🔑 Password recovery initiated');
-          setLoading(false);
         }
       }
     );

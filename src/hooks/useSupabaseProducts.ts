@@ -31,40 +31,51 @@ export const useSupabaseProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      console.log('Fetching products from Supabase...');
+      console.log('🔄 Fetching products from Supabase...');
       
       let query = supabase.from('products').select('*');
       
-      // FIXED: Proper logic for product filtering
-      if (window.location.pathname.includes('admin')) {
-        if (!isAdmin) {
-          // Non-admins only see their own products in admin view
-          const userId = user?.id || '';
-          query = query.eq('user_id', userId);
-          console.log('Non-admin user - filtering products for user:', userId);
-        } else {
-          console.log('Admin user - showing all products');
-        }
-        // Admins see all products by default (no filter applied)
+      // FIXED: Clear product filtering logic
+      const isAdminView = window.location.pathname.includes('admin');
+      
+      if (isAdminView && !isAdmin) {
+        // Non-admins only see their own products in admin view
+        const userId = user?.id || '';
+        query = query.eq('user_id', userId);
+        console.log('🔒 Non-admin user - filtering products for user:', userId);
+      } else if (isAdminView && isAdmin) {
+        console.log('👑 Admin user - showing all products');
+        // Admins see all products (no filter)
+      } else {
+        // Public catalog view - show all products
+        console.log('🌐 Public catalog view - showing all products');
       }
       
       const { data, error } = await query.order('created_at', { ascending: false });
       
       if (error) {
-        console.error('Error fetching products:', error);
+        console.error('❌ Error fetching products:', error);
         toast.error('Failed to load products: ' + error.message);
         setProducts([]);
         return;
       }
       
-      console.log('Successfully fetched products:', data);
-      setProducts(data || []);
+      console.log('✅ Successfully fetched products:', data?.length || 0, 'products');
+      
+      // CRITICAL FIX: Ensure products state is updated properly
+      const productsData = data || [];
+      setProducts(productsData);
+      
+      // Force a small delay to ensure state update
+      setTimeout(() => {
+        console.log('🔄 Products state updated, current count:', productsData.length);
+      }, 100);
+      
     } catch (error: any) {
-      console.error('Exception while fetching products:', error);
+      console.error('💥 Exception while fetching products:', error);
       toast.error('Failed to load products: ' + error.message);
       setProducts([]);
     } finally {
-      // CRITICAL: Always set loading to false
       setLoading(false);
     }
   };
@@ -100,8 +111,11 @@ export const useSupabaseProducts = () => {
       }
 
       console.log('✅ Product added successfully:', data);
-      await fetchProducts(); // Refetch to ensure UI is updated
-      toast.success('Product added successfully and will appear in your catalog');
+      
+      // CRITICAL FIX: Force immediate refetch and UI update
+      await fetchProducts();
+      toast.success('Product added successfully!');
+      
       return data;
     } catch (error: any) {
       console.error('💥 Exception while adding product:', error);
@@ -123,7 +137,6 @@ export const useSupabaseProducts = () => {
         return null;
       }
 
-      // FIXED: Simplified update object to avoid TypeScript recursion
       const updateData: Record<string, any> = {};
       
       if (updates.name) updateData.name = updates.name.trim();
@@ -160,8 +173,11 @@ export const useSupabaseProducts = () => {
       }
 
       console.log('✅ Product updated successfully:', data);
-      await fetchProducts(); // Refetch to ensure UI is updated
-      toast.success('Product updated successfully');
+      
+      // CRITICAL FIX: Force immediate refetch and UI update
+      await fetchProducts();
+      toast.success('Product updated successfully!');
+      
       return data;
     } catch (error: any) {
       console.error('💥 Exception while updating product:', error);
@@ -182,7 +198,7 @@ export const useSupabaseProducts = () => {
         .from('products')
         .delete()
         .eq('id', id)
-        .eq('user_id', userId); // Ensure user can only delete their own products
+        .eq('user_id', userId);
 
       if (error) {
         console.error('❌ Failed to delete product:', error);
@@ -191,8 +207,11 @@ export const useSupabaseProducts = () => {
       }
 
       console.log('✅ Product deleted successfully');
-      await fetchProducts(); // Refetch to ensure UI is updated
-      toast.success('Product deleted successfully');
+      
+      // CRITICAL FIX: Force immediate refetch and UI update
+      await fetchProducts();
+      toast.success('Product deleted successfully!');
+      
       return true;
     } catch (error: any) {
       console.error('💥 Exception while deleting product:', error);

@@ -18,24 +18,34 @@ const ProductManagement = () => {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState("ALL");
 
+  // Debug logging to track product state changes
+  useEffect(() => {
+    console.log('📊 ProductManagement - Products state updated:', {
+      count: products.length,
+      loading,
+      products: products.map(p => ({ id: p.id, name: p.name }))
+    });
+  }, [products, loading]);
+
   const handleAddProduct = async (product: ProductFormData) => {
     try {
-      console.log('Starting product addition with data:', product);
+      console.log('🆕 Starting product addition...');
       
       const result = await addProduct(product);
       
       if (result) {
         setShowAddDialog(false);
         toast.success('Product added successfully!');
+        // Force a refetch to ensure UI updates
         setTimeout(() => {
           refetch();
-        }, 500);
+        }, 200);
       } else {
-        toast.error('Failed to add product - no response from server');
+        toast.error('Failed to add product');
       }
       
     } catch (error: any) {
-      console.error("Error in handleAddProduct:", error);
+      console.error("❌ Error in handleAddProduct:", error);
       toast.error("Failed to add product: " + (error?.message || 'Unknown error'));
     }
   };
@@ -47,21 +57,24 @@ const ProductManagement = () => {
     }
     
     try {
+      console.log('✏️ Starting product update...');
+      
       const result = await updateProduct(editProduct.id, product);
       
       if (result) {
         setShowEditDialog(false);
         setEditProduct(null);
         toast.success('Product updated successfully!');
+        // Force a refetch to ensure UI updates
         setTimeout(() => {
           refetch();
-        }, 500);
+        }, 200);
       } else {
-        toast.error('Failed to update product - no response from server');
+        toast.error('Failed to update product');
       }
       
     } catch (error: any) {
-      console.error("Error in handleEditProduct:", error);
+      console.error("❌ Error in handleEditProduct:", error);
       toast.error("Failed to update product: " + (error?.message || 'Unknown error'));
     }
   };
@@ -73,21 +86,24 @@ const ProductManagement = () => {
     }
     
     try {
+      console.log('🗑️ Starting product deletion...');
+      
       const result = await deleteProduct(deleteProductId);
       
       if (result) {
         setShowDeleteDialog(false);
         setDeleteProductId(null);
         toast.success('Product deleted successfully!');
+        // Force a refetch to ensure UI updates
         setTimeout(() => {
           refetch();
-        }, 500);
+        }, 200);
       } else {
-        toast.error('Failed to delete product - no response from server');
+        toast.error('Failed to delete product');
       }
       
     } catch (error: any) {
-      console.error("Error in handleDeleteProduct:", error);
+      console.error("❌ Error in handleDeleteProduct:", error);
       toast.error("Failed to delete product: " + (error?.message || 'Unknown error'));
     }
   };
@@ -105,21 +121,31 @@ const ProductManagement = () => {
     return matchesSearch && matchesCategory;
   });
 
-  // Log current products for debugging
-  useEffect(() => {
-    console.log('Current products in state:', products);
-    console.log('Filtered products:', filteredProducts);
-  }, [products, filteredProducts]);
-
   const handleEditClick = (product: any) => {
+    console.log('📝 Edit clicked for product:', product.id);
     setEditProduct(product);
     setShowEditDialog(true);
   };
 
   const handleDeleteClick = (productId: string) => {
+    console.log('🗑️ Delete clicked for product:', productId);
     setDeleteProductId(productId);
     setShowDeleteDialog(true);
   };
+
+  // Show loading message with better UX
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-center items-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-800 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading products...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -136,7 +162,7 @@ const ProductManagement = () => {
       
       <ProductManagementTable
         products={filteredProducts}
-        loading={loading}
+        loading={false} // We handle loading at the component level
         onEditProduct={handleEditClick}
         onDeleteProduct={handleDeleteClick}
       />
