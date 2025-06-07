@@ -98,6 +98,9 @@ const Login = () => {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input 
+                          id="email"
+                          name="email"
+                          type="email"
                           placeholder="you@example.com"
                           {...field}
                           autoComplete="username"
@@ -117,6 +120,8 @@ const Login = () => {
                       <FormLabel>Password</FormLabel>
                       <FormControl>
                         <Input 
+                          id="password"
+                          name="password"
                           type="password"
                           placeholder="••••••••" 
                           {...field}

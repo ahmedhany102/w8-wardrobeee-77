@@ -16,22 +16,26 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, className = '' }: ProductCardProps) => {
-  if (!product || typeof product !== "object") return null;
+  if (!product || typeof product !== "object") {
+    console.warn('⚠️ Invalid product passed to ProductCard:', product);
+    return null;
+  }
 
   const navigate = useNavigate();
   
   // Get the default image
   const mainImage =
     (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
-    (product.images && product.images[0]) ||
+    (product.images && Array.isArray(product.images) && product.images[0]) ||
     "/placeholder.svg";
   
-  // Calculate if product is out of stock
-  const isOutOfStock = !product.sizes || product.sizes.every(s => !s || s.stock <= 0);
+  // Safe calculation for out of stock - ensure sizes is an array
+  const productSizes = Array.isArray(product.sizes) ? product.sizes : [];
+  const isOutOfStock = productSizes.length === 0 || productSizes.every(s => !s || s.stock <= 0);
   
-  // Calculate minimum price from all available sizes
-  const minPrice = product.sizes && product.sizes.length > 0 
-    ? Math.min(...product.sizes.filter(s => s && s.stock > 0).map(s => s.price)) 
+  // Safe calculation for minimum price
+  const minPrice = productSizes.length > 0 
+    ? Math.min(...productSizes.filter(s => s && s.stock > 0).map(s => s.price || product.price || 0)) 
     : (product.price || 0);
 
   // Calculate original price if there is a discount
@@ -39,7 +43,7 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
     ? minPrice * (100 / (100 - product.discount)) 
     : minPrice;
 
-  // Quick add to cart handler
+  // Quick add to cart handler with enhanced error handling
   const handleQuickAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -53,16 +57,18 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
       // Get the first available size if product has sizes
       let size = "";
       let color = "";
-      if (product.sizes && product.sizes.length > 0) {
-        const availableSize = product.sizes.find(s => s && s.stock > 0);
+      
+      if (productSizes.length > 0) {
+        const availableSize = productSizes.find(s => s && s.stock > 0);
         if (availableSize) {
           size = availableSize.size;
         }
       }
       
       // Get the first available color or empty string
-      if (product.colors && product.colors.length > 0) {
-        color = product.colors[0];
+      const productColors = Array.isArray(product.colors) ? product.colors : [];
+      if (productColors.length > 0) {
+        color = productColors[0];
       }
       
       // Add to cart - fixing by passing all required arguments: product, size, color, quantity
@@ -108,7 +114,9 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
           {product?.name || "منتج بدون اسم"}
         </h3>
         <p className="text-gray-500 text-xs truncate">
-          {product?.categoryPath ? product.categoryPath.join(" > ") : (product?.category || "-")}
+          {product?.categoryPath && Array.isArray(product.categoryPath) ? 
+            product.categoryPath.join(" > ") : 
+            (product?.category || "-")}
         </p>
         <div className="mt-1">
           {product.hasDiscount && product.discount && product.discount > 0 ? (

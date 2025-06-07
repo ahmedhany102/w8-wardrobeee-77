@@ -45,7 +45,7 @@ const AdminLogin = () => {
   const form = useForm<AdminLoginFormValues>({
     resolver: zodResolver(adminLoginSchema),
     defaultValues: {
-      email: "", // SECURITY: Empty email field
+      email: "",
       password: "",
     },
   });
@@ -104,6 +104,9 @@ const AdminLogin = () => {
                       <FormLabel>Email</FormLabel>
                       <FormControl>
                         <Input 
+                          id="admin-email"
+                          name="email"
+                          type="email"
                           placeholder="Enter email"
                           {...field}
                           autoComplete="username"
@@ -123,6 +126,8 @@ const AdminLogin = () => {
                       <FormLabel>Password</FormLabel>
                       <FormControl>
                         <Input 
+                          id="admin-password"
+                          name="password"
                           type="password"
                           placeholder="••••••••" 
                           {...field}

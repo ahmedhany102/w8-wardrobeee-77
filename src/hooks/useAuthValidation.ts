@@ -14,14 +14,29 @@ export const useAuthValidation = () => {
     setUser: (user: AuthUser | null) => void
   ) => {
     try {
-      console.log('🔍 Validating session and user...');
+      console.log('🔍 Starting comprehensive session validation...');
       setLoading(true);
       
-      // Simple session check without complex timeouts
+      // Clear any potentially corrupted localStorage data first
+      try {
+        const authData = localStorage.getItem('sb-ahxncedumnyeipizkbwa-auth-token');
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          if (!parsed || !parsed.access_token || !parsed.user) {
+            console.log('🧹 Clearing corrupted localStorage auth data');
+            localStorage.removeItem('sb-ahxncedumnyeipizkbwa-auth-token');
+          }
+        }
+      } catch (e) {
+        console.log('🧹 Clearing corrupted localStorage due to parse error');
+        localStorage.removeItem('sb-ahxncedumnyeipizkbwa-auth-token');
+      }
+      
+      // Get session with proper error handling
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        console.error('❌ Session check error:', sessionError);
+        console.error('❌ Session validation error:', sessionError);
         await clearSessionData();
         setSession(null);
         setUser(null);
@@ -29,42 +44,44 @@ export const useAuthValidation = () => {
         return;
       }
 
-      if (!currentSession) {
-        console.log('🔍 No session found - user needs to login');
+      if (!currentSession || !currentSession.user) {
+        console.log('🔍 No valid session found - user needs to login');
         setSession(null);
         setUser(null);
         setLoading(false);
         return;
       }
 
-      console.log('✅ Session found, fetching user data...');
+      console.log('✅ Valid session found, setting session and fetching user profile...');
       setSession(currentSession);
 
       try {
-        // Simplified user profile fetch without complex timeouts
+        // Fetch user profile with proper error handling
         const userData = await fetchUserProfile(currentSession.user.id, currentSession.user.email!);
-        setUser(userData);
         console.log('✅ User profile loaded successfully:', userData);
+        setUser(userData);
       } catch (profileError) {
         console.error('❌ Failed to load user profile:', profileError);
-        // Use basic user data as fallback
+        // Create basic user data as fallback but ensure it's complete
         const basicUserData: AuthUser = {
           id: currentSession.user.id,
           email: currentSession.user.email!,
           name: currentSession.user.email?.split('@')[0] || 'User',
           role: currentSession.user.email === 'ahmedhanyseifeldien@gmail.com' ? 'ADMIN' : 'USER'
         };
+        console.log('⚠️ Using fallback user data:', basicUserData);
         setUser(basicUserData);
-        console.log('⚠️ Using fallback user data');
       }
       
-      setLoading(false);
-      
     } catch (error) {
-      console.error('💥 Auth validation exception:', error);
+      console.error('💥 Critical auth validation exception:', error);
+      await clearSessionData();
       setSession(null);
       setUser(null);
+    } finally {
+      // CRITICAL: Always set loading to false
       setLoading(false);
+      console.log('🔧 Auth validation completed, loading set to false');
     }
   };
 

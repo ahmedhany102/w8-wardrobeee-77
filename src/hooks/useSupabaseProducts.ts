@@ -11,8 +11,47 @@ interface Product {
   name: string;
   price: number;
   user_id?: string;
+  sizes?: Array<{ size: string; stock: number; price?: number }>;
+  colors?: string[];
   [key: string]: any;
 }
+
+// Safe product data validation helper
+const validateProductData = (product: any): Product | null => {
+  if (!product || typeof product !== 'object') {
+    console.warn('⚠️ Invalid product data:', product);
+    return null;
+  }
+
+  // Ensure sizes is always an array
+  if (product.sizes && !Array.isArray(product.sizes)) {
+    console.warn('⚠️ Product sizes is not an array, converting:', product.sizes);
+    try {
+      product.sizes = typeof product.sizes === 'string' ? JSON.parse(product.sizes) : [];
+    } catch {
+      product.sizes = [];
+    }
+  }
+
+  // Ensure colors is always an array
+  if (product.colors && !Array.isArray(product.colors)) {
+    console.warn('⚠️ Product colors is not an array, converting:', product.colors);
+    try {
+      product.colors = typeof product.colors === 'string' ? JSON.parse(product.colors) : [];
+    } catch {
+      product.colors = [];
+    }
+  }
+
+  // Set defaults for missing fields
+  return {
+    ...product,
+    sizes: product.sizes || [],
+    colors: product.colors || [],
+    price: typeof product.price === 'number' ? product.price : 0,
+    name: product.name || 'Unnamed Product'
+  };
+};
 
 export const useSupabaseProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -31,11 +70,11 @@ export const useSupabaseProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching products from Supabase...');
+      console.log('🔄 Fetching products with enhanced validation...');
       
       let query = supabase.from('products').select('*');
       
-      // FIXED: Clear product filtering logic
+      // Improved filtering logic
       const isAdminView = window.location.pathname.includes('admin');
       
       if (isAdminView && !isAdmin) {
@@ -60,16 +99,15 @@ export const useSupabaseProducts = () => {
         return;
       }
       
-      console.log('✅ Successfully fetched products:', data?.length || 0, 'products');
+      console.log('✅ Raw products fetched:', data?.length || 0);
       
-      // CRITICAL FIX: Ensure products state is updated properly
-      const productsData = data || [];
-      setProducts(productsData);
+      // Validate and clean product data
+      const validatedProducts = (data || [])
+        .map(validateProductData)
+        .filter((product): product is Product => product !== null);
       
-      // Force a small delay to ensure state update
-      setTimeout(() => {
-        console.log('🔄 Products state updated, current count:', productsData.length);
-      }, 100);
+      console.log('✅ Validated products:', validatedProducts.length);
+      setProducts(validatedProducts);
       
     } catch (error: any) {
       console.error('💥 Exception while fetching products:', error);
@@ -87,7 +125,7 @@ export const useSupabaseProducts = () => {
     }
 
     try {
-      console.log('🎯 Adding product with user context:', { userId: user.id, isAdmin });
+      console.log('🎯 Adding product with validation...');
       
       const validationError = validateRequiredFields(productData);
       if (validationError) {
@@ -111,11 +149,7 @@ export const useSupabaseProducts = () => {
       }
 
       console.log('✅ Product added successfully:', data);
-      
-      // CRITICAL FIX: Force immediate refetch and UI update
-      await fetchProducts();
-      toast.success('Product added successfully!');
-      
+      await fetchProducts(); // Refresh the list
       return data;
     } catch (error: any) {
       console.error('💥 Exception while adding product:', error);
@@ -173,11 +207,7 @@ export const useSupabaseProducts = () => {
       }
 
       console.log('✅ Product updated successfully:', data);
-      
-      // CRITICAL FIX: Force immediate refetch and UI update
-      await fetchProducts();
-      toast.success('Product updated successfully!');
-      
+      await fetchProducts(); // Refresh the list
       return data;
     } catch (error: any) {
       console.error('💥 Exception while updating product:', error);
@@ -207,11 +237,7 @@ export const useSupabaseProducts = () => {
       }
 
       console.log('✅ Product deleted successfully');
-      
-      // CRITICAL FIX: Force immediate refetch and UI update
-      await fetchProducts();
-      toast.success('Product deleted successfully!');
-      
+      await fetchProducts(); // Refresh the list
       return true;
     } catch (error: any) {
       console.error('💥 Exception while deleting product:', error);

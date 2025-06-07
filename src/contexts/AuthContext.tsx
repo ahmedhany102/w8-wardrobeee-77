@@ -30,24 +30,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log('🚀 Setting up auth system...');
+    console.log('🚀 Initializing auth system with comprehensive session handling...');
     
-    // Validate session and user on startup
-    validateSessionAndUser(setSession, setUser);
-
-    // Set up auth state change listener
+    // Set up auth state change listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('🔔 Auth state changed:', event, session?.user?.email || 'No user');
         
         if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out');
+          console.log('👋 User signed out - clearing state');
           setUser(null);
           setSession(null);
           setLoading(false);
-        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          return;
+        }
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
-            console.log('🔐 User signed in or token refreshed');
+            console.log('🔐 User signed in or token refreshed - processing...');
             setSession(session);
             
             try {
@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log('✅ Profile loaded after auth change:', userData);
             } catch (error) {
               console.error('❌ Failed to load profile after auth change:', error);
-              // Use basic user data as fallback
+              // Fallback user data
               const basicUserData: AuthUser = {
                 id: session.user.id,
                 email: session.user.email!,
@@ -70,6 +70,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
     );
+
+    // THEN validate initial session
+    validateSessionAndUser(setSession, setUser);
 
     return () => {
       subscription.unsubscribe();
