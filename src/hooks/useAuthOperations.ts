@@ -1,8 +1,8 @@
 
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { secureLogin, secureSignup, secureLogout, checkAdminStatus } from '@/utils/secureAuth';
 import { createSanitizedUserSchema } from '@/utils/sanitization';
+import { toastManager } from '@/utils/toastManager';
 
 export const useAuthOperations = () => {
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -12,7 +12,7 @@ export const useAuthOperations = () => {
       const sanitizedData = schema.parse({ email });
       return await secureLogin(sanitizedData.email, password);
     } catch (error: any) {
-      toast.error('Invalid email format');
+      toastManager.error('Invalid email format');
       return false;
     }
   };
@@ -30,13 +30,13 @@ export const useAuthOperations = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Authentication failed');
+        toastManager.error('Authentication failed');
         return false;
       }
 
       const isAdmin = await checkAdminStatus(user.id);
       if (!isAdmin) {
-        toast.error('Access denied: Admin privileges required');
+        toastManager.error('Access denied: Admin privileges required');
         await secureLogout();
         return false;
       }
@@ -44,7 +44,7 @@ export const useAuthOperations = () => {
       return true;
     } catch (error) {
       console.error('❌ Admin verification failed:', error);
-      toast.error('Admin verification failed');
+      toastManager.error('Admin verification failed');
       await secureLogout();
       return false;
     }
@@ -58,7 +58,7 @@ export const useAuthOperations = () => {
       return await secureSignup(sanitizedData.email, sanitizedData.password, sanitizedData.name);
     } catch (error: any) {
       const message = error.errors?.[0]?.message || 'Invalid input data';
-      toast.error(message);
+      toastManager.error(message);
       return false;
     }
   };

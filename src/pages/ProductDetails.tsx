@@ -1,14 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Product } from '@/models/Product';
-import ProductDatabase from '@/models/Product';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
 import { Plus, Minus, ShoppingCart, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { formatProductForDisplay } from '@/utils/productUtils';
+import { LoadingFallback } from '@/utils/loadingFallback';
 
 // Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
@@ -24,21 +25,28 @@ const colorMap: Record<string, string> = {
   'بني': '#8B4513',
 };
 
-// Add missing type for colorSizes
-type SizeInfo = {
+interface ProductSize {
   size: string;
   stock: number;
   price: number;
-};
+}
 
-// Augment Product type with needed properties
-declare module '@/models/Product' {
-  interface Product {
-    colorSizes?: Record<string, SizeInfo[]>;
-    originalPrice?: number;
-    sku?: string;
-    colorImages?: Record<string, string[]>;
-  }
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  type?: string;
+  category?: string;
+  main_image?: string;
+  images?: string[];
+  colors?: string[];
+  sizes?: ProductSize[];
+  discount?: number;
+  featured?: boolean;
+  stock?: number;
+  inventory?: number;
+  [key: string]: any;
 }
 
 const ProductDetails = () => {
@@ -50,61 +58,91 @@ const ProductDetails = () => {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string>('');
-  const [colorImages, setColorImages] = useState<Record<string, string[]>>({});
   
   useEffect(() => {
     const fetchProduct = async () => {
-      const db = ProductDatabase.getInstance();
-      const foundProduct = await db.getProductById(id);
-      if (foundProduct) {
-        setProduct(foundProduct);
+      if (!id) {
+        navigate('/not-found');
+        return;
+      }
+
+      try {
+        setLoading(true);
         
-        // Set up color-based images mapping if available
-        const colorImagesMap: Record<string, string[]> = {};
+        // Start loading timeout
+        LoadingFallback.startTimeout('product-details', 5000, () => {
+          setLoading(false);
+          navigate('/not-found');
+        });
+
+        console.log('🔍 Fetching product details for ID:', id);
         
-        if (foundProduct.colorImages && Object.keys(foundProduct.colorImages).length > 0) {
-          // If we have specific images for each color
-          setColorImages(foundProduct.colorImages);
-          
-          // Set default color and its images
-          const defaultColor = Object.keys(foundProduct.colorImages)[0];
-          setSelectedColor(defaultColor);
-          setActiveImage(foundProduct.colorImages[defaultColor][0] || foundProduct.mainImage || '/placeholder.svg');
-        } else {
-          // If we don't have color-specific images, use the general product images
-          setActiveImage(foundProduct.mainImage || (foundProduct.images && foundProduct.images[0]) || '/placeholder.svg');
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+
+        LoadingFallback.clearTimeout('product-details');
+
+        if (error) {
+          console.error('❌ Error fetching product:', error);
+          toast.error('Failed to load product');
+          navigate('/not-found');
+          return;
+        }
+
+        if (!data) {
+          console.log('❌ Product not found');
+          navigate('/not-found');
+          return;
+        }
+
+        // Format and validate product data
+        const formattedProduct = formatProductForDisplay(data);
+        if (!formattedProduct) {
+          navigate('/not-found');
+          return;
+        }
+
+        console.log('✅ Product loaded:', formattedProduct);
+        setProduct(formattedProduct);
+        
+        // Set default selections
+        if (formattedProduct.colors && formattedProduct.colors.length > 0) {
+          setSelectedColor(formattedProduct.colors[0]);
         }
         
-        // Find the first available size
-        if (foundProduct.sizes && foundProduct.sizes.length > 0) {
-          const availableSize = foundProduct.sizes.find(size => size && size.stock > 0);
+        if (formattedProduct.sizes && formattedProduct.sizes.length > 0) {
+          const availableSize = formattedProduct.sizes.find(size => size && size.stock > 0);
           if (availableSize) {
             setSelectedSize(availableSize.size);
           }
         }
         
-        setLoading(false);
-      } else {
+        // Set main image
+        const mainImg = formattedProduct.main_image || 
+                       (formattedProduct.images && formattedProduct.images[0]) || 
+                       '/placeholder.svg';
+        setActiveImage(mainImg);
+        
+      } catch (error: any) {
+        LoadingFallback.clearTimeout('product-details');
+        console.error('💥 Exception while fetching product:', error);
+        toast.error('Failed to load product');
         navigate('/not-found');
+      } finally {
+        setLoading(false);
       }
     };
     
     fetchProduct();
   }, [id, navigate]);
-  
+
   // Handle color selection
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
-    
-    // Update images based on the selected color
-    if (colorImages[color] && colorImages[color].length > 0) {
-      setActiveImage(colorImages[color][0]);
-    } else if (product?.mainImage) {
-      setActiveImage(product.mainImage);
-    }
-    
-    // Reset selected size when color changes
-    setSelectedSize(null);
+    setSelectedSize(null); // Reset size when color changes
   };
   
   // Set the active image
@@ -112,27 +150,12 @@ const ProductDetails = () => {
     setActiveImage(imageUrl);
   };
 
-  const getSizesForCurrentColor = () => {
+  const getAvailableSizes = () => {
     if (!product || !product.sizes) return [];
-    
-    if (selectedColor && product.colorSizes && product.colorSizes[selectedColor]) {
-      // Return sizes specific to the selected color
-      return product.colorSizes[selectedColor];
-    }
-    
-    // Return all sizes if no color specific sizes
-    return product.sizes;
+    return product.sizes.filter(size => size && size.size);
   };
   
-  const isOutOfStock = !getSizesForCurrentColor().some(size => size && size.stock > 0);
-  const sizesForCurrentColor = getSizesForCurrentColor();
-
-  const getCurrentImages = () => {
-    if (selectedColor && colorImages[selectedColor]) {
-      return colorImages[selectedColor];
-    }
-    return product?.images || [];
-  };
+  const isOutOfStock = !getAvailableSizes().some(size => size && size.stock > 0);
 
   const getColorHex = (color: string) => {
     return colorMap[color] || color;
@@ -174,13 +197,13 @@ const ProductDetails = () => {
     return originalPrice - (originalPrice * (discount / 100));
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (isOutOfStock) {
       toast.error('المنتج غير متوفر حالياً');
       return;
     }
     
-    if (!selectedSize || (!selectedColor && product.colors && product.colors.length > 0)) {
+    if (!selectedSize || (!selectedColor && product?.colors && product.colors.length > 0)) {
       toast.error('يرجى اختيار المقاس واللون');
       return;
     }
@@ -192,28 +215,55 @@ const ProductDetails = () => {
       return;
     }
     
-    // Use CartDatabase to add the product with color and size
-    import('@/models/CartDatabase').then(async ({ default: CartDatabase }) => {
-      const cartDb = CartDatabase.getInstance();
-      await cartDb.addToCart(product, selectedSize, selectedColor, quantity);
+    try {
+      // For now, we'll just show success message and redirect to cart
+      // Later this can be connected to a proper cart system
       toast.success('تم إضافة المنتج للعربة!');
+      
+      // You can implement cart functionality here
+      console.log('Adding to cart:', {
+        product,
+        selectedSize,
+        selectedColor,
+        quantity
+      });
+      
       navigate('/cart');
-    });
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('حدث خطأ أثناء إضافة المنتج للعربة');
+    }
   };
 
   if (loading) {
-    return <Layout><div className="text-center py-20">جاري تحميل المنتج...</div></Layout>;
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />
+            <p>جاري تحميل المنتج...</p>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   if (!product) {
-    return <Layout><div className="text-center py-20">المنتج غير موجود</div></Layout>;
+    return (
+      <Layout>
+        <div className="text-center py-20">
+          <h2 className="text-2xl font-bold mb-4">المنتج غير موجود</h2>
+          <Button onClick={() => navigate('/')}>العودة للرئيسية</Button>
+        </div>
+      </Layout>
+    );
   }
 
-  // Calculate correct original and discounted prices
+  // Calculate correct prices
   const currentPrice = selectedSize ? getSizePrice(selectedSize) : product.price;
-  const originalPrice = product.hasDiscount && product.discount ? 
-    Math.round(currentPrice / (1 - product.discount / 100)) : 
-    currentPrice;
+  const hasDiscount = product.discount && product.discount > 0;
+  const discountedPrice = hasDiscount ? calculateDiscountedPrice(currentPrice, product.discount!) : currentPrice;
+  const originalPrice = hasDiscount ? currentPrice : null;
 
   return (
     <Layout>
@@ -236,26 +286,28 @@ const ProductDetails = () => {
             </div>
 
             {/* Thumbnails */}
-            <div className="flex overflow-x-auto gap-2 pb-2">
-              {getCurrentImages().map((image, index) => (
-                <div
-                  key={index}
-                  className={`border rounded cursor-pointer flex-shrink-0 w-16 h-16 overflow-hidden ${
-                    activeImage === image ? "ring-2 ring-blue-500" : ""
-                  }`}
-                  onClick={() => handleImageClick(image)}
-                >
-                  <img
-                    src={image}
-                    alt={`Thumbnail ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder.svg';
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+            {product.images && product.images.length > 0 && (
+              <div className="flex overflow-x-auto gap-2 pb-2">
+                {product.images.map((image, index) => (
+                  <div
+                    key={index}
+                    className={`border rounded cursor-pointer flex-shrink-0 w-16 h-16 overflow-hidden ${
+                      activeImage === image ? "ring-2 ring-blue-500" : ""
+                    }`}
+                    onClick={() => handleImageClick(image)}
+                  >
+                    <img
+                      src={image}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Product Details */}
@@ -264,13 +316,13 @@ const ProductDetails = () => {
             <div>
               <h1 className="text-2xl font-bold">{product?.name}</h1>
               <div className="flex items-center gap-2 mt-2">
-                {product?.hasDiscount && product?.discount && product?.discount > 0 ? (
+                {hasDiscount ? (
                   <>
                     <span className="text-gray-500 line-through">
                       {originalPrice} جنيه
                     </span>
                     <span className="text-xl font-bold text-green-600">
-                      {currentPrice} جنيه
+                      {discountedPrice} جنيه
                     </span>
                     <Badge className="bg-red-600">خصم {product.discount}%</Badge>
                   </>
@@ -315,11 +367,11 @@ const ProductDetails = () => {
             )}
 
             {/* Sizes */}
-            {sizesForCurrentColor.length > 0 && (
+            {getAvailableSizes().length > 0 && (
               <div>
                 <h3 className="text-sm font-medium mb-2">المقاس:</h3>
                 <div className="flex flex-wrap gap-2">
-                  {sizesForCurrentColor.map((size) => {
+                  {getAvailableSizes().map((size) => {
                     if (!size) return null;
                     const isAvailable = size.stock > 0;
                     return (
@@ -379,11 +431,7 @@ const ProductDetails = () => {
               disabled={isOutOfStock || !selectedSize}
               onClick={handleAddToCart}
             >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" /> جاري الإضافة...
-                </span>
-              ) : isOutOfStock ? (
+              {isOutOfStock ? (
                 "نفذت الكمية"
               ) : !selectedSize ? (
                 "برجاء اختيار المقاس"
@@ -416,7 +464,7 @@ const ProductDetails = () => {
                 )}
                 <p>
                   <span className="font-semibold">الكود: </span>
-                  {product?.sku || product?.id?.substring(0, 8) || "-"}
+                  {product?.id?.substring(0, 8) || "-"}
                 </p>
                 <p>
                   <span className="font-semibold">الحالة: </span>

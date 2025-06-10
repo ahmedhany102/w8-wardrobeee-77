@@ -1,17 +1,17 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { ProductFormData, ProductUpdateData } from '@/types/product';
 import { useAuth } from '@/contexts/AuthContext';
 import { validateRequiredFields, validateUpdateFields } from '@/utils/productValidation';
 import { cleanProductDataForInsert } from '@/utils/productUtils';
+import { toastManager } from '@/utils/toastManager';
 
 export const useProductOperations = () => {
   const { user } = useAuth();
 
   const addProduct = async (productData: ProductFormData) => {
     if (!user) {
-      toast.error('You must be logged in to add products');
+      toastManager.error('You must be logged in to add products');
       return null;
     }
 
@@ -20,7 +20,7 @@ export const useProductOperations = () => {
       
       const validationError = validateRequiredFields(productData);
       if (validationError) {
-        toast.error(validationError);
+        toastManager.error(validationError);
         return null;
       }
 
@@ -37,29 +37,30 @@ export const useProductOperations = () => {
 
       if (error) {
         console.error('❌ Failed to add product:', error);
-        toast.error('Failed to add product: ' + error.message);
+        toastManager.error('Failed to add product: ' + error.message);
         return null;
       }
 
       console.log('✅ Product added successfully:', data);
+      toastManager.success('Product added successfully!');
       return data;
     } catch (error: any) {
       console.error('💥 Exception while adding product:', error);
-      toast.error('Failed to add product: ' + error.message);
+      toastManager.error('Failed to add product: ' + error.message);
       return null;
     }
   };
 
   const updateProduct = async (id: string, updates: ProductUpdateData) => {
     if (!user) {
-      toast.error('You must be logged in to update products');
+      toastManager.error('You must be logged in to update products');
       return null;
     }
 
     try {
       const validationError = validateUpdateFields(updates);
       if (validationError) {
-        toast.error(validationError);
+        toastManager.error(validationError);
         return null;
       }
 
@@ -94,22 +95,23 @@ export const useProductOperations = () => {
 
       if (error) {
         console.error('❌ Failed to update product:', error);
-        toast.error('Failed to update product: ' + error.message);
+        toastManager.error('Failed to update product: ' + error.message);
         return null;
       }
 
       console.log('✅ Product updated successfully:', data);
+      toastManager.success('Product updated successfully!');
       return data;
     } catch (error: any) {
       console.error('💥 Exception while updating product:', error);
-      toast.error('Failed to update product: ' + error.message);
+      toastManager.error('Failed to update product: ' + error.message);
       return null;
     }
   };
 
   const deleteProduct = async (id: string) => {
     if (!user) {
-      toast.error('You must be logged in to delete products');
+      toastManager.error('You must be logged in to delete products');
       return null;
     }
 
@@ -123,15 +125,16 @@ export const useProductOperations = () => {
 
       if (error) {
         console.error('❌ Failed to delete product:', error);
-        toast.error('Failed to delete product: ' + error.message);
+        toastManager.error('Failed to delete product: ' + error.message);
         return null;
       }
 
       console.log('✅ Product deleted successfully');
+      toastManager.success('Product deleted successfully!');
       return true;
     } catch (error: any) {
       console.error('💥 Exception while deleting product:', error);
-      toast.error('Failed to delete product: ' + error.message);
+      toastManager.error('Failed to delete product: ' + error.message);
       return null;
     }
   };

@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/AuthContext';
 import { validateProductData } from '@/utils/productValidation';
+import { LoadingFallback } from '@/utils/loadingFallback';
 
 interface Product {
   id: string;
@@ -27,21 +27,31 @@ interface Product {
 export const useProductFetching = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user, isAdmin } = useAuth();
 
   useEffect(() => {
     fetchProducts();
-  }, [user, isAdmin]);
+  }, []);
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      
+      // Start loading timeout fallback
+      LoadingFallback.startTimeout('product-fetch', 5000, () => {
+        setLoading(false);
+        setProducts([]);
+      });
+      
       console.log('🔄 Fetching products with public access...');
       
-      let query = supabase.from('products').select('*');
+      // Fetch products without authentication requirement
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      // Products are now publicly visible thanks to RLS policy
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // Clear loading timeout
+      LoadingFallback.clearTimeout('product-fetch');
       
       if (error) {
         console.error('❌ Error fetching products:', error);
@@ -61,6 +71,7 @@ export const useProductFetching = () => {
       setProducts(validatedProducts);
       
     } catch (error: any) {
+      LoadingFallback.clearTimeout('product-fetch');
       console.error('💥 Exception while fetching products:', error);
       toast.error('Failed to load products: ' + error.message);
       setProducts([]);

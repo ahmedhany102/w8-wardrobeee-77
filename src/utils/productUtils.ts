@@ -1,53 +1,109 @@
 
-import { ProductFormData, ProductUpdateData, DatabaseProductData } from '@/types/product';
+import { ProductFormData, DatabaseProductData } from '@/types/product';
 
-export const cleanProductDataForInsert = (data: ProductFormData, userId: string): DatabaseProductData => {
-  console.log('🧹 Cleaning product data for insert:', data);
+export const cleanProductDataForInsert = (productData: ProductFormData, userId: string): DatabaseProductData => {
+  console.log('🧹 Cleaning product data for database insertion:', productData);
+  
+  // Ensure arrays are properly formatted
+  const cleanImages = Array.isArray(productData.images) ? 
+    productData.images.filter(Boolean) : [];
+  const cleanColors = Array.isArray(productData.colors) ? 
+    productData.colors.filter(Boolean) : [];
+  
+  // Clean and structure sizes data properly
+  const cleanSizes = Array.isArray(productData.sizes) ? 
+    productData.sizes
+      .filter(size => size && size.size && typeof size.size === 'string')
+      .map(size => ({
+        size: String(size.size).trim(),
+        stock: Number(size.stock) || 0,
+        price: Number(size.price) || Number(productData.price) || 0
+      })) : [];
+
+  // Calculate total inventory from all sizes
+  const totalInventory = cleanSizes.reduce((sum, size) => sum + size.stock, 0);
+  
+  // Prepare main image
+  const mainImage = productData.main_image || cleanImages[0] || '';
   
   const cleanData: DatabaseProductData = {
     user_id: userId,
-    name: data.name.trim(),
-    description: data.description?.trim() || '',
-    price: parseFloat(String(data.price)),
-    type: data.type,
-    category: data.category || 'Men',
-    main_image: data.main_image || '',
-    image_url: data.main_image || '',
-    images: Array.isArray(data.images) ? data.images.filter(Boolean) : [],
-    colors: Array.isArray(data.colors) ? data.colors.filter(Boolean) : [],
-    sizes: Array.isArray(data.sizes) ? data.sizes.filter(size => size?.size) : [],
-    discount: parseFloat(String(data.discount)) || 0,
-    featured: Boolean(data.featured),
-    stock: parseInt(String(data.stock)) || 0,
-    inventory: parseInt(String(data.inventory)) || parseInt(String(data.stock || 0)) || 0
+    name: String(productData.name || '').trim(),
+    description: String(productData.description || '').trim(),
+    price: Number(productData.price) || (cleanSizes.length > 0 ? cleanSizes[0].price : 0),
+    type: String(productData.type || '').trim(),
+    category: String(productData.category || productData.type || '').trim(),
+    main_image: mainImage,
+    image_url: mainImage, // Keep both for compatibility
+    images: cleanImages,
+    colors: cleanColors,
+    sizes: cleanSizes, // This will be stored as JSONB
+    discount: Number(productData.discount) || 0,
+    featured: Boolean(productData.featured),
+    stock: Number(productData.stock) || totalInventory,
+    inventory: Number(productData.inventory) || totalInventory
   };
-  
-  console.log('✅ Cleaned data for database:', cleanData);
+
+  console.log('✅ Cleaned product data:', cleanData);
   return cleanData;
 };
 
-export const cleanProductDataForUpdate = (data: ProductUpdateData): Record<string, any> => {
-  console.log('🧹 Cleaning product data for update:', data);
+export const formatProductForDisplay = (rawProduct: any) => {
+  if (!rawProduct) return null;
   
-  const updateData: Record<string, any> = {};
-  
-  if (data.name) updateData.name = data.name.trim();
-  if (data.description !== undefined) updateData.description = data.description?.trim() || '';
-  if (data.price) updateData.price = parseFloat(String(data.price));
-  if (data.type) updateData.type = data.type;
-  if (data.category) updateData.category = data.category;
-  if (data.main_image !== undefined) {
-    updateData.main_image = data.main_image || '';
-    updateData.image_url = data.main_image || '';
+  // Ensure sizes is always an array
+  let sizes = [];
+  if (rawProduct.sizes) {
+    if (Array.isArray(rawProduct.sizes)) {
+      sizes = rawProduct.sizes;
+    } else if (typeof rawProduct.sizes === 'string') {
+      try {
+        sizes = JSON.parse(rawProduct.sizes);
+      } catch (e) {
+        console.warn('Failed to parse sizes JSON:', rawProduct.sizes);
+        sizes = [];
+      }
+    }
   }
-  if (data.images) updateData.images = Array.isArray(data.images) ? data.images.filter(Boolean) : [];
-  if (data.colors) updateData.colors = Array.isArray(data.colors) ? data.colors.filter(Boolean) : [];
-  if (data.sizes) updateData.sizes = Array.isArray(data.sizes) ? data.sizes.filter(size => size?.size) : [];
-  if (data.discount !== undefined) updateData.discount = parseFloat(String(data.discount)) || 0;
-  if (data.featured !== undefined) updateData.featured = Boolean(data.featured);
-  if (data.stock !== undefined) updateData.stock = parseInt(String(data.stock)) || 0;
-  if (data.inventory !== undefined) updateData.inventory = parseInt(String(data.inventory)) || parseInt(String(data.stock || 0)) || 0;
   
-  console.log('✅ Cleaned update data:', updateData);
-  return updateData;
+  // Ensure colors is always an array
+  let colors = [];
+  if (rawProduct.colors) {
+    if (Array.isArray(rawProduct.colors)) {
+      colors = rawProduct.colors;
+    } else if (typeof rawProduct.colors === 'string') {
+      try {
+        colors = JSON.parse(rawProduct.colors);
+      } catch (e) {
+        console.warn('Failed to parse colors JSON:', rawProduct.colors);
+        colors = [];
+      }
+    }
+  }
+  
+  // Ensure images is always an array
+  let images = [];
+  if (rawProduct.images) {
+    if (Array.isArray(rawProduct.images)) {
+      images = rawProduct.images;
+    } else if (typeof rawProduct.images === 'string') {
+      try {
+        images = JSON.parse(rawProduct.images);
+      } catch (e) {
+        console.warn('Failed to parse images JSON:', rawProduct.images);
+        images = [];
+      }
+    }
+  }
+  
+  return {
+    ...rawProduct,
+    sizes,
+    colors,
+    images,
+    price: Number(rawProduct.price) || 0,
+    discount: Number(rawProduct.discount) || 0,
+    stock: Number(rawProduct.stock) || 0,
+    inventory: Number(rawProduct.inventory) || 0
+  };
 };
