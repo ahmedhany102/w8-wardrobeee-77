@@ -2,164 +2,137 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ProductFormData, ProductUpdateData } from '@/types/product';
-import { validateRequiredFields, validateUpdateFields, cleanProductDataForInsert, cleanProductDataForUpdate } from '@/utils/productUtils';
+import { useAuth } from '@/contexts/AuthContext';
+import { validateRequiredFields, validateUpdateFields } from '@/utils/productValidation';
+import { cleanProductDataForInsert } from '@/utils/productUtils';
 
 export const useProductOperations = () => {
+  const { user } = useAuth();
+
   const addProduct = async (productData: ProductFormData) => {
+    if (!user) {
+      toast.error('You must be logged in to add products');
+      return null;
+    }
+
     try {
-      console.log('Adding product to Supabase:', productData);
-      
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        const errorMsg = 'You must be logged in to add products';
-        console.error('User authentication error:', userError);
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
+      console.log('🎯 Adding product with complete data validation...', productData);
       
       const validationError = validateRequiredFields(productData);
       if (validationError) {
-        console.error('Validation error:', validationError);
         toast.error(validationError);
-        throw new Error(validationError);
+        return null;
       }
 
-      const cleanProductData = cleanProductDataForInsert(productData, user.id);
+      const userId = user.id;
+      const cleanData = cleanProductDataForInsert(productData, userId);
       
-      console.log('Cleaned product data for database insert:', cleanProductData);
+      console.log('📤 Sending to database:', cleanData);
       
       const { data, error } = await supabase
         .from('products')
-        .insert([cleanProductData])
+        .insert(cleanData)
         .select()
         .single();
-      
+
       if (error) {
-        console.error('Supabase insert error:', error);
+        console.error('❌ Failed to add product:', error);
         toast.error('Failed to add product: ' + error.message);
-        throw error;
+        return null;
       }
-      
-      if (!data) {
-        const errorMsg = 'No data returned from database insert';
-        console.error(errorMsg);
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-      
-      console.log('Product successfully added to database:', data);
-      toast.success('Product added successfully');
-      
+
+      console.log('✅ Product added successfully:', data);
       return data;
-      
-    } catch (error) {
-      console.error('Exception in addProduct:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('💥 Exception while adding product:', error);
+      toast.error('Failed to add product: ' + error.message);
+      return null;
     }
   };
 
   const updateProduct = async (id: string, updates: ProductUpdateData) => {
+    if (!user) {
+      toast.error('You must be logged in to update products');
+      return null;
+    }
+
     try {
-      console.log('Updating product in database:', id, updates);
-      
-      if (!id) {
-        const errorMsg = 'Product ID is required for update';
-        console.error(errorMsg);
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        const errorMsg = 'You must be logged in to update products';
-        console.error('User authentication error:', userError);
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
       const validationError = validateUpdateFields(updates);
       if (validationError) {
-        console.error('Validation error:', validationError);
         toast.error(validationError);
-        throw new Error(validationError);
+        return null;
       }
 
-      const cleanUpdates = cleanProductDataForUpdate(updates);
+      const updateData: Record<string, any> = {};
       
-      console.log('Cleaned update data:', cleanUpdates);
+      if (updates.name) updateData.name = updates.name.trim();
+      if (updates.description !== undefined) updateData.description = updates.description?.trim() || '';
+      if (updates.price) updateData.price = parseFloat(String(updates.price));
+      if (updates.type) updateData.type = updates.type;
+      if (updates.category) updateData.category = updates.category;
+      if (updates.main_image !== undefined) {
+        updateData.main_image = updates.main_image || '';
+        updateData.image_url = updates.main_image || '';
+      }
+      if (updates.images) updateData.images = Array.isArray(updates.images) ? updates.images.filter(Boolean) : [];
+      if (updates.colors) updateData.colors = Array.isArray(updates.colors) ? updates.colors.filter(Boolean) : [];
+      if (updates.sizes) updateData.sizes = Array.isArray(updates.sizes) ? updates.sizes.filter(size => size?.size) : [];
+      if (updates.discount !== undefined) updateData.discount = parseFloat(String(updates.discount)) || 0;
+      if (updates.featured !== undefined) updateData.featured = Boolean(updates.featured);
+      if (updates.stock !== undefined) updateData.stock = parseInt(String(updates.stock)) || 0;
+      if (updates.inventory !== undefined) updateData.inventory = parseInt(String(updates.inventory)) || parseInt(String(updates.stock || 0)) || 0;
+
+      const userId = user.id;
       
       const { data, error } = await supabase
         .from('products')
-        .update(cleanUpdates)
+        .update(updateData)
         .eq('id', id)
+        .eq('user_id', userId)
         .select()
         .single();
-      
+
       if (error) {
-        console.error('Supabase update error:', error);
+        console.error('❌ Failed to update product:', error);
         toast.error('Failed to update product: ' + error.message);
-        throw error;
+        return null;
       }
-      
-      if (!data) {
-        const errorMsg = 'No data returned from database update';
-        console.error(errorMsg);
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-      
-      console.log('Product successfully updated in database:', data);
-      toast.success('Product updated successfully');
-      
+
+      console.log('✅ Product updated successfully:', data);
       return data;
-      
-    } catch (error) {
-      console.error('Exception in updateProduct:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('💥 Exception while updating product:', error);
+      toast.error('Failed to update product: ' + error.message);
+      return null;
     }
   };
 
   const deleteProduct = async (id: string) => {
+    if (!user) {
+      toast.error('You must be logged in to delete products');
+      return null;
+    }
+
     try {
-      console.log('Deleting product from database:', id);
-      
-      if (!id) {
-        const errorMsg = 'Product ID is required for deletion';
-        console.error(errorMsg);
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        const errorMsg = 'You must be logged in to delete products';
-        console.error('User authentication error:', userError);
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-
+      const userId = user.id;
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', id);
-      
+        .eq('id', id)
+        .eq('user_id', userId);
+
       if (error) {
-        console.error('Supabase delete error:', error);
+        console.error('❌ Failed to delete product:', error);
         toast.error('Failed to delete product: ' + error.message);
-        throw error;
+        return null;
       }
-      
-      console.log('Product successfully deleted from database');
-      toast.success('Product deleted successfully');
-      
+
+      console.log('✅ Product deleted successfully');
       return true;
-      
-    } catch (error) {
-      console.error('Exception in deleteProduct:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('💥 Exception while deleting product:', error);
+      toast.error('Failed to delete product: ' + error.message);
+      return null;
     }
   };
 

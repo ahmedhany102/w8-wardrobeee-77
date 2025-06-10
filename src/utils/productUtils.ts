@@ -1,29 +1,6 @@
 
 import { ProductFormData, ProductUpdateData, DatabaseProductData } from '@/types/product';
 
-export const validateRequiredFields = (data: ProductFormData): string | null => {
-  if (!data.name || data.name.trim() === '') {
-    return 'Product name is required';
-  }
-  if (!data.price || isNaN(Number(data.price)) || Number(data.price) <= 0) {
-    return 'Valid price is required';
-  }
-  if (!data.type || data.type.trim() === '') {
-    return 'Product type is required';
-  }
-  return null;
-};
-
-export const validateUpdateFields = (data: ProductUpdateData): string | null => {
-  if (data.name !== undefined && (!data.name || data.name.trim() === '')) {
-    return 'Product name cannot be empty';
-  }
-  if (data.price !== undefined && (isNaN(Number(data.price)) || Number(data.price) <= 0)) {
-    return 'Valid price is required';
-  }
-  return null;
-};
-
 export const cleanProductDataForInsert = (data: ProductFormData, userId: string): DatabaseProductData => {
   console.log('🧹 Cleaning product data for insert:', data);
   
