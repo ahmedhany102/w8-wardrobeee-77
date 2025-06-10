@@ -1,5 +1,6 @@
 
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { secureLogin, secureSignup, secureLogout, checkAdminStatus } from '@/utils/secureAuth';
 import { createSanitizedUserSchema } from '@/utils/sanitization';
 
