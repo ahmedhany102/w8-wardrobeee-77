@@ -44,7 +44,12 @@ export const useSupabaseCoupons = () => {
       }
       
       console.log('✅ Coupons fetched:', data?.length || 0);
-      setCoupons(data || []);
+      // Type assertion to ensure discount_type is properly typed
+      const typedCoupons = (data || []).map(coupon => ({
+        ...coupon,
+        discount_type: coupon.discount_type as 'percentage' | 'fixed'
+      })) as Coupon[];
+      setCoupons(typedCoupons);
       
     } catch (error: any) {
       console.error('💥 Exception while fetching coupons:', error);
@@ -69,7 +74,10 @@ export const useSupabaseCoupons = () => {
         return null;
       }
 
-      const coupon = data as Coupon;
+      const coupon = {
+        ...data,
+        discount_type: data.discount_type as 'percentage' | 'fixed'
+      } as Coupon;
 
       // Check expiration
       if (coupon.expiration_date && new Date(coupon.expiration_date) < new Date()) {

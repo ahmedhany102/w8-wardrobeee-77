@@ -26,7 +26,6 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
   // Get the default image - handle both arrays and strings
   const mainImage =
     (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
-    (product.main_image && product.main_image !== "" ? product.main_image : null) ||
     (product.images && Array.isArray(product.images) && product.images.length > 0 && product.images[0]) ||
     "/placeholder.svg";
   

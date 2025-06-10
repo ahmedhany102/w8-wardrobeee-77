@@ -42,8 +42,7 @@ export const cleanProductDataForInsert = (data: ProductFormData, userId: string)
     discount: parseFloat(String(data.discount)) || 0,
     featured: Boolean(data.featured),
     stock: parseInt(String(data.stock)) || 0,
-    inventory: parseInt(String(data.inventory)) || parseInt(String(data.stock || 0)) || 0,
-    status: 'active'
+    inventory: parseInt(String(data.inventory)) || parseInt(String(data.stock || 0)) || 0
   };
   
   console.log('✅ Cleaned data for database:', cleanData);

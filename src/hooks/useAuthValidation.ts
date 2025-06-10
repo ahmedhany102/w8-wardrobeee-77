@@ -31,15 +31,23 @@ export const useAuthValidation = () => {
       
       // Clear any potentially corrupted localStorage data first
       try {
-        const authKey = `sb-${supabase.supabaseUrl.split('//')[1].split('.')[0]}-auth-token`;
-        const authData = localStorage.getItem(authKey);
-        if (authData) {
-          const parsed = JSON.parse(authData);
-          if (!parsed || !parsed.access_token || !parsed.user) {
-            console.log('🧹 Clearing corrupted localStorage auth data');
-            localStorage.removeItem(authKey);
+        // Use a safe way to construct the auth key without accessing protected properties
+        const authKeys = Object.keys(localStorage).filter(key => key.startsWith('sb-') && key.includes('-auth-token'));
+        authKeys.forEach(authKey => {
+          const authData = localStorage.getItem(authKey);
+          if (authData) {
+            try {
+              const parsed = JSON.parse(authData);
+              if (!parsed || !parsed.access_token || !parsed.user) {
+                console.log('🧹 Clearing corrupted localStorage auth data');
+                localStorage.removeItem(authKey);
+              }
+            } catch (e) {
+              console.log('🧹 Removing corrupted auth key:', authKey);
+              localStorage.removeItem(authKey);
+            }
           }
-        }
+        });
       } catch (e) {
         console.log('🧹 Clearing corrupted localStorage due to parse error');
         Object.keys(localStorage)
