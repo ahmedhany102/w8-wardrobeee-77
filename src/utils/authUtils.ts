@@ -3,17 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { User } from '@supabase/supabase-js';
 import type { AuthUser } from '@/types/auth';
+import { secureLogout } from './secureAuth';
 
-export const clearSessionData = async () => {
-  console.log('🧹 Clearing session data and signing out');
-  
-  // Clear all storage
-  localStorage.clear();
-  sessionStorage.clear();
-  
-  // Sign out from Supabase
-  await supabase.auth.signOut();
-};
+export const clearSessionData = secureLogout;
 
 export const fetchUserWithRetry = async (retries = 2, delayMs = 500): Promise<User | null> => {
   for (let attempt = 1; attempt <= retries; attempt++) {
@@ -62,7 +54,6 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
 
     if (!profile) {
       console.log('👤 Creating new profile for user:', userEmail);
-      const isAdmin = userEmail === 'ahmedhanyseifeldien@gmail.com';
       
       const { data: newProfile, error: insertError } = await supabase
         .from('profiles')
@@ -70,9 +61,9 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
           id: userId,
           email: userEmail,
           name: userEmail?.split('@')[0] || 'User',
-          role: isAdmin ? 'ADMIN' : 'USER',
-          is_admin: isAdmin,
-          is_super_admin: isAdmin,
+          role: 'USER', // Default to USER, admin status managed separately
+          is_admin: false,
+          is_super_admin: false,
           status: 'ACTIVE'
         })
         .select()

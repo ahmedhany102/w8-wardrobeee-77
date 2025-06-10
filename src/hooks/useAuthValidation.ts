@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import type { AuthUser } from '@/types/auth';
-import { clearSessionData, fetchUserProfile } from '@/utils/authUtils';
+import { secureLogout } from '@/utils/secureAuth';
+import { fetchUserProfile } from '@/utils/authUtils';
 
 export const useAuthValidation = () => {
   const [loading, setLoading] = useState(true);
@@ -16,14 +17,14 @@ export const useAuthValidation = () => {
     let timeoutId: NodeJS.Timeout | null = null;
     
     try {
-      console.log('🔍 Starting session validation with timeout protection...');
+      console.log('🔍 Starting secure session validation...');
       setLoading(true);
       
       // Set up timeout protection - auto-logout after 3 seconds if stuck
       timeoutId = setTimeout(() => {
         console.warn('⏰ Session validation timeout - auto-logout triggered');
         toast.error('Session expired. Please log in again.');
-        clearSessionData();
+        secureLogout();
         setSession(null);
         setUser(null);
         setLoading(false);
@@ -31,8 +32,9 @@ export const useAuthValidation = () => {
       
       // Clear any potentially corrupted localStorage data first
       try {
-        // Use a safe way to construct the auth key without accessing protected properties
-        const authKeys = Object.keys(localStorage).filter(key => key.startsWith('sb-') && key.includes('-auth-token'));
+        const authKeys = Object.keys(localStorage).filter(key => 
+          key.startsWith('sb-') && key.includes('-auth-token')
+        );
         authKeys.forEach(authKey => {
           const authData = localStorage.getItem(authKey);
           if (authData) {
@@ -66,7 +68,7 @@ export const useAuthValidation = () => {
       
       if (sessionError) {
         console.error('❌ Session validation error:', sessionError);
-        await clearSessionData();
+        await secureLogout();
         setSession(null);
         setUser(null);
         setLoading(false);
@@ -96,7 +98,7 @@ export const useAuthValidation = () => {
           id: currentSession.user.id,
           email: currentSession.user.email!,
           name: currentSession.user.email?.split('@')[0] || 'User',
-          role: currentSession.user.email === 'ahmedhanyseifeldien@gmail.com' ? 'ADMIN' : 'USER'
+          role: 'USER' // Default to USER, admin check will happen server-side
         };
         console.log('⚠️ Using fallback user data:', basicUserData);
         setUser(basicUserData);
@@ -108,7 +110,7 @@ export const useAuthValidation = () => {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      await clearSessionData();
+      await secureLogout();
       setSession(null);
       setUser(null);
       toast.error('Authentication failed. Please try logging in again.');
