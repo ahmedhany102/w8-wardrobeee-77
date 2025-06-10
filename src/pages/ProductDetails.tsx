@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatProductForDisplay } from '@/utils/productUtils';
 import { LoadingFallback } from '@/utils/loadingFallback';
+import { useCartIntegration } from '@/hooks/useCartIntegration';
 
 // Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
@@ -52,12 +53,14 @@ interface Product {
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { addToCart } = useCartIntegration();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string>('');
+  const [addingToCart, setAddingToCart] = useState(false);
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -216,22 +219,37 @@ const ProductDetails = () => {
     }
     
     try {
-      // For now, we'll just show success message and redirect to cart
-      // Later this can be connected to a proper cart system
-      toast.success('تم إضافة المنتج للعربة!');
+      setAddingToCart(true);
       
-      // You can implement cart functionality here
-      console.log('Adding to cart:', {
-        product,
-        selectedSize,
-        selectedColor,
-        quantity
-      });
+      // Convert product to the format expected by CartDatabase
+      const productForCart = {
+        id: product!.id,
+        name: product!.name,
+        price: getSizePrice(selectedSize),
+        mainImage: product!.main_image,
+        images: product!.images,
+        colors: product!.colors,
+        sizes: product!.sizes,
+        description: product!.description,
+        category: product!.category || product!.type,
+        inventory: product!.inventory || product!.stock || 0,
+        featured: product!.featured,
+        discount: product!.discount,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
       
-      navigate('/cart');
+      const success = await addToCart(productForCart, selectedSize, selectedColor || '', quantity);
+      
+      if (success) {
+        // Optional: Navigate to cart or stay on page
+        // navigate('/cart');
+      }
     } catch (error) {
       console.error('Error adding to cart:', error);
       toast.error('حدث خطأ أثناء إضافة المنتج للعربة');
+    } finally {
+      setAddingToCart(false);
     }
   };
 
@@ -428,10 +446,14 @@ const ProductDetails = () => {
             {/* Add to cart button */}
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={isOutOfStock || !selectedSize}
+              disabled={isOutOfStock || !selectedSize || addingToCart}
               onClick={handleAddToCart}
             >
-              {isOutOfStock ? (
+              {addingToCart ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" /> جاري الإضافة...
+                </span>
+              ) : isOutOfStock ? (
                 "نفذت الكمية"
               ) : !selectedSize ? (
                 "برجاء اختيار المقاس"

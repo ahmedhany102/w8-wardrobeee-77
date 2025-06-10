@@ -19,7 +19,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({ className, ...props }) =>
     <div className="relative">
       <Input
         type={showPassword ? "text" : "password"}
-        className={`pr-10 ${className}`}
+        className={`pr-10 text-foreground placeholder:text-gray-500 ${className}`}
         {...props}
       />
       <Button
