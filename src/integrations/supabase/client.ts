@@ -45,11 +45,12 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storage: safeLocalStorage
+    storage: safeLocalStorage,
+    flowType: 'pkce'
   }
 });
 
-// Enhanced auth state monitoring for debugging with corruption detection
+// Enhanced auth state monitoring with better session handling
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('🔔 Supabase Auth Event:', event);
   console.log('🔑 Session exists:', !!session);
@@ -72,5 +73,9 @@ supabase.auth.onAuthStateChange((event, session) => {
   
   if (event === 'SIGNED_OUT') {
     console.log('🧹 User signed out, clearing auth storage');
+  }
+  
+  if (event === 'SIGNED_IN') {
+    console.log('🎉 User signed in successfully');
   }
 });

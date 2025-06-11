@@ -45,53 +45,6 @@ export type Database = {
         }
         Relationships: []
       }
-      appointments: {
-        Row: {
-          appointment_date: string
-          created_at: string
-          doctor_id: string
-          end_time: string
-          id: string
-          notes: string | null
-          patient_id: string
-          start_time: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          appointment_date: string
-          created_at?: string
-          doctor_id: string
-          end_time: string
-          id?: string
-          notes?: string | null
-          patient_id: string
-          start_time: string
-          status: string
-          updated_at?: string
-        }
-        Update: {
-          appointment_date?: string
-          created_at?: string
-          doctor_id?: string
-          end_time?: string
-          id?: string
-          notes?: string | null
-          patient_id?: string
-          start_time?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "appointments_patient_id_fkey"
-            columns: ["patient_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       cart_items: {
         Row: {
           color: string | null
@@ -412,42 +365,6 @@ export type Database = {
           name?: string | null
           role?: string | null
           status?: string | null
-        }
-        Relationships: []
-      }
-      users: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string | null
-          first_name: string
-          id: string
-          last_name: string
-          phone: string | null
-          role: string
-          updated_at: string
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          first_name: string
-          id?: string
-          last_name: string
-          phone?: string | null
-          role: string
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string | null
-          first_name?: string
-          id?: string
-          last_name?: string
-          phone?: string | null
-          role?: string
-          updated_at?: string
         }
         Relationships: []
       }
