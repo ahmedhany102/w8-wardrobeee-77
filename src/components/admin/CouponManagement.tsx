@@ -96,7 +96,7 @@ const CouponManagement = () => {
                 <label className="block text-sm font-medium mb-1">Discount Type</label>
                 <select
                   value={formData.discount_type}
-                  onChange={(e) => setFormData({ ...formData, discount_type: e.target.value as 'percentage' | 'fixed' })}
+                  onChange={(e) => setFormData({ ...formData, discount_type: e.target.value })}
                   className="w-full p-2 border rounded"
                   required
                 >

@@ -63,12 +63,12 @@ function App() {
                 {/* Admin routes */}
                 <Route element={<RequireAuth adminOnly={true} />}>
                   <Route path="/admin" element={<Admin />} />
-                  <Route path="/admin/products" element={<Admin activeTab="products" />} />
-                  <Route path="/admin/orders" element={<Admin activeTab="orders" />} />
-                  <Route path="/admin/users" element={<Admin activeTab="users" />} />
-                  <Route path="/admin/coupons" element={<Admin activeTab="coupons" />} />
-                  <Route path="/admin/contact" element={<Admin activeTab="contact" />} />
-                  <Route path="/admin/ads" element={<Admin activeTab="ads" />} />
+                  <Route path="/admin/products" element={<Admin />} />
+                  <Route path="/admin/orders" element={<Admin />} />
+                  <Route path="/admin/users" element={<Admin />} />
+                  <Route path="/admin/coupons" element={<Admin />} />
+                  <Route path="/admin/contact" element={<Admin />} />
+                  <Route path="/admin/ads" element={<Admin />} />
                 </Route>
 
                 {/* 404 */}

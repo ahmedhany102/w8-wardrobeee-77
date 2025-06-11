@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -6,7 +5,7 @@ import { toast } from 'sonner';
 interface Coupon {
   id: string;
   code: string;
-  discount_type: 'percentage' | 'fixed';
+  discount_type: string; // Changed from 'percentage' | 'fixed' to string to match database
   discount_value: number;
   expiration_date?: string;
   usage_limit?: number;
