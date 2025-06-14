@@ -68,11 +68,10 @@ export const useSupabaseCoupons = () => {
         .from('coupons')
         .select('*')
         .eq('code', code.toUpperCase())
-        .eq('is_active', true)
         .single();
 
       if (error || !data) {
-        console.log('❌ Coupon not found or inactive:', error);
+        console.log('❌ Coupon not found:', error);
         toast.error('Invalid coupon code');
         return null;
       }
@@ -82,30 +81,54 @@ export const useSupabaseCoupons = () => {
         discount_type: data.discount_type as 'percentage' | 'fixed'
       } as Coupon;
 
-      console.log('✅ Found coupon:', coupon);
+      console.log('✅ Found coupon in DB:', coupon);
 
-      // Check expiration
-      if (coupon.expiration_date && new Date(coupon.expiration_date) < new Date()) {
-        console.log('❌ Coupon expired');
-        toast.error('This coupon has expired');
+      // Check if coupon is active
+      if (!coupon.is_active) {
+        console.log('❌ Coupon is not active');
+        toast.error('This coupon is not active');
         return null;
       }
 
-      // Check usage limit
+      // Check expiration - FIXED LOGIC
+      if (coupon.expiration_date) {
+        const expirationDate = new Date(coupon.expiration_date);
+        const currentDate = new Date();
+        console.log('📅 Checking expiration:', {
+          expiration: expirationDate.toISOString(),
+          current: currentDate.toISOString(),
+          expired: expirationDate < currentDate
+        });
+        
+        if (expirationDate < currentDate) {
+          console.log('❌ Coupon expired');
+          toast.error('This coupon has expired');
+          return null;
+        }
+      }
+
+      // Check usage limit - FIXED LOGIC
       if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
-        console.log('❌ Coupon usage limit reached');
+        console.log('❌ Coupon usage limit reached:', {
+          used: coupon.used_count,
+          limit: coupon.usage_limit
+        });
         toast.error('This coupon has reached its usage limit');
         return null;
       }
 
-      // Check minimum amount
+      // Check minimum amount - FIXED LOGIC
       if (coupon.minimum_amount && orderTotal < coupon.minimum_amount) {
-        console.log('❌ Order total below minimum amount');
+        console.log('❌ Order total below minimum amount:', {
+          orderTotal,
+          minimumRequired: coupon.minimum_amount
+        });
         toast.error(`Minimum order amount of ${coupon.minimum_amount} EGP required for this coupon`);
         return null;
       }
 
-      console.log('✅ Coupon validation successful');
+      console.log('✅ Coupon validation successful - all checks passed');
+      toast.success('Coupon applied successfully!');
       return coupon;
     } catch (error: any) {
       console.error('Error validating coupon:', error);

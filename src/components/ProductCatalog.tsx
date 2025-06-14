@@ -66,21 +66,40 @@ const ProductCatalog: React.FC = () => {
   const menCat = mainCategories.find(c => c.slug === "men");
   const menSubs = menCat ? subcategories(menCat.id) : [];
 
-  // Filter products based on selected subcategory
+  // Filter products based on selected subcategory - FIXED LOGIC
   const filteredProducts = React.useMemo(() => {
     let baseProducts = searchFilteredProducts;
     
+    console.log('🔍 Filtering products:', {
+      activeSubcat,
+      totalProducts: baseProducts.length,
+      menSubs: menSubs.map(s => ({ id: s.id, name: s.name }))
+    });
+    
     if (activeSubcat === "ALL") {
+      console.log('✅ Showing all products:', baseProducts.length);
       return baseProducts;
     }
     
-    // Filter by selected subcategory using category_id
-    return baseProducts.filter(p => p.category_id === activeSubcat);
-  }, [searchFilteredProducts, activeSubcat]);
+    // Filter by selected subcategory using category_id - FIXED
+    const filtered = baseProducts.filter(p => {
+      const matches = p.category_id === activeSubcat;
+      console.log('📦 Product category check:', {
+        productName: p.name,
+        productCategoryId: p.category_id,
+        targetCategoryId: activeSubcat,
+        matches
+      });
+      return matches;
+    });
+    
+    console.log('✅ Filtered products result:', filtered.length);
+    return filtered;
+  }, [searchFilteredProducts, activeSubcat, menSubs]);
 
-  // Handle category tab changes from ProductCatalogTabs
+  // Handle category tab changes from ProductCatalogTabs - FIXED
   const handleTabChange = (value: string) => {
-    console.log('Tab changed to:', value);
+    console.log('🎯 Tab changed to:', value);
     
     // Map tab values to subcategory IDs
     if (value === "ALL") {
@@ -93,8 +112,10 @@ const ProductCatalog: React.FC = () => {
       );
       
       if (matchingSubcat) {
+        console.log('✅ Found matching subcategory:', matchingSubcat);
         setActiveSubcat(matchingSubcat.id);
       } else {
+        console.log('❌ No matching subcategory found, showing all');
         setActiveSubcat("ALL");
       }
     }

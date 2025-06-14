@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -162,7 +163,7 @@ export const useSupabaseProducts = () => {
       console.log('🆕 Adding product with data:', productData);
       console.log('🎯 CRITICAL - Category ID being saved:', productData.category_id);
       
-      // Ensure data is properly formatted for database
+      // Ensure data is properly formatted for database - REMOVED colorImages
       const cleanProductData = {
         ...productData,
         // CRITICAL: Ensure category_id is included
@@ -171,8 +172,7 @@ export const useSupabaseProducts = () => {
         images: Array.isArray(productData.images) ? productData.images : [],
         colors: Array.isArray(productData.colors) ? productData.colors : [],
         sizes: Array.isArray(productData.sizes) ? productData.sizes : [],
-        // Store color-to-image mapping properly
-        colorImages: productData.colorImages || {},
+        // REMOVED: colorImages field - this was causing the error
         // Ensure numbers are properly formatted
         price: Number(productData.price) || 0,
         discount: Number(productData.discount) || 0,
@@ -181,7 +181,6 @@ export const useSupabaseProducts = () => {
       };
       
       console.log('📤 Final data being sent to DB:', cleanProductData);
-      console.log('🎨 Color images mapping:', cleanProductData.colorImages);
       
       // Insert and immediately select the created product
       const { data, error } = await supabase
@@ -215,15 +214,14 @@ export const useSupabaseProducts = () => {
     try {
       console.log('✏️ Updating product:', id, updates);
       
-      // Ensure data is properly formatted for database
+      // Ensure data is properly formatted for database - REMOVED colorImages
       const cleanUpdates = {
         ...updates,
         // Ensure arrays are properly formatted as JSON
         images: Array.isArray(updates.images) ? updates.images : updates.images ? [updates.images] : [],
         colors: Array.isArray(updates.colors) ? updates.colors : updates.colors ? [updates.colors] : [],
         sizes: Array.isArray(updates.sizes) ? updates.sizes : updates.sizes ? [updates.sizes] : [],
-        // Store color-to-image mapping properly
-        colorImages: updates.colorImages || {},
+        // REMOVED: colorImages field - this was causing the update error
         // Ensure numbers are properly formatted
         price: updates.price !== undefined ? Number(updates.price) : undefined,
         discount: updates.discount !== undefined ? Number(updates.discount) : undefined,
@@ -237,6 +235,8 @@ export const useSupabaseProducts = () => {
           delete cleanUpdates[key];
         }
       });
+      
+      console.log('📤 Clean update data (no colorImages):', cleanUpdates);
       
       // Update and immediately select the updated product
       const { data, error } = await supabase

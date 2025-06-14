@@ -59,6 +59,8 @@ const AdManagement = () => {
     }
 
     try {
+      console.log('📝 Adding new ad with data:', { title: newAdTitle, active: newAdActive });
+      
       const { data, error } = await supabase
         .from('ads')
         .insert([{
@@ -71,7 +73,10 @@ const AdManagement = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error adding ad:', error);
+        throw error;
+      }
 
       console.log('✅ Ad added successfully:', data);
       toast.success('Ad added successfully!');
@@ -84,7 +89,7 @@ const AdManagement = () => {
       setShowAddDialog(false);
       
       // Refresh ads list
-      refetch();
+      await refetch();
     } catch (error: any) {
       console.error('❌ Error adding ad:', error);
       toast.error('Failed to add ad: ' + error.message);
@@ -99,6 +104,8 @@ const AdManagement = () => {
     }
 
     try {
+      console.log('✏️ Updating ad:', editingAd.id);
+      
       const { data, error } = await supabase
         .from('ads')
         .update({
@@ -111,31 +118,43 @@ const AdManagement = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error updating ad:', error);
+        throw error;
+      }
 
       console.log('✅ Ad updated successfully:', data);
       toast.success('Ad updated successfully!');
       setEditingAd(null);
-      refetch();
+      await refetch();
     } catch (error: any) {
       console.error('❌ Error updating ad:', error);
       toast.error('Failed to update ad: ' + error.message);
     }
   };
 
-  // Delete ad
+  // Delete ad - FIXED
   const handleDeleteAd = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this ad?')) {
+      return;
+    }
+
     try {
+      console.log('🗑️ Deleting ad:', id);
+      
       const { error } = await supabase
         .from('ads')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error deleting ad:', error);
+        throw error;
+      }
 
       console.log('✅ Ad deleted successfully');
       toast.success('Ad deleted successfully!');
-      refetch();
+      await refetch();
     } catch (error: any) {
       console.error('❌ Error deleting ad:', error);
       toast.error('Failed to delete ad: ' + error.message);
@@ -145,16 +164,21 @@ const AdManagement = () => {
   // Toggle ad active status
   const toggleAdStatus = async (id: string, currentStatus: boolean) => {
     try {
+      console.log('🔄 Toggling ad status:', id, 'from', currentStatus, 'to', !currentStatus);
+      
       const { error } = await supabase
         .from('ads')
         .update({ is_active: !currentStatus })
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Error updating ad status:', error);
+        throw error;
+      }
 
       console.log('✅ Ad status updated successfully');
       toast.success('Ad status updated successfully!');
-      refetch();
+      await refetch();
     } catch (error: any) {
       console.error('❌ Error updating ad status:', error);
       toast.error('Failed to update ad status: ' + error.message);

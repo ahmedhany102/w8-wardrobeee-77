@@ -26,6 +26,7 @@ const AdCarousel: React.FC = () => {
   const loadActiveAds = async () => {
     setLoading(true);
     const ads = await fetchActiveAds();
+    console.log('🎬 Active ads loaded for carousel:', ads.length);
     setActiveAds(ads);
     setLoading(false);
   };
@@ -33,8 +34,13 @@ const AdCarousel: React.FC = () => {
   // Auto-rotate ads every 5 seconds if multiple ads exist
   useEffect(() => {
     if (activeAds.length > 1) {
+      console.log('🔄 Starting ad rotation with', activeAds.length, 'ads');
       const interval = setInterval(() => {
-        setCurrentAdIndex((prev) => (prev + 1) % activeAds.length);
+        setCurrentAdIndex((prev) => {
+          const newIndex = (prev + 1) % activeAds.length;
+          console.log('🎬 Rotating to ad index:', newIndex);
+          return newIndex;
+        });
       }, 5000);
       return () => clearInterval(interval);
     }
@@ -42,12 +48,14 @@ const AdCarousel: React.FC = () => {
 
   const handleAdClick = (ad: Ad) => {
     if (ad.redirect_url) {
+      console.log('🔗 Clicking ad with redirect:', ad.redirect_url);
       window.open(ad.redirect_url, '_blank');
     }
   };
 
   // Don't render anything if no ads or still loading
   if (loading || activeAds.length === 0) {
+    console.log('🚫 Not showing ad carousel - loading:', loading, 'ads count:', activeAds.length);
     return null;
   }
 
@@ -84,7 +92,7 @@ const AdCarousel: React.FC = () => {
             </div>
           )}
 
-          {/* Pagination dots for multiple ads */}
+          {/* Pagination dots for multiple ads - only if more than 1 ad */}
           {activeAds.length > 1 && (
             <div className="absolute bottom-4 right-4 flex space-x-2">
               {activeAds.map((_, index) => (
@@ -92,6 +100,7 @@ const AdCarousel: React.FC = () => {
                   key={index}
                   onClick={(e) => {
                     e.stopPropagation();
+                    console.log('🎯 Manual ad selection:', index);
                     setCurrentAdIndex(index);
                   }}
                   className={`w-3 h-3 rounded-full transition-all ${

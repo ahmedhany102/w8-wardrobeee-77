@@ -241,7 +241,6 @@ const ImprovedProductForm = ({
     let formattedSizes: SizeWithStock[] = [];
     let formattedColors: string[] = [];
     let allImages: string[] = [];
-    let colorImages: Record<string, string[]> = {};
     
     // Build image arrays properly separated
     if (mainImage) {
@@ -255,10 +254,10 @@ const ImprovedProductForm = ({
       // Process variations
       formattedColors = colorVariations.map(color => color.colorName);
       
-      // Build color-to-images mapping
+      // Add color-specific images to the main images array
       colorVariations.forEach(color => {
-        if (color.image && color.colorName) {
-          colorImages[color.colorName] = [color.image];
+        if (color.image && !allImages.includes(color.image)) {
+          allImages.push(color.image);
         }
       });
       
@@ -287,7 +286,7 @@ const ImprovedProductForm = ({
     // Clear error
     setError("");
     
-    // Create the final product object - CRITICAL: include category_id and properly separated images
+    // Create the final product object - REMOVED colorImages to fix update error
     const productData: any = {
       name: name.trim(),
       category_id: categoryId, // CRITICAL: This must be saved
@@ -295,9 +294,8 @@ const ImprovedProductForm = ({
       discount: hasDiscount ? discount : 0,
       main_image: mainImage, // Main product image
       image_url: mainImage, // Keep both for compatibility
-      images: allImages, // All images including main + gallery
+      images: allImages, // All images including main + gallery + color images
       colors: hasColorVariations ? formattedColors : [], // Store as array
-      colorImages: hasColorVariations ? colorImages : {}, // Store color-to-image mapping
       sizes: formattedSizes, // Store as array
       price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
       inventory: calculatedInventory,
@@ -306,10 +304,9 @@ const ImprovedProductForm = ({
     };
     
     console.log('🎯 Submitting product data with category_id:', productData.category_id);
-    console.log('📸 Image data:', { 
+    console.log('📸 Image data (no colorImages):', { 
       main_image: productData.main_image, 
-      images: productData.images,
-      colorImages: productData.colorImages 
+      images: productData.images
     });
     
     // Submit the product
