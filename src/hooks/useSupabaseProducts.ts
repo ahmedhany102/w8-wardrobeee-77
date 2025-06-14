@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -65,14 +64,15 @@ export const useSupabaseProducts = () => {
       
       // Process and clean the data to ensure consistent JSON structure
       const cleanedProducts = (data || []).map(product => {
-        // Clean images field
+        // Clean images field - properly cast Json to string[]
         let cleanImages: string[] = [];
         if (product.images) {
           if (Array.isArray(product.images)) {
-            cleanImages = product.images.filter(Boolean);
+            cleanImages = (product.images as string[]).filter(Boolean);
           } else if (typeof product.images === 'string') {
             try {
-              cleanImages = JSON.parse(product.images).filter(Boolean);
+              const parsed = JSON.parse(product.images);
+              cleanImages = Array.isArray(parsed) ? parsed.filter(Boolean) : [];
             } catch (e) {
               console.warn('Failed to parse images JSON:', product.images);
               cleanImages = [];
@@ -80,14 +80,15 @@ export const useSupabaseProducts = () => {
           }
         }
         
-        // Clean colors field
+        // Clean colors field - properly cast Json to string[]
         let cleanColors: string[] = [];
         if (product.colors) {
           if (Array.isArray(product.colors)) {
-            cleanColors = product.colors.filter(Boolean);
+            cleanColors = (product.colors as string[]).filter(Boolean);
           } else if (typeof product.colors === 'string') {
             try {
-              cleanColors = JSON.parse(product.colors).filter(Boolean);
+              const parsed = JSON.parse(product.colors);
+              cleanColors = Array.isArray(parsed) ? parsed.filter(Boolean) : [];
             } catch (e) {
               console.warn('Failed to parse colors JSON:', product.colors);
               cleanColors = [];
@@ -95,14 +96,29 @@ export const useSupabaseProducts = () => {
           }
         }
         
-        // Clean sizes field
+        // Clean sizes field - properly cast Json to size objects array
         let cleanSizes: Array<{ size: string; stock: number; price?: number }> = [];
         if (product.sizes) {
           if (Array.isArray(product.sizes)) {
-            cleanSizes = product.sizes.filter(size => size && size.size);
+            cleanSizes = (product.sizes as any[])
+              .filter(size => size && typeof size === 'object' && size.size)
+              .map(size => ({
+                size: String(size.size).trim(),
+                stock: Number(size.stock) || 0,
+                price: Number(size.price) || Number(product.price) || 0
+              }));
           } else if (typeof product.sizes === 'string') {
             try {
-              cleanSizes = JSON.parse(product.sizes).filter((size: any) => size && size.size);
+              const parsed = JSON.parse(product.sizes);
+              if (Array.isArray(parsed)) {
+                cleanSizes = parsed
+                  .filter(size => size && typeof size === 'object' && size.size)
+                  .map(size => ({
+                    size: String(size.size).trim(),
+                    stock: Number(size.stock) || 0,
+                    price: Number(size.price) || Number(product.price) || 0
+                  }));
+              }
             } catch (e) {
               console.warn('Failed to parse sizes JSON:', product.sizes);
               cleanSizes = [];
