@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { Product, SizeWithStock, ColorImage } from "@/models/Product";
+import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import CategorySelector from "./CategorySelector";
@@ -24,32 +25,6 @@ interface ProductFormProps {
   predefinedTypes?: string[];
 }
 
-// Define available categories with nested structure
-const categoryStructure = {
-  "رجالي": {
-    "أحذية": null,
-    "تيشيرتات": null,
-    "بناطيل": null
-  },
-  "حريمي": {
-    "فساتين": null,
-    "أحذية": null,
-    "بلوزات": null
-  },
-  "أطفال": {
-    "أولاد": {
-      "تيشيرتات": null,
-      "بناطيل": null,
-      "أحذية": null
-    },
-    "بنات": {
-      "فساتين": null,
-      "تيشيرتات": null, 
-      "أحذية": null
-    }
-  }
-};
-
 const ImprovedProductForm = ({
   initialData = {}, 
   onSubmit, 
@@ -62,7 +37,6 @@ const ImprovedProductForm = ({
   // Basic product information
   const [name, setName] = useState(initialData.name || "");
   const [categoryId, setCategoryId] = useState(initialData.category_id || "");
-  const [type, setType] = useState(initialData.type || "");
   const [details, setDetails] = useState(initialData.details || initialData.description || "");
   const [mainImage, setMainImage] = useState(initialData.main_image || initialData.image_url || "");
   
@@ -83,15 +57,10 @@ const ImprovedProductForm = ({
 
   // Initialize colorVariations from initialData if available
   useEffect(() => {
-    if (initialData.colorImages && initialData.colors) {
+    if (initialData.colors && Array.isArray(initialData.colors) && initialData.colors.length > 0) {
       const variations: ColorVariation[] = [];
       
       initialData.colors.forEach(colorName => {
-        // Get the array of images for this color from the Record
-        const colorImagesArray = initialData.colorImages?.[colorName] || [];
-        // Use the first image as the main color image
-        const colorImage = colorImagesArray.length > 0 ? colorImagesArray[0] : "";
-        
         // Filter sizes for this color (in this initial version, we don't have color-specific sizes)
         // so we'll just assign all sizes to all colors
         const colorSizes = initialData.sizes ? 
@@ -103,7 +72,7 @@ const ImprovedProductForm = ({
           
         variations.push({
           colorName,
-          image: colorImage,
+          image: initialData.main_image || "",
           sizes: colorSizes
         });
       });
@@ -186,22 +155,6 @@ const ImprovedProductForm = ({
     setColorVariations(updated);
   };
 
-  // Get current level options for category selection
-  const getCategoryOptions = (path: string[] = [], level: number = 0) => {
-    let current = categoryStructure as any;
-    
-    // Traverse the path to get to the current level
-    for (let i = 0; i < level; i++) {
-      if (!path[i] || !current[path[i]]) {
-        return [];
-      }
-      current = current[path[i]];
-    }
-    
-    if (current === null) return [];
-    return Object.keys(current);
-  };
-
   // Form validation
   const validateForm = () => {
     // Basic validation
@@ -252,17 +205,11 @@ const ImprovedProductForm = ({
     // Format data for submission
     let formattedSizes: SizeWithStock[] = [];
     let formattedColors: string[] = [];
-    let formattedColorImages: Record<string, string[]> = {};
     let mainImageUrl = mainImage;
     
     if (hasColorVariations) {
       // Process variations
       formattedColors = colorVariations.map(color => color.colorName);
-      
-      // Convert color variations to Record<string, string[]> format
-      colorVariations.forEach(color => {
-        formattedColorImages[color.colorName] = [color.image];
-      });
       
       // If no main image is set, use the first color's image
       if (!mainImage && colorVariations.length > 0 && colorVariations[0].image) {
@@ -294,36 +241,28 @@ const ImprovedProductForm = ({
     // Clear error
     setError("");
     
-    // Create the final product object
+    // Create the final product object - ONLY include fields that exist in the database
     const productData: any = {
       name: name.trim(),
       category_id: categoryId,
-      type: type.trim(),
       description: details,
-      details,
-      hasDiscount,
       discount: hasDiscount ? discount : 0,
       main_image: mainImageUrl,
-      images: [mainImageUrl],
-      colors: hasColorVariations ? formattedColors : [],
-      colorImages: hasColorVariations ? formattedColorImages : {},
-      sizes: formattedSizes,
+      image_url: mainImageUrl, // Keep both for compatibility
+      images: [mainImageUrl], // Store as array
+      colors: hasColorVariations ? formattedColors : [], // Store as array
+      sizes: formattedSizes, // Store as array
       price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
       inventory: calculatedInventory,
-      created_at: initialData.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      stock: calculatedInventory,
+      featured: false // Default value
     };
+    
+    console.log('🎯 Submitting product data:', productData);
     
     // Submit the product
     onSubmit(productData);
   };
-
-  // Render category selectors based on the current path
-  const renderCategorySelectors = () => (
-    <div className="mb-4">
-      <CategorySelector value={categoryId} onChange={setCategoryId} />
-    </div>
-  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto p-4">
@@ -343,19 +282,7 @@ const ImprovedProductForm = ({
           </div>
           
           <div className="space-y-4">
-            {renderCategorySelectors()}
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-1">النوع*</label>
-            <input
-              type="text"
-              value={type}
-              onChange={e => setType(e.target.value)}
-              className="w-full p-2 border rounded text-sm"
-              required
-              placeholder="مثل: قميص كاجوال، بدلة رسمية، إلخ"
-            />
+            <CategorySelector value={categoryId} onChange={setCategoryId} />
           </div>
         </div>
 

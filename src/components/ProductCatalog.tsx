@@ -24,6 +24,7 @@ const ProductCatalog: React.FC = () => {
   } = useProductFiltering(products);
 
   const [showCartDialog, setShowCartDialog] = React.useState(false);
+  const [activeSubcat, setActiveSubcat] = React.useState<string>("ALL");
 
   // Convert cart items to the format expected by ShoppingCartDialog
   const cartForDialog = cartItems.map(item => ({
@@ -58,20 +59,49 @@ const ProductCatalog: React.FC = () => {
 
   const handleProceedToCheckout = () => {
     setShowCartDialog(false);
-    // Navigate to checkout page or implement checkout logic
     window.location.href = '/cart';
   };
 
-  // Filtered menus: Only show Men + Men subs for now
+  // Get Men category and its subcategories
   const menCat = mainCategories.find(c => c.slug === "men");
   const menSubs = menCat ? subcategories(menCat.id) : [];
-  const [activeSubcat, setActiveSubcat] = React.useState<string>("ALL");
 
+  // Filter products based on selected subcategory
   const filteredProducts = React.useMemo(() => {
-    if (activeSubcat === "ALL") return products;
-    // Filter by selected subcategory
-    return products.filter(p => p.category_id === activeSubcat);
-  }, [products, activeSubcat]);
+    let baseProducts = searchFilteredProducts;
+    
+    if (activeSubcat === "ALL") {
+      return baseProducts;
+    }
+    
+    // Filter by selected subcategory using category_id
+    return baseProducts.filter(p => p.category_id === activeSubcat);
+  }, [searchFilteredProducts, activeSubcat]);
+
+  // Handle category tab changes from ProductCatalogTabs
+  const handleTabChange = (value: string) => {
+    console.log('Tab changed to:', value);
+    
+    // Map tab values to subcategory IDs
+    if (value === "ALL") {
+      setActiveSubcat("ALL");
+    } else {
+      // Find the subcategory that matches the tab value
+      const matchingSubcat = menSubs.find(sub => 
+        sub.name.toLowerCase().includes(value.toLowerCase()) ||
+        value.toLowerCase().includes(sub.name.toLowerCase())
+      );
+      
+      if (matchingSubcat) {
+        setActiveSubcat(matchingSubcat.id);
+      } else {
+        setActiveSubcat("ALL");
+      }
+    }
+    
+    // Also call the original category change handler
+    handleCategoryChange(value);
+  };
 
   return (
     <div className="container mx-auto px-4 py-4">
@@ -84,27 +114,8 @@ const ProductCatalog: React.FC = () => {
       
       <ProductCatalogTabs 
         activeTab={activeCategory} 
-        onTabChange={handleCategoryChange}
+        onTabChange={handleTabChange}
       >
-        {/* Build category tabs */}
-        <div className="flex gap-2 my-3">
-          <button
-            className={`px-3 py-1 rounded ${activeSubcat === "ALL" ? "bg-green-600 text-white" : "bg-gray-200"}`}
-            onClick={() => setActiveSubcat("ALL")}
-          >
-            الكل
-          </button>
-          {menSubs.map(sub => (
-            <button
-              key={sub.id}
-              className={`px-3 py-1 rounded ${activeSubcat === sub.id ? "bg-green-600 text-white" : "bg-gray-200"}`}
-              onClick={() => setActiveSubcat(sub.id)}
-            >
-              {sub.name}
-            </button>
-          ))}
-        </div>
-        
         <ProductGrid 
           products={filteredProducts}
           loading={loading}
