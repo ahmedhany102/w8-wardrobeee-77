@@ -70,16 +70,9 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         color = product.colors[0];
       }
 
-      // Add to cart using CartDatabase
-      await CartDatabase.addToCart({
-        productId: product.id,
-        name: product.name,
-        price: minPrice,
-        imageUrl: mainImage,
-        size,
-        color,
-        quantity: 1
-      });
+      // Add to cart using CartDatabase singleton instance
+      const cartDb = CartDatabase.getInstance();
+      await cartDb.addToCart(product, size, color, 1);
 
       toast.success("تم إضافة المنتج إلى السلة");
     } catch (error) {
