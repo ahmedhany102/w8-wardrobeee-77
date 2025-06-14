@@ -27,12 +27,16 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
     <div>
       <label className="block text-sm font-medium mb-1">Category*</label>
       <select
-        value={value || ""}
-        onChange={e => onChange(e.target.value)}
+        value={value || "placeholder"}
+        onChange={e => {
+          if (e.target.value !== "placeholder") {
+            onChange(e.target.value);
+          }
+        }}
         className="w-full p-2 border rounded text-sm"
         required
       >
-        <option value="">Select a subcategory</option>
+        <option value="placeholder" disabled>Select a subcategory</option>
         {menSubcategories.map((sub) => (
           <option key={sub.id} value={sub.id}>{sub.name}</option>
         ))}
