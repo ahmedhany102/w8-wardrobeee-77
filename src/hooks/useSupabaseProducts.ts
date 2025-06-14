@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -136,7 +135,7 @@ export const useSupabaseProducts = () => {
       
       console.log('✅ Cleaned products:', cleanedProducts.length);
       console.log('📊 Sample product structure:', cleanedProducts[0]);
-      setProducts(cleanedProducts);
+      setProducts((data || []).map(p => ({ ...p, category_id: p.category_id })));
       
     } catch (error: any) {
       LoadingFallback.clearTimeout('product-fetch');

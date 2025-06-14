@@ -1,4 +1,3 @@
-
 import React from 'react';
 import SearchBar from './SearchBar';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
@@ -12,14 +11,13 @@ import { useCategories } from "@/hooks/useCategories";
 
 const ProductCatalog: React.FC = () => {
   const { products, loading } = useSupabaseProducts();
-  const { mainCategories, subcategories } = useCategories();
+  const { categories } = useCategories();
   const { cartItems, cartCount, addToCart: addToCartDB, removeFromCart, updateQuantity, clearCart } = useCartIntegration();
   const {
     filteredProducts: searchFilteredProducts,
     activeCategory,
     searchQuery,
     handleCategoryChange,
-    handleSearch,
     clearFilters
   } = useProductFiltering(products);
 
@@ -62,67 +60,13 @@ const ProductCatalog: React.FC = () => {
     window.location.href = '/cart';
   };
 
-  // Get Men category and its subcategories
-  const menCat = mainCategories.find(c => c.slug === "men");
-  const menSubs = menCat ? subcategories(menCat.id) : [];
-
-  // Filter products based on selected subcategory - FIXED LOGIC
-  const filteredProducts = React.useMemo(() => {
-    let baseProducts = searchFilteredProducts;
-    
-    console.log('🔍 Filtering products:', {
-      activeSubcat,
-      totalProducts: baseProducts.length,
-      menSubs: menSubs.map(s => ({ id: s.id, name: s.name }))
-    });
-    
-    if (activeSubcat === "ALL") {
-      console.log('✅ Showing all products:', baseProducts.length);
-      return baseProducts;
-    }
-    
-    // Filter by selected subcategory using category_id - FIXED
-    const filtered = baseProducts.filter(p => {
-      const matches = p.category_id === activeSubcat;
-      console.log('📦 Product category check:', {
-        productName: p.name,
-        productCategoryId: p.category_id,
-        targetCategoryId: activeSubcat,
-        matches
-      });
-      return matches;
-    });
-    
-    console.log('✅ Filtered products result:', filtered.length);
-    return filtered;
-  }, [searchFilteredProducts, activeSubcat, menSubs]);
-
-  // Handle category tab changes from ProductCatalogTabs - FIXED
-  const handleTabChange = (value: string) => {
-    console.log('🎯 Tab changed to:', value);
-    
-    // Map tab values to subcategory IDs
-    if (value === "ALL") {
-      setActiveSubcat("ALL");
-    } else {
-      // Find the subcategory that matches the tab value
-      const matchingSubcat = menSubs.find(sub => 
-        sub.name.toLowerCase().includes(value.toLowerCase()) ||
-        value.toLowerCase().includes(sub.name.toLowerCase())
-      );
-      
-      if (matchingSubcat) {
-        console.log('✅ Found matching subcategory:', matchingSubcat);
-        setActiveSubcat(matchingSubcat.id);
-      } else {
-        console.log('❌ No matching subcategory found, showing all');
-        setActiveSubcat("ALL");
-      }
-    }
-    
-    // Also call the original category change handler
-    handleCategoryChange(value);
-  };
+  // Filtering logic:
+const filteredProducts = React.useMemo(() => {
+  if (!activeCategory || activeCategory === "ALL") return searchFilteredProducts;
+  return searchFilteredProducts.filter(
+    (p) => p.category_id === activeCategory
+  );
+}, [searchFilteredProducts, activeCategory]);
 
   return (
     <div className="container mx-auto px-4 py-4">
@@ -131,11 +75,11 @@ const ProductCatalog: React.FC = () => {
         onCartClick={() => setShowCartDialog(true)}
       />
       
-      <SearchBar onSearch={handleSearch} />
+      <SearchBar onSearch={handleCategoryChange} />
       
       <ProductCatalogTabs 
         activeTab={activeCategory} 
-        onTabChange={handleTabChange}
+        onTabChange={handleCategoryChange}
       >
         <ProductGrid 
           products={filteredProducts}

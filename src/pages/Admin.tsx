@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -11,7 +10,7 @@ import CouponManagement from "@/components/admin/CouponManagement";
 import AdminContactSettings from "@/components/admin/AdminContactSettings";
 import AdManagement from "@/components/admin/AdManagement";
 import UsersPanel from "@/components/admin/UsersPanel";
-import CategoryManagement from "@/components/admin/CategoryManagement";
+import CategoryCRUD from "@/components/admin/CategoryCRUD";
 import AdminDashboardStats from "@/components/AdminDashboardStats";
 import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree } from "lucide-react";
 import { useSupabaseProducts, useSupabaseUsers, useSupabaseOrders } from "@/hooks/useSupabaseData";
@@ -83,7 +82,7 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <Home className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الرئيسية</span>
             </TabsTrigger>
-            <TabsTrigger value="categories" onClick={() => navigate("/admin/categories")}>
+            <TabsTrigger value="categories" onClick={() => setCurrentTab("categories")}>
               <FolderTree className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الأقسام</span>
             </TabsTrigger>
@@ -130,7 +129,7 @@ const Admin = ({ activeTab = "dashboard" }) => {
           </TabsContent>
 
           <TabsContent value="categories">
-            <CategoryManagement />
+            <CategoryCRUD />
           </TabsContent>
 
           <TabsContent value="products">

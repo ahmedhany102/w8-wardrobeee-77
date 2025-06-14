@@ -280,6 +280,50 @@ export type Database = {
         }
         Relationships: []
       }
+      product_variants: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          image_url: string
+          price: number
+          product_id: string
+          size: string
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          image_url: string
+          price: number
+          product_id: string
+          size: string
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          image_url?: string
+          price?: number
+          product_id?: string
+          size?: string
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
