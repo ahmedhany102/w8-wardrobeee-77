@@ -171,6 +171,8 @@ export const useSupabaseProducts = () => {
         images: Array.isArray(productData.images) ? productData.images : [],
         colors: Array.isArray(productData.colors) ? productData.colors : [],
         sizes: Array.isArray(productData.sizes) ? productData.sizes : [],
+        // Store color-to-image mapping properly
+        colorImages: productData.colorImages || {},
         // Ensure numbers are properly formatted
         price: Number(productData.price) || 0,
         discount: Number(productData.discount) || 0,
@@ -179,6 +181,7 @@ export const useSupabaseProducts = () => {
       };
       
       console.log('📤 Final data being sent to DB:', cleanProductData);
+      console.log('🎨 Color images mapping:', cleanProductData.colorImages);
       
       // Insert and immediately select the created product
       const { data, error } = await supabase
@@ -219,6 +222,8 @@ export const useSupabaseProducts = () => {
         images: Array.isArray(updates.images) ? updates.images : updates.images ? [updates.images] : [],
         colors: Array.isArray(updates.colors) ? updates.colors : updates.colors ? [updates.colors] : [],
         sizes: Array.isArray(updates.sizes) ? updates.sizes : updates.sizes ? [updates.sizes] : [],
+        // Store color-to-image mapping properly
+        colorImages: updates.colorImages || {},
         // Ensure numbers are properly formatted
         price: updates.price !== undefined ? Number(updates.price) : undefined,
         discount: updates.discount !== undefined ? Number(updates.discount) : undefined,

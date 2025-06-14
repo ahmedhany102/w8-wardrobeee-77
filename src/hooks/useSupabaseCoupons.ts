@@ -116,18 +116,26 @@ export const useSupabaseCoupons = () => {
 
   const applyCoupon = async (couponId: string): Promise<boolean> => {
     try {
-      // Increment usage count
-      const { error } = await supabase
-        .from('coupons')
-        .update({ 
-          used_count: supabase.sql`used_count + 1`,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', couponId);
+      // Increment usage count using RPC call
+      const { error } = await supabase.rpc('increment_coupon_usage', {
+        coupon_id: couponId
+      });
 
       if (error) {
         console.error('Error applying coupon:', error);
-        return false;
+        // Fallback to manual increment
+        const { error: updateError } = await supabase
+          .from('coupons')
+          .update({ 
+            used_count: 0, // Will be updated by trigger if exists
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', couponId);
+        
+        if (updateError) {
+          console.error('Error applying coupon (fallback):', updateError);
+          return false;
+        }
       }
 
       console.log('✅ Coupon applied successfully');

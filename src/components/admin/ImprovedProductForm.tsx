@@ -51,13 +51,13 @@ const ImprovedProductForm = ({
   const [simpleProductPrice, setSimpleProductPrice] = useState(initialData.price || 0);
   const [simpleProductStock, setSimpleProductStock] = useState(initialData.inventory || 0);
 
-  // Additional images for gallery (separate from main image)
+  // Additional images for gallery (separate from main image and color images)
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   
   // Validation state
   const [error, setError] = useState<string>("");
 
-  // Initialize colorVariations from initialData if available
+  // Initialize data from initialData if available
   useEffect(() => {
     if (initialData.colors && Array.isArray(initialData.colors) && initialData.colors.length > 0) {
       const variations: ColorVariation[] = [];
@@ -79,6 +79,13 @@ const ImprovedProductForm = ({
       
       setColorVariations(variations);
       setHasColorVariations(variations.length > 0);
+    }
+
+    // Initialize gallery images (exclude main image)
+    if (initialData.images && Array.isArray(initialData.images)) {
+      const mainImg = initialData.main_image || initialData.image_url;
+      const galleryImgs = initialData.images.filter(img => img !== mainImg);
+      setGalleryImages(galleryImgs);
     }
   }, [initialData]);
 
@@ -234,21 +241,26 @@ const ImprovedProductForm = ({
     let formattedSizes: SizeWithStock[] = [];
     let formattedColors: string[] = [];
     let allImages: string[] = [];
+    let colorImages: Record<string, string[]> = {};
     
-    // Build complete image array: main image + gallery images
+    // Build image arrays properly separated
     if (mainImage) {
       allImages.push(mainImage);
     }
+    
+    // Add gallery images (these are separate from color images)
     allImages = [...allImages, ...galleryImages];
     
     if (hasColorVariations) {
       // Process variations
       formattedColors = colorVariations.map(color => color.colorName);
       
-      // If no main image is set, use the first color's image
-      if (!mainImage && colorVariations.length > 0 && colorVariations[0].image) {
-        allImages = [colorVariations[0].image, ...galleryImages];
-      }
+      // Build color-to-images mapping
+      colorVariations.forEach(color => {
+        if (color.image && color.colorName) {
+          colorImages[color.colorName] = [color.image];
+        }
+      });
       
       // Collect all sizes from all color variations
       colorVariations.forEach(color => {
@@ -275,16 +287,17 @@ const ImprovedProductForm = ({
     // Clear error
     setError("");
     
-    // Create the final product object - CRITICAL: include category_id
+    // Create the final product object - CRITICAL: include category_id and properly separated images
     const productData: any = {
       name: name.trim(),
       category_id: categoryId, // CRITICAL: This must be saved
       description: details,
       discount: hasDiscount ? discount : 0,
-      main_image: allImages.length > 0 ? allImages[0] : "",
-      image_url: allImages.length > 0 ? allImages[0] : "", // Keep both for compatibility
-      images: allImages, // Store complete image array
+      main_image: mainImage, // Main product image
+      image_url: mainImage, // Keep both for compatibility
+      images: allImages, // All images including main + gallery
       colors: hasColorVariations ? formattedColors : [], // Store as array
+      colorImages: hasColorVariations ? colorImages : {}, // Store color-to-image mapping
       sizes: formattedSizes, // Store as array
       price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
       inventory: calculatedInventory,
@@ -293,7 +306,11 @@ const ImprovedProductForm = ({
     };
     
     console.log('🎯 Submitting product data with category_id:', productData.category_id);
-    console.log('📸 Image data:', { main_image: productData.main_image, images: productData.images });
+    console.log('📸 Image data:', { 
+      main_image: productData.main_image, 
+      images: productData.images,
+      colorImages: productData.colorImages 
+    });
     
     // Submit the product
     onSubmit(productData);
@@ -367,7 +384,7 @@ const ImprovedProductForm = ({
 
         {/* Gallery Images Upload */}
         <div className="mt-4">
-          <label className="block text-sm font-medium mb-1">صور إضافية للمعرض</label>
+          <label className="block text-sm font-medium mb-1">صور إضافية للمعرض (منفصلة عن الصورة الرئيسية)</label>
           <input
             type="file"
             accept="image/*"
@@ -487,7 +504,7 @@ const ImprovedProductForm = ({
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">صورة اللون*</label>
+                    <label className="block text-sm font-medium mb-1">صورة اللون* (منفصلة عن باقي الصور)</label>
                     <input
                       type="file"
                       accept="image/*"

@@ -7,7 +7,6 @@ import ProductCatalogHeader from './ProductCatalogHeader';
 import ProductCatalogTabs from './ProductCatalogTabs';
 import ProductGrid from './ProductGrid';
 import ShoppingCartDialog from './ShoppingCartDialog';
-import AdsDisplay from './AdsDisplay';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
 import { useCategories } from "@/hooks/useCategories";
 
@@ -112,11 +111,6 @@ const ProductCatalog: React.FC = () => {
       />
       
       <SearchBar onSearch={handleSearch} />
-      
-      {/* Add Ads Display */}
-      <div className="my-6">
-        <AdsDisplay />
-      </div>
       
       <ProductCatalogTabs 
         activeTab={activeCategory} 

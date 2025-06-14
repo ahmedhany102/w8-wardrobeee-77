@@ -26,10 +26,8 @@ const Index = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6">
-        {/* Ad Carousel - More prominent */}
-        <div className="mb-8">
-          <AdCarousel />
-        </div>
+        {/* Ad Carousel - At the very top */}
+        <AdCarousel />
         
         {/* Greeting Section */}
         {user && (
