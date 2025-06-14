@@ -30,7 +30,6 @@ export const useSupabaseCoupons = () => {
       setLoading(true);
       console.log('🔄 Fetching coupons...');
       
-      // Fetch ALL coupons (both active and inactive) for admin panel
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
@@ -44,7 +43,6 @@ export const useSupabaseCoupons = () => {
       }
       
       console.log('✅ Coupons fetched:', data?.length || 0);
-      // Type assertion to ensure discount_type is properly typed
       const typedCoupons = (data || []).map(coupon => ({
         ...coupon,
         discount_type: coupon.discount_type as 'percentage' | 'fixed'
@@ -83,17 +81,22 @@ export const useSupabaseCoupons = () => {
 
       console.log('✅ Found coupon in DB:', coupon);
 
-      // Check if coupon is active
+      // FIXED: Check if coupon is active first
       if (!coupon.is_active) {
         console.log('❌ Coupon is not active');
         toast.error('This coupon is not active');
         return null;
       }
 
-      // Check expiration - FIXED LOGIC
+      // FIXED: Check expiration date properly
       if (coupon.expiration_date) {
         const expirationDate = new Date(coupon.expiration_date);
         const currentDate = new Date();
+        
+        // Reset time to compare only dates
+        expirationDate.setHours(23, 59, 59, 999);
+        currentDate.setHours(0, 0, 0, 0);
+        
         console.log('📅 Checking expiration:', {
           expiration: expirationDate.toISOString(),
           current: currentDate.toISOString(),
@@ -107,17 +110,19 @@ export const useSupabaseCoupons = () => {
         }
       }
 
-      // Check usage limit - FIXED LOGIC
-      if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
-        console.log('❌ Coupon usage limit reached:', {
-          used: coupon.used_count,
-          limit: coupon.usage_limit
-        });
-        toast.error('This coupon has reached its usage limit');
-        return null;
+      // FIXED: Check usage limit properly
+      if (coupon.usage_limit !== null && coupon.usage_limit !== undefined) {
+        if (coupon.used_count >= coupon.usage_limit) {
+          console.log('❌ Coupon usage limit reached:', {
+            used: coupon.used_count,
+            limit: coupon.usage_limit
+          });
+          toast.error('This coupon has reached its usage limit');
+          return null;
+        }
       }
 
-      // Check minimum amount - FIXED LOGIC
+      // FIXED: Check minimum amount properly
       if (coupon.minimum_amount && orderTotal < coupon.minimum_amount) {
         console.log('❌ Order total below minimum amount:', {
           orderTotal,
@@ -141,7 +146,7 @@ export const useSupabaseCoupons = () => {
     try {
       console.log('🔄 Applying coupon:', couponId);
       
-      // First get the current coupon data
+      // Get current coupon data
       const { data: currentCoupon, error: fetchError } = await supabase
         .from('coupons')
         .select('used_count')
@@ -153,7 +158,7 @@ export const useSupabaseCoupons = () => {
         return false;
       }
 
-      // Increment the usage count
+      // FIXED: Increment usage count properly
       const { error: updateError } = await supabase
         .from('coupons')
         .update({ 

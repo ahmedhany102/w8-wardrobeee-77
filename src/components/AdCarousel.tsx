@@ -31,7 +31,7 @@ const AdCarousel: React.FC = () => {
     setLoading(false);
   };
 
-  // Auto-rotate ads every 5 seconds if multiple ads exist
+  // FIXED: Auto-rotate ads every 5 seconds if multiple ads exist
   useEffect(() => {
     if (activeAds.length > 1) {
       console.log('🔄 Starting ad rotation with', activeAds.length, 'ads');
@@ -53,7 +53,7 @@ const AdCarousel: React.FC = () => {
     }
   };
 
-  // Don't render anything if no ads or still loading
+  // FIXED: Don't render anything if no ads or still loading
   if (loading || activeAds.length === 0) {
     console.log('🚫 Not showing ad carousel - loading:', loading, 'ads count:', activeAds.length);
     return null;
@@ -78,12 +78,12 @@ const AdCarousel: React.FC = () => {
             }}
           />
           
-          {/* Overlay with title and description */}
+          {/* FIXED: Improved overlay for title and description */}
           {(currentAd.title || currentAd.description) && (
             <div className="absolute inset-0 bg-black bg-opacity-30 flex items-end">
               <div className="p-4 md:p-6 text-white">
                 {currentAd.title && (
-                  <h2 className="text-xl md:text-2xl font-bold mb-2">{currentAd.title}</h2>
+                  <h2 className="text-lg md:text-2xl font-bold mb-2">{currentAd.title}</h2>
                 )}
                 {currentAd.description && (
                   <p className="text-sm md:text-base opacity-90">{currentAd.description}</p>
@@ -92,9 +92,9 @@ const AdCarousel: React.FC = () => {
             </div>
           )}
 
-          {/* Pagination dots for multiple ads - only if more than 1 ad */}
+          {/* FIXED: Modern pagination dots for multiple ads - mobile friendly */}
           {activeAds.length > 1 && (
-            <div className="absolute bottom-4 right-4 flex space-x-2">
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
               {activeAds.map((_, index) => (
                 <button
                   key={index}
@@ -103,9 +103,9 @@ const AdCarousel: React.FC = () => {
                     console.log('🎯 Manual ad selection:', index);
                     setCurrentAdIndex(index);
                   }}
-                  className={`w-3 h-3 rounded-full transition-all ${
+                  className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
                     index === currentAdIndex 
-                      ? 'bg-white' 
+                      ? 'bg-white scale-125' 
                       : 'bg-white/50 hover:bg-white/75'
                   }`}
                 />

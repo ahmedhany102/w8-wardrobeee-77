@@ -32,12 +32,10 @@ export const useSupabaseProducts = () => {
     fetchProducts();
   }, []);
 
-  // Fetch all products with their correct category_id (fresh from DB always)
   const fetchProducts = async () => {
     try {
       setLoading(true);
       
-      // Start loading timeout fallback
       LoadingFallback.startTimeout('product-fetch', 5000, () => {
         setLoading(false);
         setProducts([]);
@@ -45,13 +43,11 @@ export const useSupabaseProducts = () => {
       
       console.log('🔄 Fetching products with public access...');
       
-      // Fetch products without authentication requirement
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .order("created_at", { ascending: false });
       
-      // Clear loading timeout
       LoadingFallback.clearTimeout('product-fetch');
       
       if (error) {
@@ -63,9 +59,7 @@ export const useSupabaseProducts = () => {
       
       console.log('✅ Raw products fetched:', data?.length || 0);
       
-      // Process and clean the data to ensure consistent JSON structure
       const cleanedProducts = (data || []).map(product => {
-        // Clean images field - properly cast Json to string[]
         let cleanImages: string[] = [];
         if (product.images) {
           if (Array.isArray(product.images)) {
@@ -81,7 +75,6 @@ export const useSupabaseProducts = () => {
           }
         }
         
-        // Clean colors field - properly cast Json to string[]
         let cleanColors: string[] = [];
         if (product.colors) {
           if (Array.isArray(product.colors)) {
@@ -97,7 +90,6 @@ export const useSupabaseProducts = () => {
           }
         }
         
-        // Clean sizes field - properly cast Json to size objects array
         let cleanSizes: Array<{ size: string; stock: number; price?: number }> = [];
         if (product.sizes) {
           if (Array.isArray(product.sizes)) {
@@ -127,7 +119,6 @@ export const useSupabaseProducts = () => {
           }
         }
 
-        // CRITICAL: Log category_id to verify it's being saved/loaded correctly
         console.log('📦 Product:', product.name, 'Category ID:', product.category_id);
 
         return {
@@ -139,7 +130,6 @@ export const useSupabaseProducts = () => {
           discount: Number(product.discount) || 0,
           stock: Number(product.stock) || 0,
           inventory: Number(product.inventory) || 0,
-          // CRITICAL: Ensure category_id is preserved
           category_id: product.category_id
         };
       });
@@ -163,26 +153,33 @@ export const useSupabaseProducts = () => {
       console.log('🆕 Adding product with data:', productData);
       console.log('🎯 CRITICAL - Category ID being saved:', productData.category_id);
       
-      // Ensure data is properly formatted for database - REMOVED colorImages
+      // FIXED: Ensure category_id is properly set and remove problematic fields
       const cleanProductData = {
-        ...productData,
-        // CRITICAL: Ensure category_id is included
-        category_id: productData.category_id,
-        // Ensure arrays are properly formatted as JSON
-        images: Array.isArray(productData.images) ? productData.images : [],
-        colors: Array.isArray(productData.colors) ? productData.colors : [],
-        sizes: Array.isArray(productData.sizes) ? productData.sizes : [],
-        // REMOVED: colorImages field - this was causing the error
-        // Ensure numbers are properly formatted
+        name: productData.name?.trim() || '',
+        description: productData.description?.trim() || '',
         price: Number(productData.price) || 0,
+        category_id: productData.category_id, // CRITICAL: Must be included
+        main_image: productData.main_image || productData.image_url || '',
+        image_url: productData.main_image || productData.image_url || '',
+        // FIXED: Properly separate main image from additional images
+        images: Array.isArray(productData.images) ? productData.images.filter(Boolean) : [],
+        colors: Array.isArray(productData.colors) ? productData.colors.filter(Boolean) : [],
+        sizes: Array.isArray(productData.sizes) ? productData.sizes.filter(size => size?.size) : [],
         discount: Number(productData.discount) || 0,
-        stock: Number(productData.stock) || 0,
-        inventory: Number(productData.inventory) || 0
+        stock: Number(productData.stock) || Number(productData.inventory) || 0,
+        inventory: Number(productData.inventory) || Number(productData.stock) || 0,
+        featured: Boolean(productData.featured) || false
       };
       
-      console.log('📤 Final data being sent to DB:', cleanProductData);
+      // CRITICAL: Remove any undefined values to prevent DB errors
+      Object.keys(cleanProductData).forEach(key => {
+        if (cleanProductData[key] === undefined) {
+          delete cleanProductData[key];
+        }
+      });
       
-      // Insert and immediately select the created product
+      console.log('📤 Final data being sent to DB (fixed category_id):', cleanProductData);
+      
       const { data, error } = await supabase
         .from('products')
         .insert([cleanProductData])
@@ -195,13 +192,10 @@ export const useSupabaseProducts = () => {
         return false;
       }
       
-      console.log('✅ Product added successfully:', data);
-      console.log('🎯 VERIFICATION - Saved category_id:', data.category_id);
+      console.log('✅ Product added successfully with category_id:', data.category_id);
       toast.success('Product added successfully!');
       
-      // Refresh the products list from database immediately
       await fetchProducts();
-      
       return true;
     } catch (error: any) {
       console.error('💥 Exception adding product:', error);
@@ -214,19 +208,22 @@ export const useSupabaseProducts = () => {
     try {
       console.log('✏️ Updating product:', id, updates);
       
-      // Ensure data is properly formatted for database - REMOVED colorImages
+      // FIXED: Clean update data and ensure category_id is preserved
       const cleanUpdates = {
-        ...updates,
-        // Ensure arrays are properly formatted as JSON
-        images: Array.isArray(updates.images) ? updates.images : updates.images ? [updates.images] : [],
-        colors: Array.isArray(updates.colors) ? updates.colors : updates.colors ? [updates.colors] : [],
-        sizes: Array.isArray(updates.sizes) ? updates.sizes : updates.sizes ? [updates.sizes] : [],
-        // REMOVED: colorImages field - this was causing the update error
-        // Ensure numbers are properly formatted
+        name: updates.name?.trim(),
+        description: updates.description?.trim() || '',
         price: updates.price !== undefined ? Number(updates.price) : undefined,
+        category_id: updates.category_id, // CRITICAL: Preserve category_id
+        main_image: updates.main_image,
+        image_url: updates.main_image,
+        // FIXED: Properly handle image arrays without overwriting
+        images: Array.isArray(updates.images) ? updates.images.filter(Boolean) : undefined,
+        colors: Array.isArray(updates.colors) ? updates.colors.filter(Boolean) : undefined,
+        sizes: Array.isArray(updates.sizes) ? updates.sizes.filter(size => size?.size) : undefined,
         discount: updates.discount !== undefined ? Number(updates.discount) : undefined,
+        featured: updates.featured !== undefined ? Boolean(updates.featured) : undefined,
         stock: updates.stock !== undefined ? Number(updates.stock) : undefined,
-        inventory: updates.inventory !== undefined ? Number(updates.inventory) : undefined
+        inventory: updates.inventory !== undefined ? Number(updates.inventory) : Number(updates.stock) || undefined
       };
       
       // Remove undefined values
@@ -236,9 +233,8 @@ export const useSupabaseProducts = () => {
         }
       });
       
-      console.log('📤 Clean update data (no colorImages):', cleanUpdates);
+      console.log('📤 Clean update data (preserving category_id):', cleanUpdates);
       
-      // Update and immediately select the updated product
       const { data, error } = await supabase
         .from('products')
         .update(cleanUpdates)
@@ -252,12 +248,10 @@ export const useSupabaseProducts = () => {
         return false;
       }
       
-      console.log('✅ Product updated successfully:', data);
+      console.log('✅ Product updated successfully with category_id:', data.category_id);
       toast.success('Product updated successfully!');
       
-      // Refresh the products list from database immediately
       await fetchProducts();
-      
       return true;
     } catch (error: any) {
       console.error('💥 Exception updating product:', error);
@@ -284,9 +278,7 @@ export const useSupabaseProducts = () => {
       console.log('✅ Product deleted successfully');
       toast.success('Product deleted successfully!');
       
-      // Refresh the products list from database immediately
       await fetchProducts();
-      
       return true;
     } catch (error: any) {
       console.error('💥 Exception deleting product:', error);

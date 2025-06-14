@@ -247,7 +247,7 @@ const ImprovedProductForm = ({
       allImages.push(mainImage);
     }
     
-    // Add gallery images (these are separate from color images)
+    // Add gallery images (these are completely separate from color images)
     allImages = [...allImages, ...galleryImages];
     
     if (hasColorVariations) {
@@ -304,9 +304,11 @@ const ImprovedProductForm = ({
     };
     
     console.log('🎯 Submitting product data with category_id:', productData.category_id);
-    console.log('📸 Image data (no colorImages):', { 
+    console.log('📸 Image data structure:', { 
       main_image: productData.main_image, 
-      images: productData.images
+      images: productData.images,
+      galleryImages: galleryImages.length,
+      totalImages: productData.images.length
     });
     
     // Submit the product
