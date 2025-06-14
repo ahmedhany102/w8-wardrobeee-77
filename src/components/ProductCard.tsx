@@ -64,91 +64,141 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
           size = availableSize.size;
         }
       }
-      
-      // Get the first available color or empty string
-      const productColors = Array.isArray(product.colors) ? product.colors : [];
-      if (productColors.length > 0) {
-        color = productColors[0];
+
+      // Get default color if available
+      if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
+        color = product.colors[0];
       }
-      
-      // Add to cart - fixing by passing all required arguments: product, size, color, quantity
-      const cartDb = await CartDatabase.getInstance();
-      await cartDb.addToCart(product, size, color, 1);
-      
-      toast.success("تمت إضافة المنتج إلى سلة التسوق");
+
+      // Add to cart using CartDatabase
+      await CartDatabase.addToCart({
+        productId: product.id,
+        name: product.name,
+        price: minPrice,
+        imageUrl: mainImage,
+        size,
+        color,
+        quantity: 1
+      });
+
+      toast.success("تم إضافة المنتج إلى السلة");
     } catch (error) {
-      console.error("Error adding to cart:", error);
-      toast.error("حدث خطأ أثناء إضافة المنتج إلى سلة التسوق");
+      console.error('Error adding to cart:', error);
+      toast.error("فشل في إضافة المنتج إلى السلة");
     }
   };
-  
+
+  // Handle product click to view details
+  const handleProductClick = () => {
+    navigate(`/product/${product.id}`);
+  };
+
   return (
-    <Card className={`hover:shadow-lg transition-all overflow-hidden animate-fade-in ${className} h-full`}>
-      <CardHeader className="p-0">
-        <div className="relative cursor-pointer" onClick={() => navigate(`/product/${product.id}`)}>
-          <AspectRatio ratio={1/1} className="bg-gray-100 min-h-[100px]">
-            <img 
-              src={mainImage}
-              alt={product?.name || "منتج"}
-              className="object-cover w-full h-full"
-              loading="lazy"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/placeholder.svg';
-              }}
-            />
-            {product.hasDiscount && product.discount && product.discount > 0 && (
-              <span className="absolute top-1 left-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded shadow-lg z-10">
-                خصم {product.discount}%
-              </span>
-            )}
-            {isOutOfStock && (
-              <span className="absolute top-1 right-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded shadow-lg z-10">
-                غير متوفر
-              </span>
-            )}
-          </AspectRatio>
-        </div>
-      </CardHeader>
-      <CardContent className="p-1 sm:p-2">
-        <h3 className="font-medium truncate text-xs cursor-pointer" onClick={() => navigate(`/product/${product.id}`)}>
-          {product?.name || "منتج بدون اسم"}
-        </h3>
-        <p className="text-gray-500 text-xs truncate">
-          {product?.categoryPath && Array.isArray(product.categoryPath) ? 
-            product.categoryPath.join(" > ") : 
-            (product?.category || product?.type || "-")}
-        </p>
-        {/* Show description if available */}
-        {product.description && (
-          <p className="text-gray-600 text-xs truncate mt-1">
-            {product.description}
-          </p>
+    <Card 
+      className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 border-gray-200 ${className}`}
+      onClick={handleProductClick}
+    >
+      <CardHeader className="p-0 pb-2">
+        <AspectRatio ratio={1} className="bg-gray-100 rounded-t-lg overflow-hidden">
+          <img
+            src={mainImage}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
+          />
+        </AspectRatio>
+        
+        {/* Discount badge */}
+        {product.hasDiscount && product.discount && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+            -{product.discount}%
+          </div>
         )}
-        <div className="mt-1">
-          {product.hasDiscount && product.discount && product.discount > 0 ? (
-            <div className="flex items-center gap-1">
-              <span className="text-xs font-bold text-green-700">{minPrice.toFixed(2)} EGP</span>
-              <span className="text-xs text-gray-400 line-through">{originalPrice.toFixed(2)} EGP</span>
-            </div>
-          ) : (
-            <span className="text-xs font-bold text-green-700">{minPrice.toFixed(2)} EGP</span>
+        
+        {/* Out of stock overlay */}
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-t-lg">
+            <span className="text-white font-bold text-lg">غير متوفر</span>
+          </div>
+        )}
+      </CardHeader>
+
+      <CardContent className="p-3 pb-2">
+        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-green-700 transition-colors">
+          {product.name}
+        </h3>
+        
+        {/* Price section */}
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-lg font-bold text-green-700">
+            {minPrice.toFixed(0)} جنيه
+          </span>
+          {product.hasDiscount && product.discount && originalPrice > minPrice && (
+            <span className="text-sm text-gray-500 line-through">
+              {originalPrice.toFixed(0)} جنيه
+            </span>
           )}
         </div>
+
+        {/* Available colors */}
+        {product.colors && Array.isArray(product.colors) && product.colors.length > 1 && (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs text-gray-600">الألوان:</span>
+            <div className="flex gap-1">
+              {product.colors.slice(0, 3).map((color, index) => (
+                <div
+                  key={index}
+                  className="w-3 h-3 rounded-full border border-gray-300"
+                  style={{ backgroundColor: color.toLowerCase() }}
+                  title={color}
+                />
+              ))}
+              {product.colors.length > 3 && (
+                <span className="text-xs text-gray-500">+{product.colors.length - 3}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Available sizes */}
+        {productSizes.length > 0 && (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs text-gray-600">المقاسات:</span>
+            <div className="flex gap-1 flex-wrap">
+              {productSizes.slice(0, 4).map((sizeInfo, index) => (
+                <span
+                  key={index}
+                  className={`text-xs px-1 py-0.5 rounded border ${
+                    sizeInfo.stock > 0 
+                      ? 'bg-green-50 border-green-200 text-green-700' 
+                      : 'bg-gray-50 border-gray-200 text-gray-400'
+                  }`}
+                >
+                  {sizeInfo.size}
+                </span>
+              ))}
+              {productSizes.length > 4 && (
+                <span className="text-xs text-gray-500">+{productSizes.length - 4}</span>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
-      <CardFooter className="p-1 sm:p-2 flex flex-col gap-2">
+
+      <CardFooter className="p-3 pt-0">
         <Button
-          className="w-full bg-blue-600 hover:bg-blue-700 transition-colors text-xs py-0.5 h-6"
-          onClick={() => navigate(`/product/${product.id}`)}
-        >
-          عرض التفاصيل
-        </Button>
-        <Button
-          className="w-full bg-green-600 hover:bg-green-700 transition-colors text-xs py-0.5 h-6 flex items-center justify-center gap-1"
           onClick={handleQuickAddToCart}
           disabled={isOutOfStock}
+          className={`w-full text-sm ${
+            isOutOfStock 
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          }`}
         >
-          <ShoppingCart className="w-3 h-3" />
-          <span>إضافة للعربة</span>
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          {isOutOfStock ? 'غير متوفر' : 'أضف للسلة'}
         </Button>
       </CardFooter>
     </Card>
