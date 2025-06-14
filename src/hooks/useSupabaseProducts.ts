@@ -68,7 +68,7 @@ export const useSupabaseProducts = () => {
         let cleanImages: string[] = [];
         if (product.images) {
           if (Array.isArray(product.images)) {
-            cleanImages = (product.images as string[]).filter(Boolean);
+            cleanImages = (product.images as unknown as string[]).filter(Boolean);
           } else if (typeof product.images === 'string') {
             try {
               const parsed = JSON.parse(product.images);
@@ -84,7 +84,7 @@ export const useSupabaseProducts = () => {
         let cleanColors: string[] = [];
         if (product.colors) {
           if (Array.isArray(product.colors)) {
-            cleanColors = (product.colors as string[]).filter(Boolean);
+            cleanColors = (product.colors as unknown as string[]).filter(Boolean);
           } else if (typeof product.colors === 'string') {
             try {
               const parsed = JSON.parse(product.colors);
@@ -100,7 +100,7 @@ export const useSupabaseProducts = () => {
         let cleanSizes: Array<{ size: string; stock: number; price?: number }> = [];
         if (product.sizes) {
           if (Array.isArray(product.sizes)) {
-            cleanSizes = (product.sizes as any[])
+            cleanSizes = (product.sizes as unknown as any[])
               .filter(size => size && typeof size === 'object' && size.size)
               .map(size => ({
                 size: String(size.size).trim(),
@@ -126,6 +126,9 @@ export const useSupabaseProducts = () => {
           }
         }
 
+        // CRITICAL: Log category_id to verify it's being saved/loaded correctly
+        console.log('📦 Product:', product.name, 'Category ID:', product.category_id);
+
         return {
           ...product,
           images: cleanImages,
@@ -134,7 +137,9 @@ export const useSupabaseProducts = () => {
           price: Number(product.price) || 0,
           discount: Number(product.discount) || 0,
           stock: Number(product.stock) || 0,
-          inventory: Number(product.inventory) || 0
+          inventory: Number(product.inventory) || 0,
+          // CRITICAL: Ensure category_id is preserved
+          category_id: product.category_id
         };
       });
       
@@ -155,10 +160,13 @@ export const useSupabaseProducts = () => {
   const addProduct = async (productData: any) => {
     try {
       console.log('🆕 Adding product with data:', productData);
+      console.log('🎯 CRITICAL - Category ID being saved:', productData.category_id);
       
       // Ensure data is properly formatted for database
       const cleanProductData = {
         ...productData,
+        // CRITICAL: Ensure category_id is included
+        category_id: productData.category_id,
         // Ensure arrays are properly formatted as JSON
         images: Array.isArray(productData.images) ? productData.images : [],
         colors: Array.isArray(productData.colors) ? productData.colors : [],
@@ -169,6 +177,8 @@ export const useSupabaseProducts = () => {
         stock: Number(productData.stock) || 0,
         inventory: Number(productData.inventory) || 0
       };
+      
+      console.log('📤 Final data being sent to DB:', cleanProductData);
       
       // Insert and immediately select the created product
       const { data, error } = await supabase
@@ -184,6 +194,7 @@ export const useSupabaseProducts = () => {
       }
       
       console.log('✅ Product added successfully:', data);
+      console.log('🎯 VERIFICATION - Saved category_id:', data.category_id);
       toast.success('Product added successfully!');
       
       // Refresh the products list from database immediately

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -51,6 +50,9 @@ const ImprovedProductForm = ({
   // Simple product (no variations)
   const [simpleProductPrice, setSimpleProductPrice] = useState(initialData.price || 0);
   const [simpleProductStock, setSimpleProductStock] = useState(initialData.inventory || 0);
+
+  // Additional images for gallery (separate from main image)
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
   
   // Validation state
   const [error, setError] = useState<string>("");
@@ -90,6 +92,25 @@ const ImprovedProductForm = ({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // Handle gallery image upload
+  const handleGalleryImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setGalleryImages(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  // Remove gallery image
+  const removeGalleryImage = (index: number) => {
+    setGalleryImages(prev => prev.filter((_, i) => i !== index));
   };
 
   // Add a new color variation
@@ -194,7 +215,14 @@ const ImprovedProductForm = ({
 
     console.log('🎯 Form submission - categoryId:', categoryId);
 
-    // Validate form
+    // Validate form - CRITICAL: ensure category is selected
+    if (!categoryId || categoryId === "") {
+      const validationError = "يرجى اختيار القسم - Please select a valid subcategory";
+      setError(validationError);
+      toast.error(validationError);
+      return;
+    }
+
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -205,7 +233,13 @@ const ImprovedProductForm = ({
     // Format data for submission
     let formattedSizes: SizeWithStock[] = [];
     let formattedColors: string[] = [];
-    let mainImageUrl = mainImage;
+    let allImages: string[] = [];
+    
+    // Build complete image array: main image + gallery images
+    if (mainImage) {
+      allImages.push(mainImage);
+    }
+    allImages = [...allImages, ...galleryImages];
     
     if (hasColorVariations) {
       // Process variations
@@ -213,7 +247,7 @@ const ImprovedProductForm = ({
       
       // If no main image is set, use the first color's image
       if (!mainImage && colorVariations.length > 0 && colorVariations[0].image) {
-        mainImageUrl = colorVariations[0].image;
+        allImages = [colorVariations[0].image, ...galleryImages];
       }
       
       // Collect all sizes from all color variations
@@ -241,15 +275,15 @@ const ImprovedProductForm = ({
     // Clear error
     setError("");
     
-    // Create the final product object - ONLY include fields that exist in the database
+    // Create the final product object - CRITICAL: include category_id
     const productData: any = {
       name: name.trim(),
-      category_id: categoryId, // This is the critical field that was missing
+      category_id: categoryId, // CRITICAL: This must be saved
       description: details,
       discount: hasDiscount ? discount : 0,
-      main_image: mainImageUrl,
-      image_url: mainImageUrl, // Keep both for compatibility
-      images: [mainImageUrl], // Store as array
+      main_image: allImages.length > 0 ? allImages[0] : "",
+      image_url: allImages.length > 0 ? allImages[0] : "", // Keep both for compatibility
+      images: allImages, // Store complete image array
       colors: hasColorVariations ? formattedColors : [], // Store as array
       sizes: formattedSizes, // Store as array
       price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
@@ -258,7 +292,8 @@ const ImprovedProductForm = ({
       featured: false // Default value
     };
     
-    console.log('🎯 Submitting product data with category_id:', productData);
+    console.log('🎯 Submitting product data with category_id:', productData.category_id);
+    console.log('📸 Image data:', { main_image: productData.main_image, images: productData.images });
     
     // Submit the product
     onSubmit(productData);
@@ -326,6 +361,34 @@ const ImprovedProductForm = ({
                   X
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Gallery Images Upload */}
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-1">صور إضافية للمعرض</label>
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleGalleryImageUpload}
+            className="w-full p-2 border rounded text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+          />
+          {galleryImages.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {galleryImages.map((image, index) => (
+                <div key={index} className="relative inline-block">
+                  <img src={image} alt={`gallery ${index + 1}`} className="h-16 w-16 object-cover rounded" />
+                  <button
+                    type="button"
+                    onClick={() => removeGalleryImage(index)}
+                    className="absolute top-0 right-0 transform translate-x-1/4 -translate-y-1/4 bg-red-600 text-white rounded-full p-1 text-xs"
+                  >
+                    X
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>

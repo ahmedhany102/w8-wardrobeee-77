@@ -30,10 +30,10 @@ export const useSupabaseCoupons = () => {
       setLoading(true);
       console.log('🔄 Fetching coupons...');
       
+      // Fetch ALL coupons (both active and inactive) for admin panel
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('is_active', true)
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -62,6 +62,8 @@ export const useSupabaseCoupons = () => {
 
   const validateCoupon = async (code: string, orderTotal: number): Promise<Coupon | null> => {
     try {
+      console.log('🔍 Validating coupon:', code, 'for order total:', orderTotal);
+      
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
@@ -70,6 +72,7 @@ export const useSupabaseCoupons = () => {
         .single();
 
       if (error || !data) {
+        console.log('❌ Coupon not found or inactive:', error);
         toast.error('Invalid coupon code');
         return null;
       }
@@ -79,24 +82,30 @@ export const useSupabaseCoupons = () => {
         discount_type: data.discount_type as 'percentage' | 'fixed'
       } as Coupon;
 
+      console.log('✅ Found coupon:', coupon);
+
       // Check expiration
       if (coupon.expiration_date && new Date(coupon.expiration_date) < new Date()) {
+        console.log('❌ Coupon expired');
         toast.error('This coupon has expired');
         return null;
       }
 
       // Check usage limit
       if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+        console.log('❌ Coupon usage limit reached');
         toast.error('This coupon has reached its usage limit');
         return null;
       }
 
       // Check minimum amount
       if (coupon.minimum_amount && orderTotal < coupon.minimum_amount) {
+        console.log('❌ Order total below minimum amount');
         toast.error(`Minimum order amount of ${coupon.minimum_amount} EGP required for this coupon`);
         return null;
       }
 
+      console.log('✅ Coupon validation successful');
       return coupon;
     } catch (error: any) {
       console.error('Error validating coupon:', error);
@@ -105,10 +114,35 @@ export const useSupabaseCoupons = () => {
     }
   };
 
+  const applyCoupon = async (couponId: string): Promise<boolean> => {
+    try {
+      // Increment usage count
+      const { error } = await supabase
+        .from('coupons')
+        .update({ 
+          used_count: supabase.sql`used_count + 1`,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', couponId);
+
+      if (error) {
+        console.error('Error applying coupon:', error);
+        return false;
+      }
+
+      console.log('✅ Coupon applied successfully');
+      return true;
+    } catch (error: any) {
+      console.error('Error applying coupon:', error);
+      return false;
+    }
+  };
+
   return { 
     coupons, 
     loading, 
     validateCoupon,
+    applyCoupon,
     refetch: fetchCoupons 
   };
 };

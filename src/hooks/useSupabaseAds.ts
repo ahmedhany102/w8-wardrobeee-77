@@ -28,10 +28,10 @@ export const useSupabaseAds = () => {
       setLoading(true);
       console.log('🔄 Fetching ads...');
       
+      // Fetch ALL ads for admin (both active and inactive)
       const { data, error } = await supabase
         .from('ads')
         .select('*')
-        .eq('is_active', true)
         .order('position', { ascending: true });
       
       if (error) {
@@ -41,7 +41,7 @@ export const useSupabaseAds = () => {
         return;
       }
       
-      console.log('✅ Ads fetched:', data?.length || 0);
+      console.log('✅ Ads fetched:', data?.length || 0, data);
       setAds(data || []);
       
     } catch (error: any) {
@@ -53,9 +53,34 @@ export const useSupabaseAds = () => {
     }
   };
 
+  const fetchActiveAds = async (): Promise<Ad[]> => {
+    try {
+      console.log('🔄 Fetching active ads for display...');
+      
+      const { data, error } = await supabase
+        .from('ads')
+        .select('*')
+        .eq('is_active', true)
+        .order('position', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Error fetching active ads:', error);
+        return [];
+      }
+      
+      console.log('✅ Active ads fetched:', data?.length || 0, data);
+      return data || [];
+      
+    } catch (error: any) {
+      console.error('💥 Exception while fetching active ads:', error);
+      return [];
+    }
+  };
+
   return { 
     ads, 
     loading, 
+    fetchActiveAds,
     refetch: fetchAds 
   };
 };
