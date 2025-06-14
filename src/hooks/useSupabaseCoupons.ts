@@ -116,26 +116,32 @@ export const useSupabaseCoupons = () => {
 
   const applyCoupon = async (couponId: string): Promise<boolean> => {
     try {
-      // Increment usage count using RPC call
-      const { error } = await supabase.rpc('increment_coupon_usage', {
-        coupon_id: couponId
-      });
+      console.log('🔄 Applying coupon:', couponId);
+      
+      // First get the current coupon data
+      const { data: currentCoupon, error: fetchError } = await supabase
+        .from('coupons')
+        .select('used_count')
+        .eq('id', couponId)
+        .single();
 
-      if (error) {
-        console.error('Error applying coupon:', error);
-        // Fallback to manual increment
-        const { error: updateError } = await supabase
-          .from('coupons')
-          .update({ 
-            used_count: 0, // Will be updated by trigger if exists
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', couponId);
-        
-        if (updateError) {
-          console.error('Error applying coupon (fallback):', updateError);
-          return false;
-        }
+      if (fetchError || !currentCoupon) {
+        console.error('Error fetching current coupon:', fetchError);
+        return false;
+      }
+
+      // Increment the usage count
+      const { error: updateError } = await supabase
+        .from('coupons')
+        .update({ 
+          used_count: currentCoupon.used_count + 1,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', couponId);
+
+      if (updateError) {
+        console.error('Error applying coupon:', updateError);
+        return false;
       }
 
       console.log('✅ Coupon applied successfully');
