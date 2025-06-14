@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Product, SizeWithStock, ColorImage } from "@/models/Product";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import CategorySelector from "./CategorySelector";
 
 interface ColorVariation {
   colorName: string;
@@ -49,7 +50,7 @@ const categoryStructure = {
   }
 };
 
-const ImprovedProductForm = ({ 
+const ImprovedProductForm = ({
   initialData = {}, 
   onSubmit, 
   submitLabel = "حفظ المنتج", 
@@ -60,7 +61,7 @@ const ImprovedProductForm = ({
 }: ProductFormProps) => {
   // Basic product information
   const [name, setName] = useState(initialData.name || "");
-  const [categoryPath, setCategoryPath] = useState<string[]>(initialData.categoryPath || []);
+  const [categoryId, setCategoryId] = useState(initialData.category_id || "");
   const [type, setType] = useState(initialData.type || "");
   const [details, setDetails] = useState(initialData.details || "");
   const [mainImage, setMainImage] = useState(initialData.mainImage || "");
@@ -205,7 +206,7 @@ const ImprovedProductForm = ({
   const validateForm = () => {
     // Basic validation
     if (!name.trim()) return "يرجى إدخال اسم المنتج";
-    if (categoryPath.length === 0) return "يرجى اختيار القسم";
+    if (categoryId === "") return "يرجى اختيار القسم";
     if (!mainImage) return "يرجى تحميل صورة رئيسية للمنتج";
     
     // Validate based on product type (simple vs. with variations)
@@ -294,10 +295,9 @@ const ImprovedProductForm = ({
     setError("");
     
     // Create the final product object
-    const productData: Omit<Product, "id"> = {
+    const productData: any = {
       name: name.trim(),
-      category: categoryPath[categoryPath.length - 1] || "",
-      categoryPath,
+      category_id: categoryId,
       type: type.trim(),
       description: details,
       details,
@@ -319,95 +319,11 @@ const ImprovedProductForm = ({
   };
 
   // Render category selectors based on the current path
-  const renderCategorySelectors = () => {
-    const selectors = [];
-    
-    // First level (main categories)
-    const mainCategories = getCategoryOptions();
-    selectors.push(
-      <div key="level-0" className="mb-4">
-        <label className="block text-sm font-medium mb-1">القسم الرئيسي*</label>
-        <select
-          value={categoryPath[0] || ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (value) {
-              setCategoryPath([value]);
-            } else {
-              setCategoryPath([]);
-            }
-          }}
-          className="w-full p-2 border rounded text-sm"
-          required
-        >
-          <option value="">اختر القسم الرئيسي</option>
-          {mainCategories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
-        </select>
-      </div>
-    );
-    
-    // Render subcategory selectors if a main category is selected
-    if (categoryPath[0]) {
-      const subCategories = getCategoryOptions(categoryPath, 1);
-      selectors.push(
-        <div key="level-1" className="mb-4">
-          <label className="block text-sm font-medium mb-1">القسم الفرعي*</label>
-          <select
-            value={categoryPath[1] || ""}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value) {
-                setCategoryPath([categoryPath[0], value]);
-              } else {
-                setCategoryPath([categoryPath[0]]);
-              }
-            }}
-            className="w-full p-2 border rounded text-sm"
-            required
-          >
-            <option value="">اختر القسم الفرعي</option>
-            {subCategories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-      );
-    }
-    
-    // Render third level if applicable (e.g., for Kids > Boys > T-shirts)
-    if (categoryPath[0] === "أطفال" && categoryPath[1]) {
-      const subSubCategories = getCategoryOptions(categoryPath, 2);
-      if (subSubCategories.length > 0) {
-        selectors.push(
-          <div key="level-2" className="mb-4">
-            <label className="block text-sm font-medium mb-1">النوع*</label>
-            <select
-              value={categoryPath[2] || ""}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value) {
-                  setCategoryPath([categoryPath[0], categoryPath[1], value]);
-                } else {
-                  setCategoryPath([categoryPath[0], categoryPath[1]]);
-                }
-              }}
-              className="w-full p-2 border rounded text-sm"
-              required
-            >
-              <option value="">اختر النوع</option>
-              {subSubCategories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-          </div>
-        );
-      }
-    }
-    
-    return selectors;
-  };
+  const renderCategorySelectors = () => (
+    <div className="mb-4">
+      <CategorySelector value={categoryId} onChange={setCategoryId} />
+    </div>
+  );
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto p-4">

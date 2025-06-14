@@ -1,4 +1,3 @@
-
 import React from 'react';
 import SearchBar from './SearchBar';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
@@ -8,12 +7,14 @@ import ProductCatalogTabs from './ProductCatalogTabs';
 import ProductGrid from './ProductGrid';
 import ShoppingCartDialog from './ShoppingCartDialog';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
+import { useCategories } from "@/hooks/useCategories";
 
 const ProductCatalog: React.FC = () => {
   const { products, loading } = useSupabaseProducts();
+  const { mainCategories, subcategories } = useCategories();
   const { cartItems, cartCount, addToCart: addToCartDB, removeFromCart, updateQuantity, clearCart } = useCartIntegration();
   const {
-    filteredProducts,
+    filteredProducts: searchFilteredProducts,
     activeCategory,
     searchQuery,
     handleCategoryChange,
@@ -60,6 +61,17 @@ const ProductCatalog: React.FC = () => {
     window.location.href = '/cart';
   };
 
+  // Filtered menus: Only show Men + Men subs for now
+  const menCat = mainCategories.find(c => c.slug === "men");
+  const menSubs = menCat ? subcategories(menCat.id) : [];
+  const [activeSubcat, setActiveSubcat] = React.useState<string>("ALL");
+
+  const filteredProducts = React.useMemo(() => {
+    if (activeSubcat === "ALL") return products;
+    // Filter by selected subcategory
+    return products.filter(p => p.category_id === activeSubcat);
+  }, [products, activeSubcat]);
+
   return (
     <div className="container mx-auto px-4 py-4">
       <ProductCatalogHeader 
@@ -72,15 +84,33 @@ const ProductCatalog: React.FC = () => {
       <ProductCatalogTabs 
         activeTab={activeCategory} 
         onTabChange={handleCategoryChange}
-      >
-        <ProductGrid 
-          products={filteredProducts}
-          loading={loading}
-          searchQuery={searchQuery}
-          onAddToCart={handleAddToCart}
-          onClearSearch={clearFilters}
-        />
-      </ProductCatalogTabs>
+      />
+      {/* Build category tabs */}
+      <div className="flex gap-2 my-3">
+        <button
+          className={`px-3 py-1 rounded ${activeSubcat === "ALL" ? "bg-green-600 text-white" : "bg-gray-200"}`}
+          onClick={() => setActiveSubcat("ALL")}
+        >
+          الكل
+        </button>
+        {menSubs.map(sub => (
+          <button
+            key={sub.id}
+            className={`px-3 py-1 rounded ${activeSubcat === sub.id ? "bg-green-600 text-white" : "bg-gray-200"}`}
+            onClick={() => setActiveSubcat(sub.id)}
+          >
+            {sub.name}
+          </button>
+        ))}
+      </div>
+      {/* ... pass filteredProducts to ProductGrid ... */}
+      <ProductGrid 
+        products={filteredProducts}
+        loading={loading}
+        searchQuery={searchQuery}
+        onAddToCart={handleAddToCart}
+        onClearSearch={clearFilters}
+      />
 
       <ShoppingCartDialog
         isOpen={showCartDialog}
