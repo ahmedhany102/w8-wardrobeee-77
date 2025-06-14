@@ -11,8 +11,9 @@ import CouponManagement from "@/components/admin/CouponManagement";
 import AdminContactSettings from "@/components/admin/AdminContactSettings";
 import AdManagement from "@/components/admin/AdManagement";
 import UsersPanel from "@/components/admin/UsersPanel";
+import CategoryManagement from "@/components/admin/CategoryManagement";
 import AdminDashboardStats from "@/components/AdminDashboardStats";
-import { Home, LogOut, Package, Settings, Ticket, Users } from "lucide-react";
+import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree } from "lucide-react";
 import { useSupabaseProducts, useSupabaseUsers, useSupabaseOrders } from "@/hooks/useSupabaseData";
 
 const Admin = ({ activeTab = "dashboard" }) => {
@@ -82,6 +83,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <Home className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الرئيسية</span>
             </TabsTrigger>
+            <TabsTrigger value="categories" onClick={() => navigate("/admin/categories")}>
+              <FolderTree className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">الأقسام</span>
+            </TabsTrigger>
             <TabsTrigger value="products" onClick={() => navigate("/admin/products")}>
               <Package className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">المنتجات</span>
@@ -122,6 +127,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
                 </div>
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <CategoryManagement />
           </TabsContent>
 
           <TabsContent value="products">

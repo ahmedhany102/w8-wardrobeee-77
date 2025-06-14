@@ -62,15 +62,23 @@ export const useSupabaseCoupons = () => {
     try {
       console.log('🔍 Validating coupon:', code, 'for order total:', orderTotal);
       
+      if (!code || code.trim().length === 0) {
+        console.log('❌ Empty coupon code');
+        toast.error('Please enter a coupon code');
+        return null;
+      }
+
+      const trimmedCode = code.trim().toUpperCase();
+      
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('code', code.toUpperCase())
+        .eq('code', trimmedCode)
         .single();
 
       if (error || !data) {
         console.log('❌ Coupon not found:', error);
-        toast.error('Invalid coupon code');
+        toast.error('Coupon code not found');
         return null;
       }
 
@@ -81,21 +89,19 @@ export const useSupabaseCoupons = () => {
 
       console.log('✅ Found coupon in DB:', coupon);
 
-      // FIXED: Check if coupon is active first
+      // FIXED: Comprehensive validation with detailed error messages
+      
+      // 1. Check if coupon is active
       if (!coupon.is_active) {
         console.log('❌ Coupon is not active');
-        toast.error('This coupon is not active');
+        toast.error('This coupon is currently inactive');
         return null;
       }
 
-      // FIXED: Check expiration date properly
+      // 2. Check expiration date
       if (coupon.expiration_date) {
         const expirationDate = new Date(coupon.expiration_date);
         const currentDate = new Date();
-        
-        // Reset time to compare only dates
-        expirationDate.setHours(23, 59, 59, 999);
-        currentDate.setHours(0, 0, 0, 0);
         
         console.log('📅 Checking expiration:', {
           expiration: expirationDate.toISOString(),
@@ -105,13 +111,13 @@ export const useSupabaseCoupons = () => {
         
         if (expirationDate < currentDate) {
           console.log('❌ Coupon expired');
-          toast.error('This coupon has expired');
+          toast.error(`This coupon expired on ${expirationDate.toLocaleDateString()}`);
           return null;
         }
       }
 
-      // FIXED: Check usage limit properly
-      if (coupon.usage_limit !== null && coupon.usage_limit !== undefined) {
+      // 3. Check usage limit
+      if (coupon.usage_limit !== null && coupon.usage_limit !== undefined && coupon.usage_limit > 0) {
         if (coupon.used_count >= coupon.usage_limit) {
           console.log('❌ Coupon usage limit reached:', {
             used: coupon.used_count,
@@ -122,60 +128,88 @@ export const useSupabaseCoupons = () => {
         }
       }
 
-      // FIXED: Check minimum amount properly
-      if (coupon.minimum_amount && orderTotal < coupon.minimum_amount) {
+      // 4. Check minimum order amount
+      const minimumAmount = coupon.minimum_amount || 0;
+      if (orderTotal < minimumAmount) {
         console.log('❌ Order total below minimum amount:', {
           orderTotal,
-          minimumRequired: coupon.minimum_amount
+          minimumRequired: minimumAmount
         });
-        toast.error(`Minimum order amount of ${coupon.minimum_amount} EGP required for this coupon`);
+        toast.error(`Minimum order amount of ${minimumAmount} EGP required for this coupon`);
+        return null;
+      }
+
+      // 5. Validate discount value
+      if (!coupon.discount_value || coupon.discount_value <= 0) {
+        console.log('❌ Invalid discount value');
+        toast.error('This coupon has an invalid discount value');
         return null;
       }
 
       console.log('✅ Coupon validation successful - all checks passed');
-      toast.success('Coupon applied successfully!');
+      
+      // Calculate discount amount for display
+      let discountAmount = 0;
+      if (coupon.discount_type === 'percentage') {
+        discountAmount = orderTotal * (coupon.discount_value / 100);
+      } else if (coupon.discount_type === 'fixed') {
+        discountAmount = Math.min(coupon.discount_value, orderTotal);
+      }
+      
+      toast.success(`Coupon applied! You save ${discountAmount.toFixed(2)} EGP`);
       return coupon;
     } catch (error: any) {
-      console.error('Error validating coupon:', error);
-      toast.error('Failed to validate coupon');
+      console.error('💥 Error validating coupon:', error);
+      toast.error('Failed to validate coupon: ' + error.message);
       return null;
     }
   };
 
   const applyCoupon = async (couponId: string): Promise<boolean> => {
     try {
-      console.log('🔄 Applying coupon:', couponId);
+      console.log('🔄 Applying coupon (incrementing usage count):', couponId);
       
-      // Get current coupon data
+      // Get current coupon data first
       const { data: currentCoupon, error: fetchError } = await supabase
         .from('coupons')
-        .select('used_count')
+        .select('used_count, usage_limit')
         .eq('id', couponId)
         .single();
 
       if (fetchError || !currentCoupon) {
-        console.error('Error fetching current coupon:', fetchError);
+        console.error('❌ Error fetching current coupon for usage update:', fetchError);
         return false;
       }
 
-      // FIXED: Increment usage count properly
+      // Check if we can still use this coupon
+      if (currentCoupon.usage_limit && currentCoupon.used_count >= currentCoupon.usage_limit) {
+        console.error('❌ Cannot apply coupon - usage limit reached');
+        toast.error('This coupon has reached its usage limit');
+        return false;
+      }
+
+      // Increment the usage count
+      const newUsedCount = (currentCoupon.used_count || 0) + 1;
+      
       const { error: updateError } = await supabase
         .from('coupons')
         .update({ 
-          used_count: currentCoupon.used_count + 1,
+          used_count: newUsedCount,
           updated_at: new Date().toISOString()
         })
         .eq('id', couponId);
 
       if (updateError) {
-        console.error('Error applying coupon:', updateError);
+        console.error('❌ Error updating coupon usage count:', updateError);
+        toast.error('Failed to apply coupon: ' + updateError.message);
         return false;
       }
 
-      console.log('✅ Coupon applied successfully');
+      console.log('✅ Coupon usage count updated successfully to:', newUsedCount);
       return true;
     } catch (error: any) {
-      console.error('Error applying coupon:', error);
+      console.error('💥 Exception applying coupon:', error);
+      toast.error('Failed to apply coupon: ' + error.message);
       return false;
     }
   };

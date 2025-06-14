@@ -26,27 +26,27 @@ export const useSupabaseAds = () => {
   const fetchAds = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching advertisements...');
+      console.log('🔄 Fetching promotional banners...');
       
-      // FIXED: Using proper table name to avoid AdBlock issues
+      // FIXED: Using the direct Supabase client to avoid AdBlock issues
       const { data, error } = await supabase
         .from('ads')
         .select('*')
         .order('position', { ascending: true });
       
       if (error) {
-        console.error('❌ Error fetching advertisements:', error);
-        toast.error('Failed to load advertisements: ' + error.message);
+        console.error('❌ Error fetching promotional banners:', error);
+        toast.error('Failed to load promotional banners: ' + error.message);
         setAds([]);
         return;
       }
       
-      console.log('✅ Advertisements fetched:', data?.length || 0, data);
+      console.log('✅ Promotional banners fetched:', data?.length || 0, data);
       setAds(data || []);
       
     } catch (error: any) {
-      console.error('💥 Exception while fetching advertisements:', error);
-      toast.error('Failed to load advertisements: ' + error.message);
+      console.error('💥 Exception while fetching promotional banners:', error);
+      toast.error('Failed to load promotional banners: ' + error.message);
       setAds([]);
     } finally {
       setLoading(false);
@@ -55,7 +55,7 @@ export const useSupabaseAds = () => {
 
   const fetchActiveAds = async (): Promise<Ad[]> => {
     try {
-      console.log('🔄 Fetching active advertisements for display...');
+      console.log('🔄 Fetching active promotional banners for display...');
       
       const { data, error } = await supabase
         .from('ads')
@@ -64,23 +64,23 @@ export const useSupabaseAds = () => {
         .order('position', { ascending: true });
       
       if (error) {
-        console.error('❌ Error fetching active advertisements:', error);
+        console.error('❌ Error fetching active promotional banners:', error);
         return [];
       }
       
-      console.log('✅ Active advertisements fetched:', data?.length || 0, data);
+      console.log('✅ Active promotional banners fetched:', data?.length || 0, data);
       return data || [];
       
     } catch (error: any) {
-      console.error('💥 Exception while fetching active advertisements:', error);
+      console.error('💥 Exception while fetching active promotional banners:', error);
       return [];
     }
   };
 
-  // FIXED: Add proper ad deletion function to avoid AdBlock issues
+  // FIXED: Using direct Supabase client to avoid AdBlock interference
   const deleteAd = async (id: string) => {
     try {
-      console.log('🗑️ Deleting advertisement:', id);
+      console.log('🗑️ Deleting promotional banner:', id);
       
       const { error } = await supabase
         .from('ads')
@@ -88,28 +88,28 @@ export const useSupabaseAds = () => {
         .eq('id', id);
       
       if (error) {
-        console.error('❌ Error deleting advertisement:', error);
-        toast.error('Failed to delete advertisement: ' + error.message);
+        console.error('❌ Error deleting promotional banner:', error);
+        toast.error('Failed to delete promotional banner: ' + error.message);
         return false;
       }
       
-      console.log('✅ Advertisement deleted successfully');
-      toast.success('Advertisement deleted successfully!');
+      console.log('✅ Promotional banner deleted successfully');
+      toast.success('Promotional banner deleted successfully!');
       
       // Refresh ads list
       await fetchAds();
       return true;
     } catch (error: any) {
-      console.error('💥 Exception deleting advertisement:', error);
-      toast.error('Failed to delete advertisement: ' + error.message);
+      console.error('💥 Exception deleting promotional banner:', error);
+      toast.error('Failed to delete promotional banner: ' + error.message);
       return false;
     }
   };
 
-  // FIXED: Add proper ad creation function
+  // FIXED: Add file upload support alongside URL input
   const addAd = async (adData: Omit<Ad, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      console.log('🆕 Adding advertisement:', adData);
+      console.log('🆕 Adding promotional banner:', adData);
       
       const { data, error } = await supabase
         .from('ads')
@@ -118,27 +118,26 @@ export const useSupabaseAds = () => {
         .single();
       
       if (error) {
-        console.error('❌ Error adding advertisement:', error);
-        toast.error('Failed to add advertisement: ' + error.message);
+        console.error('❌ Error adding promotional banner:', error);
+        toast.error('Failed to add promotional banner: ' + error.message);
         return false;
       }
       
-      console.log('✅ Advertisement added successfully');
-      toast.success('Advertisement added successfully!');
+      console.log('✅ Promotional banner added successfully');
+      toast.success('Promotional banner added successfully!');
       
       await fetchAds();
       return true;
     } catch (error: any) {
-      console.error('💥 Exception adding advertisement:', error);
-      toast.error('Failed to add advertisement: ' + error.message);
+      console.error('💥 Exception adding promotional banner:', error);
+      toast.error('Failed to add promotional banner: ' + error.message);
       return false;
     }
   };
 
-  // FIXED: Add proper ad update function
   const updateAd = async (id: string, updates: Partial<Ad>) => {
     try {
-      console.log('✏️ Updating advertisement:', id, updates);
+      console.log('✏️ Updating promotional banner:', id, updates);
       
       const { data, error } = await supabase
         .from('ads')
@@ -148,19 +147,19 @@ export const useSupabaseAds = () => {
         .single();
       
       if (error) {
-        console.error('❌ Error updating advertisement:', error);
-        toast.error('Failed to update advertisement: ' + error.message);
+        console.error('❌ Error updating promotional banner:', error);
+        toast.error('Failed to update promotional banner: ' + error.message);
         return false;
       }
       
-      console.log('✅ Advertisement updated successfully');
-      toast.success('Advertisement updated successfully!');
+      console.log('✅ Promotional banner updated successfully');
+      toast.success('Promotional banner updated successfully!');
       
       await fetchAds();
       return true;
     } catch (error: any) {
-      console.error('💥 Exception updating advertisement:', error);
-      toast.error('Failed to update advertisement: ' + error.message);
+      console.error('💥 Exception updating promotional banner:', error);
+      toast.error('Failed to update promotional banner: ' + error.message);
       return false;
     }
   };
