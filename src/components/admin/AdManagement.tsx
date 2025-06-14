@@ -7,24 +7,10 @@ import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
-
-interface Ad {
-  id: string;
-  title: string;
-  imageUrl: string;
-  redirectUrl: string;
-  isActive: boolean;
-  placement: 'home' | 'sidebar' | 'product';
-  productId?: string;
-  responsiveSize: {
-    desktop: number;
-    tablet: number;
-    mobile: number;
-  };
-}
+import { useSupabaseAds } from '@/hooks/useSupabaseAds';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Product {
   id: string;
@@ -35,49 +21,19 @@ interface Product {
 }
 
 const AdManagement = () => {
-  const [ads, setAds] = useState<Ad[]>([]);
+  const { ads, loading, refetch } = useSupabaseAds();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingAd, setEditingAd] = useState<Ad | null>(null);
+  const [editingAd, setEditingAd] = useState<any>(null);
   
   // New ad form state
   const [newAdTitle, setNewAdTitle] = useState('');
   const [newAdImageUrl, setNewAdImageUrl] = useState('');
   const [newAdRedirectUrl, setNewAdRedirectUrl] = useState('');
-  const [newAdPlacement, setNewAdPlacement] = useState<'home' | 'sidebar' | 'product'>('home');
   const [newAdActive, setNewAdActive] = useState<boolean>(true);
-  const [newAdProductId, setNewAdProductId] = useState<string>('');
   const [filterPlacement, setFilterPlacement] = useState<string>('all');
-  const [newAdResponsiveSize, setNewAdResponsiveSize] = useState({ desktop: 100, tablet: 100, mobile: 100 });
   
-  // Use Supabase products hook instead of ProductDatabase
+  // Use Supabase products hook
   const { products } = useSupabaseProducts();
-  
-  // Load ads from localStorage
-  useEffect(() => {
-    try {
-      const storedAds = localStorage.getItem('ads');
-      if (storedAds) {
-        const parsedAds = JSON.parse(storedAds);
-        setAds(Array.isArray(parsedAds) ? parsedAds : []);
-      }
-    } catch (error) {
-      console.error('Error loading ads:', error);
-      setAds([]);
-      toast.error('Failed to load advertisements');
-    }
-  }, []);
-  
-  // Save ads to localStorage
-  const saveAds = (updatedAds: Ad[]) => {
-    try {
-      localStorage.setItem('ads', JSON.stringify(updatedAds));
-      setAds(updatedAds);
-      toast.success('Advertisements updated successfully');
-    } catch (error) {
-      console.error('Error saving ads:', error);
-      toast.error('Failed to save advertisements');
-    }
-  };
 
   // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, isEditing: boolean = false) => {
@@ -86,7 +42,7 @@ const AdManagement = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (isEditing && editingAd) {
-          setEditingAd({ ...editingAd, imageUrl: reader.result as string });
+          setEditingAd({ ...editingAd, image_url: reader.result as string });
         } else {
           setNewAdImageUrl(reader.result as string);
         }
@@ -96,72 +52,117 @@ const AdManagement = () => {
   };
 
   // Add new ad
-  const handleAddAd = () => {
+  const handleAddAd = async () => {
     if (!newAdTitle.trim() || !newAdImageUrl) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const newAd: Ad = {
-      id: Date.now().toString(),
-      title: newAdTitle.trim(),
-      imageUrl: newAdImageUrl,
-      redirectUrl: newAdRedirectUrl.trim(),
-      isActive: newAdActive,
-      placement: newAdPlacement,
-      productId: newAdProductId || undefined,
-      responsiveSize: newAdResponsiveSize
-    };
+    try {
+      const { data, error } = await supabase
+        .from('ads')
+        .insert([{
+          title: newAdTitle.trim(),
+          image_url: newAdImageUrl,
+          redirect_url: newAdRedirectUrl.trim() || null,
+          is_active: newAdActive,
+          position: ads.length + 1
+        }])
+        .select()
+        .single();
 
-    const updatedAds = [...ads, newAd];
-    saveAds(updatedAds);
+      if (error) throw error;
 
-    // Reset form
-    setNewAdTitle('');
-    setNewAdImageUrl('');
-    setNewAdRedirectUrl('');
-    setNewAdPlacement('home');
-    setNewAdActive(true);
-    setNewAdProductId('');
-    setNewAdResponsiveSize({ desktop: 100, tablet: 100, mobile: 100 });
-    setShowAddDialog(false);
+      console.log('✅ Ad added successfully:', data);
+      toast.success('Ad added successfully!');
+      
+      // Reset form
+      setNewAdTitle('');
+      setNewAdImageUrl('');
+      setNewAdRedirectUrl('');
+      setNewAdActive(true);
+      setShowAddDialog(false);
+      
+      // Refresh ads list
+      refetch();
+    } catch (error: any) {
+      console.error('❌ Error adding ad:', error);
+      toast.error('Failed to add ad: ' + error.message);
+    }
   };
 
   // Update ad
-  const handleUpdateAd = () => {
-    if (!editingAd || !editingAd.title.trim() || !editingAd.imageUrl) {
+  const handleUpdateAd = async () => {
+    if (!editingAd || !editingAd.title?.trim() || !editingAd.image_url) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    const updatedAds = ads.map(ad => ad.id === editingAd.id ? editingAd : ad);
-    saveAds(updatedAds);
-    setEditingAd(null);
+    try {
+      const { data, error } = await supabase
+        .from('ads')
+        .update({
+          title: editingAd.title.trim(),
+          image_url: editingAd.image_url,
+          redirect_url: editingAd.redirect_url?.trim() || null,
+          is_active: editingAd.is_active
+        })
+        .eq('id', editingAd.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Ad updated successfully:', data);
+      toast.success('Ad updated successfully!');
+      setEditingAd(null);
+      refetch();
+    } catch (error: any) {
+      console.error('❌ Error updating ad:', error);
+      toast.error('Failed to update ad: ' + error.message);
+    }
   };
 
   // Delete ad
-  const handleDeleteAd = (id: string) => {
-    const updatedAds = ads.filter(ad => ad.id !== id);
-    saveAds(updatedAds);
+  const handleDeleteAd = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      console.log('✅ Ad deleted successfully');
+      toast.success('Ad deleted successfully!');
+      refetch();
+    } catch (error: any) {
+      console.error('❌ Error deleting ad:', error);
+      toast.error('Failed to delete ad: ' + error.message);
+    }
   };
 
   // Toggle ad active status
-  const toggleAdStatus = (id: string) => {
-    const updatedAds = ads.map(ad => 
-      ad.id === id ? { ...ad, isActive: !ad.isActive } : ad
-    );
-    saveAds(updatedAds);
+  const toggleAdStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('ads')
+        .update({ is_active: !currentStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      console.log('✅ Ad status updated successfully');
+      toast.success('Ad status updated successfully!');
+      refetch();
+    } catch (error: any) {
+      console.error('❌ Error updating ad status:', error);
+      toast.error('Failed to update ad status: ' + error.message);
+    }
   };
 
-  // Filter ads by placement
-  const filteredAds = filterPlacement === 'all' ? ads : ads.filter(ad => ad.placement === filterPlacement);
-
-  const getProductImageUrl = (product: Product): string => {
-    return product.main_image || 
-           product.image_url || 
-           (product.images && product.images.length > 0 ? product.images[0] : '') ||
-           '/placeholder.svg';
-  };
+  // Filter ads (for now just show all since we don't have placement field yet)
+  const filteredAds = ads;
 
   return (
     <div className="space-y-6">
@@ -176,67 +177,59 @@ const AdManagement = () => {
         </Button>
       </div>
 
-      {/* Filter tabs */}
-      <Tabs value={filterPlacement} onValueChange={setFilterPlacement}>
-        <TabsList>
-          <TabsTrigger value="all">جميع الإعلانات</TabsTrigger>
-          <TabsTrigger value="home">الصفحة الرئيسية</TabsTrigger>
-          <TabsTrigger value="sidebar">الشريط الجانبي</TabsTrigger>
-          <TabsTrigger value="product">صفحات المنتجات</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value={filterPlacement} className="mt-6">
-          {/* Ads Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAds.map(ad => (
-              <Card key={ad.id} className={`${ad.isActive ? 'border-green-500' : 'border-gray-300 opacity-60'}`}>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">{ad.title}</CardTitle>
-                    <Switch
-                      checked={ad.isActive}
-                      onCheckedChange={() => toggleAdStatus(ad.id)}
-                    />
-                  </div>
-                  <p className="text-sm text-gray-500">{ad.placement}</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <img src={ad.imageUrl} alt={ad.title} className="w-full h-32 object-cover rounded" />
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => setEditingAd(ad)}
-                        className="flex-1"
-                      >
-                        تعديل
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteAd(ad.id)}
-                        className="flex-1"
-                      >
-                        حذف
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+      {/* Ads Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading ? (
+          <div className="col-span-full text-center py-12">
+            <p className="text-gray-500">جاري تحميل الإعلانات...</p>
           </div>
-
-          {filteredAds.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-500">لا توجد إعلانات بعد</p>
-              <Button onClick={() => setShowAddDialog(true)} className="mt-4">
-                إضافة أول إعلان
-              </Button>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+        ) : filteredAds.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <p className="text-gray-500">لا توجد إعلانات بعد</p>
+            <Button onClick={() => setShowAddDialog(true)} className="mt-4">
+              إضافة أول إعلان
+            </Button>
+          </div>
+        ) : (
+          filteredAds.map(ad => (
+            <Card key={ad.id} className={`${ad.is_active ? 'border-green-500' : 'border-gray-300 opacity-60'}`}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg">{ad.title || 'Untitled Ad'}</CardTitle>
+                  <Switch
+                    checked={ad.is_active}
+                    onCheckedChange={() => toggleAdStatus(ad.id, ad.is_active)}
+                  />
+                </div>
+                <p className="text-sm text-gray-500">Position: {ad.position}</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <img src={ad.image_url} alt={ad.title || 'Ad'} className="w-full h-32 object-cover rounded" />
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => setEditingAd(ad)}
+                      className="flex-1"
+                    >
+                      تعديل
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDeleteAd(ad.id)}
+                      className="flex-1"
+                    >
+                      حذف
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </div>
 
       {/* Add Ad Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -254,20 +247,6 @@ const AdManagement = () => {
                 onChange={(e) => setNewAdTitle(e.target.value)}
                 placeholder="عنوان الإعلان"
               />
-            </div>
-
-            <div>
-              <Label htmlFor="placement">موضع الإعلان</Label>
-              <select
-                id="placement"
-                value={newAdPlacement}
-                onChange={(e) => setNewAdPlacement(e.target.value as 'home' | 'sidebar' | 'product')}
-                className="w-full p-2 border rounded"
-              >
-                <option value="home">الصفحة الرئيسية</option>
-                <option value="sidebar">الشريط الجانبي</option>
-                <option value="product">صفحات المنتجات</option>
-              </select>
             </div>
 
             <div>
@@ -293,25 +272,6 @@ const AdManagement = () => {
                 placeholder="https://example.com"
               />
             </div>
-
-            {newAdPlacement === 'product' && (
-              <div>
-                <Label htmlFor="productId">ربط بمنتج (اختياري)</Label>
-                <select
-                  id="productId"
-                  value={newAdProductId}
-                  onChange={(e) => setNewAdProductId(e.target.value)}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="">اختر منتج</option>
-                  {products.map(product => (
-                    <option key={product.id} value={product.id}>
-                      {product.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
 
             <div className="flex items-center space-x-2">
               <Switch
@@ -347,24 +307,10 @@ const AdManagement = () => {
                 <Label htmlFor="edit-title">عنوان الإعلان*</Label>
                 <Input
                   id="edit-title"
-                  value={editingAd.title}
+                  value={editingAd.title || ''}
                   onChange={(e) => setEditingAd({...editingAd, title: e.target.value})}
                   placeholder="عنوان الإعلان"
                 />
-              </div>
-
-              <div>
-                <Label htmlFor="edit-placement">موضع الإعلان</Label>
-                <select
-                  id="edit-placement"
-                  value={editingAd.placement}
-                  onChange={(e) => setEditingAd({...editingAd, placement: e.target.value as 'home' | 'sidebar' | 'product'})}
-                  className="w-full p-2 border rounded"
-                >
-                  <option value="home">الصفحة الرئيسية</option>
-                  <option value="sidebar">الشريط الجانبي</option>
-                  <option value="product">صفحات المنتجات</option>
-                </select>
               </div>
 
               <div>
@@ -376,8 +322,8 @@ const AdManagement = () => {
                   onChange={(e) => handleImageUpload(e, true)}
                   className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                 />
-                {editingAd.imageUrl && (
-                  <img src={editingAd.imageUrl} alt="Preview" className="mt-2 w-full h-24 object-cover rounded" />
+                {editingAd.image_url && (
+                  <img src={editingAd.image_url} alt="Preview" className="mt-2 w-full h-24 object-cover rounded" />
                 )}
               </div>
 
@@ -385,36 +331,17 @@ const AdManagement = () => {
                 <Label htmlFor="edit-redirectUrl">رابط التوجيه</Label>
                 <Input
                   id="edit-redirectUrl"
-                  value={editingAd.redirectUrl}
-                  onChange={(e) => setEditingAd({...editingAd, redirectUrl: e.target.value})}
+                  value={editingAd.redirect_url || ''}
+                  onChange={(e) => setEditingAd({...editingAd, redirect_url: e.target.value})}
                   placeholder="https://example.com"
                 />
               </div>
 
-              {editingAd.placement === 'product' && (
-                <div>
-                  <Label htmlFor="edit-productId">ربط بمنتج (اختياري)</Label>
-                  <select
-                    id="edit-productId"
-                    value={editingAd.productId || ''}
-                    onChange={(e) => setEditingAd({...editingAd, productId: e.target.value || undefined})}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="">اختر منتج</option>
-                    {products.map(product => (
-                      <option key={product.id} value={product.id}>
-                        {product.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
               <div className="flex items-center space-x-2">
                 <Switch
                   id="edit-active"
-                  checked={editingAd.isActive}
-                  onCheckedChange={(checked) => setEditingAd({...editingAd, isActive: checked})}
+                  checked={editingAd.is_active}
+                  onCheckedChange={(checked) => setEditingAd({...editingAd, is_active: checked})}
                 />
                 <Label htmlFor="edit-active">نشط</Label>
               </div>

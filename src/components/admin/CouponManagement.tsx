@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from "react";
-import { Coupon, CouponDatabase } from "@/models/Coupon";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -9,10 +7,25 @@ import { format } from "date-fns";
 import { Pencil, Plus, Trash } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useSupabaseCoupons } from "@/hooks/useSupabaseCoupons";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Coupon {
+  id: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  expiration_date?: string;
+  usage_limit?: number;
+  used_count: number;
+  minimum_amount: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 const CouponManagement = () => {
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { coupons, loading, refetch } = useSupabaseCoupons();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -21,55 +34,31 @@ const CouponManagement = () => {
   
   const [couponFormData, setCouponFormData] = useState<{
     code: string;
-    discountPercentage: number;
-    validFrom: string;
-    validUntil: string;
-    isActive: boolean;
-    usageLimit?: number;
-    description?: string;
+    discount_type: 'percentage' | 'fixed';
+    discount_value: number;
+    expiration_date?: string;
+    usage_limit?: number;
+    minimum_amount: number;
+    is_active: boolean;
   }>({
     code: '',
-    discountPercentage: 10,
-    validFrom: new Date().toISOString().split('T')[0],
-    validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    isActive: true,
-    usageLimit: undefined,
-    description: '',
+    discount_type: 'percentage',
+    discount_value: 10,
+    expiration_date: undefined,
+    usage_limit: undefined,
+    minimum_amount: 0,
+    is_active: true,
   });
-
-  useEffect(() => {
-    fetchCoupons();
-    
-    // Listen for coupon updates
-    window.addEventListener('couponsUpdated', fetchCoupons);
-    return () => {
-      window.removeEventListener('couponsUpdated', fetchCoupons);
-    };
-  }, []);
-
-  const fetchCoupons = async () => {
-    setLoading(true);
-    try {
-      const couponDb = CouponDatabase.getInstance();
-      const allCoupons = await couponDb.getAllCoupons();
-      setCoupons(allCoupons);
-    } catch (error) {
-      console.error("Error fetching coupons:", error);
-      toast.error("فشل في تحميل كوبونات الخصم");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const resetFormData = () => {
     setCouponFormData({
       code: '',
-      discountPercentage: 10,
-      validFrom: new Date().toISOString().split('T')[0],
-      validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      isActive: true,
-      usageLimit: undefined,
-      description: '',
+      discount_type: 'percentage',
+      discount_value: 10,
+      expiration_date: undefined,
+      usage_limit: undefined,
+      minimum_amount: 0,
+      is_active: true,
     });
   };
 
@@ -82,10 +71,10 @@ const CouponManagement = () => {
         ...prev,
         [name]: checked,
       }));
-    } else if (name === 'discountPercentage' || name === 'usageLimit') {
+    } else if (name === 'discount_value' || name === 'usage_limit' || name === 'minimum_amount') {
       setCouponFormData(prev => ({
         ...prev,
-        [name]: value === '' ? undefined : Number(value),
+        [name]: value === '' ? (name === 'minimum_amount' ? 0 : undefined) : Number(value),
       }));
     } else {
       setCouponFormData(prev => ({
@@ -97,15 +86,41 @@ const CouponManagement = () => {
 
   const handleAddCoupon = async () => {
     try {
-      const couponDb = CouponDatabase.getInstance();
-      await couponDb.addCoupon({
-        ...couponFormData,
-        code: couponFormData.code.toUpperCase(),
-      });
+      if (!couponFormData.code.trim()) {
+        toast.error('Please enter a coupon code');
+        return;
+      }
+
+      const insertData: any = {
+        code: couponFormData.code.toUpperCase().trim(),
+        discount_type: couponFormData.discount_type,
+        discount_value: couponFormData.discount_value,
+        minimum_amount: couponFormData.minimum_amount,
+        is_active: couponFormData.is_active,
+        used_count: 0
+      };
+
+      if (couponFormData.expiration_date) {
+        insertData.expiration_date = couponFormData.expiration_date;
+      }
+
+      if (couponFormData.usage_limit) {
+        insertData.usage_limit = couponFormData.usage_limit;
+      }
+
+      const { data, error } = await supabase
+        .from('coupons')
+        .insert([insertData])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Coupon added successfully:', data);
       toast.success("تم إضافة كوبون الخصم بنجاح");
       setShowAddDialog(false);
       resetFormData();
-      fetchCoupons();
+      refetch();
     } catch (error: any) {
       console.error("Error adding coupon:", error);
       toast.error(error.message || "فشل في إضافة كوبون الخصم");
@@ -115,16 +130,37 @@ const CouponManagement = () => {
   const handleEditCoupon = async () => {
     if (!editCoupon) return;
     try {
-      const couponDb = CouponDatabase.getInstance();
-      await couponDb.updateCoupon(editCoupon.id, {
-        ...couponFormData,
-        code: couponFormData.code.toUpperCase(),
-      });
+      const updateData: any = {
+        code: couponFormData.code.toUpperCase().trim(),
+        discount_type: couponFormData.discount_type,
+        discount_value: couponFormData.discount_value,
+        minimum_amount: couponFormData.minimum_amount,
+        is_active: couponFormData.is_active
+      };
+
+      if (couponFormData.expiration_date) {
+        updateData.expiration_date = couponFormData.expiration_date;
+      }
+
+      if (couponFormData.usage_limit) {
+        updateData.usage_limit = couponFormData.usage_limit;
+      }
+
+      const { data, error } = await supabase
+        .from('coupons')
+        .update(updateData)
+        .eq('id', editCoupon.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ Coupon updated successfully:', data);
       toast.success("تم تحديث كوبون الخصم بنجاح");
       setShowEditDialog(false);
       setEditCoupon(null);
       resetFormData();
-      fetchCoupons();
+      refetch();
     } catch (error: any) {
       console.error("Error updating coupon:", error);
       toast.error(error.message || "فشل في تحديث كوبون الخصم");
@@ -134,13 +170,19 @@ const CouponManagement = () => {
   const handleDeleteCoupon = async () => {
     if (!deleteCouponId) return;
     try {
-      const couponDb = CouponDatabase.getInstance();
-      await couponDb.deleteCoupon(deleteCouponId);
+      const { error } = await supabase
+        .from('coupons')
+        .delete()
+        .eq('id', deleteCouponId);
+
+      if (error) throw error;
+
+      console.log('✅ Coupon deleted successfully');
       toast.success("تم حذف كوبون الخصم بنجاح");
       setShowDeleteDialog(false);
       setDeleteCouponId(null);
-      fetchCoupons();
-    } catch (error) {
+      refetch();
+    } catch (error: any) {
       console.error("Error deleting coupon:", error);
       toast.error("فشل في حذف كوبون الخصم");
     }
@@ -150,12 +192,12 @@ const CouponManagement = () => {
     setEditCoupon(coupon);
     setCouponFormData({
       code: coupon.code,
-      discountPercentage: coupon.discountPercentage,
-      validFrom: new Date(coupon.validFrom).toISOString().split('T')[0],
-      validUntil: new Date(coupon.validUntil).toISOString().split('T')[0],
-      isActive: coupon.isActive,
-      usageLimit: coupon.usageLimit,
-      description: coupon.description || '',
+      discount_type: coupon.discount_type,
+      discount_value: coupon.discount_value,
+      expiration_date: coupon.expiration_date ? new Date(coupon.expiration_date).toISOString().split('T')[0] : undefined,
+      usage_limit: coupon.usage_limit,
+      minimum_amount: coupon.minimum_amount,
+      is_active: coupon.is_active,
     });
     setShowEditDialog(true);
   };
@@ -171,10 +213,9 @@ const CouponManagement = () => {
   const isCouponActive = (coupon: Coupon) => {
     const now = new Date();
     return (
-      coupon.isActive &&
-      new Date(coupon.validFrom) <= now &&
-      new Date(coupon.validUntil) >= now &&
-      (!coupon.usageLimit || coupon.usageCount < coupon.usageLimit)
+      coupon.is_active &&
+      (!coupon.expiration_date || new Date(coupon.expiration_date) >= now) &&
+      (!coupon.usage_limit || coupon.used_count < coupon.usage_limit)
     );
   };
 
@@ -212,9 +253,9 @@ const CouponManagement = () => {
                 <TableHeader className="bg-green-50">
                   <TableRow>
                     <TableHead>الكود</TableHead>
-                    <TableHead>الخصم (%)</TableHead>
-                    <TableHead className="hidden md:table-cell">صالح من</TableHead>
-                    <TableHead className="hidden md:table-cell">صالح حتى</TableHead>
+                    <TableHead>النوع</TableHead>
+                    <TableHead>القيمة</TableHead>
+                    <TableHead className="hidden md:table-cell">انتهاء الصلاحية</TableHead>
                     <TableHead>الحالة</TableHead>
                     <TableHead className="hidden lg:table-cell">الاستخدامات</TableHead>
                     <TableHead className="text-right">إجراءات</TableHead>
@@ -224,9 +265,13 @@ const CouponManagement = () => {
                   {coupons.map(coupon => (
                     <TableRow key={coupon.id} className="hover:bg-green-50 transition-colors">
                       <TableCell className="font-bold">{coupon.code}</TableCell>
-                      <TableCell>{coupon.discountPercentage}%</TableCell>
-                      <TableCell className="hidden md:table-cell">{formatDate(coupon.validFrom)}</TableCell>
-                      <TableCell className="hidden md:table-cell">{formatDate(coupon.validUntil)}</TableCell>
+                      <TableCell>{coupon.discount_type === 'percentage' ? 'نسبة مئوية' : 'مبلغ ثابت'}</TableCell>
+                      <TableCell>
+                        {coupon.discount_value}{coupon.discount_type === 'percentage' ? '%' : ' EGP'}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {coupon.expiration_date ? formatDate(coupon.expiration_date) : 'بدون انتهاء'}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           className={
@@ -239,7 +284,7 @@ const CouponManagement = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
-                        {coupon.usageCount} {coupon.usageLimit ? `/ ${coupon.usageLimit}` : ''}
+                        {coupon.used_count} {coupon.usage_limit ? `/ ${coupon.usage_limit}` : ''}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
@@ -291,71 +336,73 @@ const CouponManagement = () => {
                   required
                 />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-medium mb-1">نوع الخصم*</label>
+                  <select
+                    name="discount_type"
+                    value={couponFormData.discount_type}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded text-sm"
+                    required
+                  >
+                    <option value="percentage">نسبة مئوية</option>
+                    <option value="fixed">مبلغ ثابت</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">قيمة الخصم*</label>
+                  <input
+                    type="number"
+                    name="discount_value"
+                    min="1"
+                    value={couponFormData.discount_value}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded text-sm"
+                    required
+                  />
+                </div>
+              </div>
               <div>
-                <label className="block text-sm font-medium mb-1">نسبة الخصم (%)*</label>
+                <label className="block text-sm font-medium mb-1">تاريخ انتهاء الصلاحية</label>
                 <input
-                  type="number"
-                  name="discountPercentage"
-                  min="1"
-                  max="100"
-                  value={couponFormData.discountPercentage}
+                  type="date"
+                  name="expiration_date"
+                  value={couponFormData.expiration_date || ''}
                   onChange={handleInputChange}
                   className="w-full p-2 border rounded text-sm"
-                  required
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium mb-1">صالح من*</label>
+                  <label className="block text-sm font-medium mb-1">الحد الأقصى للاستخدام</label>
                   <input
-                    type="date"
-                    name="validFrom"
-                    value={couponFormData.validFrom}
+                    type="number"
+                    name="usage_limit"
+                    min="1"
+                    value={couponFormData.usage_limit || ''}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
-                    required
+                    placeholder="غير محدود"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">صالح حتى*</label>
+                  <label className="block text-sm font-medium mb-1">الحد الأدنى للطلب</label>
                   <input
-                    type="date"
-                    name="validUntil"
-                    value={couponFormData.validUntil}
+                    type="number"
+                    name="minimum_amount"
+                    min="0"
+                    value={couponFormData.minimum_amount}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
-                    required
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">الحد الأقصى للاستخدام</label>
-                <input
-                  type="number"
-                  name="usageLimit"
-                  min="1"
-                  value={couponFormData.usageLimit || ''}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded text-sm"
-                  placeholder="اتركه فارغا للاستخدام غير المحدود"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">وصف</label>
-                <textarea
-                  name="description"
-                  value={couponFormData.description || ''}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded text-sm"
-                  rows={2}
-                  placeholder="وصف اختياري للكوبون"
-                />
               </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="isActive"
-                  checked={couponFormData.isActive}
+                  name="is_active"
+                  checked={couponFormData.is_active}
                   onChange={handleInputChange}
                   id="isActive"
                   className="mr-2"
@@ -399,71 +446,73 @@ const CouponManagement = () => {
                   required
                 />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-medium mb-1">نوع الخصم*</label>
+                  <select
+                    name="discount_type"
+                    value={couponFormData.discount_type}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded text-sm"
+                    required
+                  >
+                    <option value="percentage">نسبة مئوية</option>
+                    <option value="fixed">مبلغ ثابت</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">قيمة الخصم*</label>
+                  <input
+                    type="number"
+                    name="discount_value"
+                    min="1"
+                    value={couponFormData.discount_value}
+                    onChange={handleInputChange}
+                    className="w-full p-2 border rounded text-sm"
+                    required
+                  />
+                </div>
+              </div>
               <div>
-                <label className="block text-sm font-medium mb-1">نسبة الخصم (%)*</label>
+                <label className="block text-sm font-medium mb-1">تاريخ انتهاء الصلاحية</label>
                 <input
-                  type="number"
-                  name="discountPercentage"
-                  min="1"
-                  max="100"
-                  value={couponFormData.discountPercentage}
+                  type="date"
+                  name="expiration_date"
+                  value={couponFormData.expiration_date || ''}
                   onChange={handleInputChange}
                   className="w-full p-2 border rounded text-sm"
-                  required
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium mb-1">صالح من*</label>
+                  <label className="block text-sm font-medium mb-1">الحد الأقصى للاستخدام</label>
                   <input
-                    type="date"
-                    name="validFrom"
-                    value={couponFormData.validFrom}
+                    type="number"
+                    name="usage_limit"
+                    min="1"
+                    value={couponFormData.usage_limit || ''}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
-                    required
+                    placeholder="غير محدود"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">صالح حتى*</label>
+                  <label className="block text-sm font-medium mb-1">الحد الأدنى للطلب</label>
                   <input
-                    type="date"
-                    name="validUntil"
-                    value={couponFormData.validUntil}
+                    type="number"
+                    name="minimum_amount"
+                    min="0"
+                    value={couponFormData.minimum_amount}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
-                    required
                   />
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">الحد الأقصى للاستخدام</label>
-                <input
-                  type="number"
-                  name="usageLimit"
-                  min="1"
-                  value={couponFormData.usageLimit || ''}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded text-sm"
-                  placeholder="اتركه فارغا للاستخدام غير المحدود"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">وصف</label>
-                <textarea
-                  name="description"
-                  value={couponFormData.description || ''}
-                  onChange={handleInputChange}
-                  className="w-full p-2 border rounded text-sm"
-                  rows={2}
-                  placeholder="وصف اختياري للكوبون"
-                />
               </div>
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="isActive"
-                  checked={couponFormData.isActive}
+                  name="is_active"
+                  checked={couponFormData.is_active}
                   onChange={handleInputChange}
                   id="editIsActive"
                   className="mr-2"

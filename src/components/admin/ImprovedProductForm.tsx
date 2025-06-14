@@ -61,8 +61,6 @@ const ImprovedProductForm = ({
       const variations: ColorVariation[] = [];
       
       initialData.colors.forEach(colorName => {
-        // Filter sizes for this color (in this initial version, we don't have color-specific sizes)
-        // so we'll just assign all sizes to all colors
         const colorSizes = initialData.sizes ? 
           initialData.sizes.map(s => ({
             size: s.size,
@@ -159,7 +157,7 @@ const ImprovedProductForm = ({
   const validateForm = () => {
     // Basic validation
     if (!name.trim()) return "يرجى إدخال اسم المنتج";
-    if (categoryId === "") return "يرجى اختيار القسم";
+    if (!categoryId || categoryId === "") return "يرجى اختيار القسم - Please select a valid subcategory";
     if (!mainImage) return "يرجى تحميل صورة رئيسية للمنتج";
     
     // Validate based on product type (simple vs. with variations)
@@ -193,6 +191,8 @@ const ImprovedProductForm = ({
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    console.log('🎯 Form submission - categoryId:', categoryId);
 
     // Validate form
     const validationError = validateForm();
@@ -244,7 +244,7 @@ const ImprovedProductForm = ({
     // Create the final product object - ONLY include fields that exist in the database
     const productData: any = {
       name: name.trim(),
-      category_id: categoryId,
+      category_id: categoryId, // This is the critical field that was missing
       description: details,
       discount: hasDiscount ? discount : 0,
       main_image: mainImageUrl,
@@ -258,7 +258,7 @@ const ImprovedProductForm = ({
       featured: false // Default value
     };
     
-    console.log('🎯 Submitting product data:', productData);
+    console.log('🎯 Submitting product data with category_id:', productData);
     
     // Submit the product
     onSubmit(productData);
@@ -282,7 +282,13 @@ const ImprovedProductForm = ({
           </div>
           
           <div className="space-y-4">
-            <CategorySelector value={categoryId} onChange={setCategoryId} />
+            <CategorySelector 
+              value={categoryId} 
+              onChange={(id) => {
+                console.log('🎯 Category selected:', id);
+                setCategoryId(id);
+              }} 
+            />
           </div>
         </div>
 
@@ -530,7 +536,7 @@ const ImprovedProductForm = ({
 
       {/* Error Message */}
       {error && (
-        <div className="text-red-600 text-sm">{error}</div>
+        <div className="text-red-600 text-sm bg-red-50 p-3 rounded border border-red-200">{error}</div>
       )}
 
       {/* Submit Buttons */}
