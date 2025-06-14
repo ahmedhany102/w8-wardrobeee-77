@@ -1,6 +1,4 @@
 
-import { OrderItem } from './Product';
-
 export interface User {
   id: string;
   name: string;

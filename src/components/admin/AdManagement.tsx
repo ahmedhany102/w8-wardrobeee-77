@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ProductDatabase } from '@/models/Product';
+import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 
 interface Ad {
   id: string;
@@ -54,9 +54,11 @@ const AdManagement = () => {
   const [newAdPlacement, setNewAdPlacement] = useState<'home' | 'sidebar' | 'product'>('home');
   const [newAdActive, setNewAdActive] = useState<boolean>(true);
   const [newAdProductId, setNewAdProductId] = useState<string>('');
-  const [products, setProducts] = useState<Product[]>([]);
   const [filterPlacement, setFilterPlacement] = useState<string>('all');
   const [newAdResponsiveSize, setNewAdResponsiveSize] = useState({ desktop: 100, tablet: 100, mobile: 100 });
+  
+  // Use Supabase products hook instead of ProductDatabase
+  const { products } = useSupabaseProducts();
   
   // Load ads from localStorage
   useEffect(() => {
@@ -69,25 +71,8 @@ const AdManagement = () => {
         toast.error('Failed to load advertisements');
       }
     }
-
-    // Load products for linking
-    loadProducts();
   }, []);
   
-  const loadProducts = async () => {
-    try {
-      const db = ProductDatabase.getInstance();
-      const allProducts = await db.getAllProducts();
-      setProducts(allProducts.map(product => ({
-        id: product.id,
-        name: product.name,
-        imageUrl: product.imageUrl || product.mainImage || product.images?.[0]
-      })));
-    } catch (error) {
-      console.error('Error loading products for ad linking:', error);
-    }
-  };
-
   // Save ads to localStorage
   const saveAds = (updatedAds: Ad[]) => {
     try {

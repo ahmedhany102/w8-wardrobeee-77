@@ -1,20 +1,18 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Product, default as ProductDatabase } from '@/models/Product';
+import { Product } from '@/models/Product';
+import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { toast } from "sonner";
 
 const FeaturedProductsManagement: React.FC = () => {
-  const [products, setProducts] = useState<Product[]>([]);
   const [featured, setFeatured] = useState<string[]>([]); // array of product ids
+  
+  // Use Supabase products hook instead of ProductDatabase
+  const { products } = useSupabaseProducts();
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      const db = ProductDatabase.getInstance();
-      const all = await db.getAllProducts();
-      setProducts(all);
-    };
-    fetchProducts();
     const stored = localStorage.getItem('featuredProducts');
     setFeatured(stored ? JSON.parse(stored) : []);
   }, []);
@@ -41,7 +39,11 @@ const FeaturedProductsManagement: React.FC = () => {
         {products.map(product => (
           <Card key={product.id} className={featured.includes(product.id) ? 'border-green-600 border-2' : ''}>
             <CardHeader className="flex flex-row items-center gap-4">
-              <img src={product.imageUrl} alt={product.name} className="w-16 h-16 object-cover rounded" />
+              <img 
+                src={product.main_image || product.image_url || product.images?.[0] || '/placeholder.svg'} 
+                alt={product.name} 
+                className="w-16 h-16 object-cover rounded" 
+              />
               <div>
                 <CardTitle className="text-base">{product.name}</CardTitle>
                 <div className="text-sm text-gray-500">{product.price} EGP</div>
@@ -65,4 +67,4 @@ const FeaturedProductsManagement: React.FC = () => {
   );
 };
 
-export default FeaturedProductsManagement; 
+export default FeaturedProductsManagement;
