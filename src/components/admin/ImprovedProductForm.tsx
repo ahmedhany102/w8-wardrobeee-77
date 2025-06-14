@@ -63,8 +63,8 @@ const ImprovedProductForm = ({
   const [name, setName] = useState(initialData.name || "");
   const [categoryId, setCategoryId] = useState(initialData.category_id || "");
   const [type, setType] = useState(initialData.type || "");
-  const [details, setDetails] = useState(initialData.details || "");
-  const [mainImage, setMainImage] = useState(initialData.mainImage || "");
+  const [details, setDetails] = useState(initialData.details || initialData.description || "");
+  const [mainImage, setMainImage] = useState(initialData.main_image || initialData.image_url || "");
   
   // Discount information
   const [hasDiscount, setHasDiscount] = useState(initialData.hasDiscount || false);
@@ -303,15 +303,15 @@ const ImprovedProductForm = ({
       details,
       hasDiscount,
       discount: hasDiscount ? discount : 0,
-      mainImage: mainImageUrl,
+      main_image: mainImageUrl,
       images: [mainImageUrl],
       colors: hasColorVariations ? formattedColors : [],
       colorImages: hasColorVariations ? formattedColorImages : {},
       sizes: formattedSizes,
       price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
       inventory: calculatedInventory,
-      createdAt: initialData.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      created_at: initialData.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     
     // Submit the product

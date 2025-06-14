@@ -1,3 +1,4 @@
+
 import React from 'react';
 import SearchBar from './SearchBar';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
@@ -84,33 +85,34 @@ const ProductCatalog: React.FC = () => {
       <ProductCatalogTabs 
         activeTab={activeCategory} 
         onTabChange={handleCategoryChange}
-      />
-      {/* Build category tabs */}
-      <div className="flex gap-2 my-3">
-        <button
-          className={`px-3 py-1 rounded ${activeSubcat === "ALL" ? "bg-green-600 text-white" : "bg-gray-200"}`}
-          onClick={() => setActiveSubcat("ALL")}
-        >
-          الكل
-        </button>
-        {menSubs.map(sub => (
+      >
+        {/* Build category tabs */}
+        <div className="flex gap-2 my-3">
           <button
-            key={sub.id}
-            className={`px-3 py-1 rounded ${activeSubcat === sub.id ? "bg-green-600 text-white" : "bg-gray-200"}`}
-            onClick={() => setActiveSubcat(sub.id)}
+            className={`px-3 py-1 rounded ${activeSubcat === "ALL" ? "bg-green-600 text-white" : "bg-gray-200"}`}
+            onClick={() => setActiveSubcat("ALL")}
           >
-            {sub.name}
+            الكل
           </button>
-        ))}
-      </div>
-      {/* ... pass filteredProducts to ProductGrid ... */}
-      <ProductGrid 
-        products={filteredProducts}
-        loading={loading}
-        searchQuery={searchQuery}
-        onAddToCart={handleAddToCart}
-        onClearSearch={clearFilters}
-      />
+          {menSubs.map(sub => (
+            <button
+              key={sub.id}
+              className={`px-3 py-1 rounded ${activeSubcat === sub.id ? "bg-green-600 text-white" : "bg-gray-200"}`}
+              onClick={() => setActiveSubcat(sub.id)}
+            >
+              {sub.name}
+            </button>
+          ))}
+        </div>
+        
+        <ProductGrid 
+          products={filteredProducts}
+          loading={loading}
+          searchQuery={searchQuery}
+          onAddToCart={handleAddToCart}
+          onClearSearch={clearFilters}
+        />
+      </ProductCatalogTabs>
 
       <ShoppingCartDialog
         isOpen={showCartDialog}

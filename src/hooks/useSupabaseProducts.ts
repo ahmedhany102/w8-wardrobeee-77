@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -9,8 +10,8 @@ interface Product {
   name: string;
   description?: string;
   price: number;
-  type?: string;
   category?: string;
+  category_id?: string;
   main_image?: string;
   images?: string[];
   colors?: string[];
@@ -62,13 +63,19 @@ export const useSupabaseProducts = () => {
       
       console.log('✅ Raw products fetched:', data?.length || 0);
       
-      // Validate and clean product data
-      const validatedProducts = (data || [])
-        .map(validateProductData)
-        .filter((product): product is Product => product !== null);
+      // Process and clean the data
+      const cleanedProducts = (data || []).map(product => ({
+        ...product,
+        images: Array.isArray(product.images) ? product.images : 
+                 typeof product.images === 'string' ? JSON.parse(product.images) : [],
+        colors: Array.isArray(product.colors) ? product.colors : 
+                typeof product.colors === 'string' ? JSON.parse(product.colors) : [],
+        sizes: Array.isArray(product.sizes) ? product.sizes : 
+               typeof product.sizes === 'string' ? JSON.parse(product.sizes) : []
+      }));
       
-      console.log('✅ Validated products:', validatedProducts.length);
-      setProducts(data || []);
+      console.log('✅ Cleaned products:', cleanedProducts.length);
+      setProducts(cleanedProducts);
       
     } catch (error: any) {
       LoadingFallback.clearTimeout('product-fetch');
@@ -80,38 +87,101 @@ export const useSupabaseProducts = () => {
     }
   };
 
-  const { addProduct, updateProduct, deleteProduct } = useProductOperations();
-
-  const handleAddProduct = async (productData: any) => {
-    const result = await addProduct(productData);
-    if (result) {
-      await refetch();
+  const addProduct = async (productData: any) => {
+    try {
+      console.log('🆕 Adding product:', productData);
+      
+      // Insert and immediately select the created product
+      const { data, error } = await supabase
+        .from('products')
+        .insert([productData])
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('❌ Error adding product:', error);
+        toast.error('Failed to add product: ' + error.message);
+        return false;
+      }
+      
+      console.log('✅ Product added successfully:', data);
+      
+      // Refresh the products list from database
+      await fetchProducts();
+      
+      return true;
+    } catch (error: any) {
+      console.error('💥 Exception adding product:', error);
+      toast.error('Failed to add product: ' + error.message);
+      return false;
     }
-    return result;
   };
 
-  const handleUpdateProduct = async (id: string, updates: any) => {
-    const result = await updateProduct(id, updates);
-    if (result) {
-      await refetch();
+  const updateProduct = async (id: string, updates: any) => {
+    try {
+      console.log('✏️ Updating product:', id, updates);
+      
+      // Update and immediately select the updated product
+      const { data, error } = await supabase
+        .from('products')
+        .update(updates)
+        .eq('id', id)
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('❌ Error updating product:', error);
+        toast.error('Failed to update product: ' + error.message);
+        return false;
+      }
+      
+      console.log('✅ Product updated successfully:', data);
+      
+      // Refresh the products list from database
+      await fetchProducts();
+      
+      return true;
+    } catch (error: any) {
+      console.error('💥 Exception updating product:', error);
+      toast.error('Failed to update product: ' + error.message);
+      return false;
     }
-    return result;
   };
 
-  const handleDeleteProduct = async (id: string) => {
-    const result = await deleteProduct(id);
-    if (result) {
-      await refetch();
+  const deleteProduct = async (id: string) => {
+    try {
+      console.log('🗑️ Deleting product:', id);
+      
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        console.error('❌ Error deleting product:', error);
+        toast.error('Failed to delete product: ' + error.message);
+        return false;
+      }
+      
+      console.log('✅ Product deleted successfully');
+      
+      // Refresh the products list from database
+      await fetchProducts();
+      
+      return true;
+    } catch (error: any) {
+      console.error('💥 Exception deleting product:', error);
+      toast.error('Failed to delete product: ' + error.message);
+      return false;
     }
-    return result;
   };
 
   return { 
     products, 
     loading, 
-    addProduct: handleAddProduct, 
-    updateProduct: handleUpdateProduct, 
-    deleteProduct: handleDeleteProduct, 
-    refetch 
+    addProduct, 
+    updateProduct, 
+    deleteProduct, 
+    refetch: fetchProducts 
   };
 };
