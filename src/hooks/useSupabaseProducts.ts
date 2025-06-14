@@ -135,8 +135,10 @@ export const useSupabaseProducts = () => {
       
       console.log('✅ Cleaned products:', cleanedProducts.length);
       console.log('📊 Sample product structure:', cleanedProducts[0]);
-      setProducts((data || []).map(p => ({ ...p, category_id: p.category_id })));
-      
+
+      // === FIX: Use cleanedProducts to ensure type correctness ===
+      setProducts(cleanedProducts);
+
     } catch (error: any) {
       LoadingFallback.clearTimeout('product-fetch');
       console.error('💥 Exception while fetching products:', error);
