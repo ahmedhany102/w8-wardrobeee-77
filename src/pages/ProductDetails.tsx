@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,8 +11,6 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatProductForDisplay } from '@/utils/productUtils';
 import { LoadingFallback } from '@/utils/loadingFallback';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
-import { useProductVariants } from "@/hooks/useProductVariants";
-import { useCategories } from '@/hooks/useCategories';
 
 // Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
@@ -57,35 +56,30 @@ const ProductDetails = () => {
   const { addToCart } = useCartIntegration();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-  const [addingToCart, setAddingToCart] = useState(false);
-
-  // --- NEW: Fetch color variants from normalized table ---
-  const { variants, fetchVariants, loading: variantsLoading } = useProductVariants(id || "");
-  // --- NEW: Category info ---
-  const { categories } = useCategories();
-
-  // Selected color variant and option (size)
-  const [selectedColorId, setSelectedColorId] = useState<string>('');
-  const [selectedOptionId, setSelectedOptionId] = useState<string>('');
-
-  // Set product info and main image (from legacy record, still needed for details and fallback)
   const [activeImage, setActiveImage] = useState<string>('');
-
+  const [addingToCart, setAddingToCart] = useState(false);
+  
   useEffect(() => {
     const fetchProduct = async () => {
       if (!id) {
         navigate('/not-found');
         return;
       }
+
       try {
         setLoading(true);
+        
+        // Start loading timeout
         LoadingFallback.startTimeout('product-details', 5000, () => {
           setLoading(false);
           navigate('/not-found');
         });
 
-        // Get basic product info (details), but not variants
+        console.log('🔍 Fetching product details for ID:', id);
+        
         const { data, error } = await supabase
           .from('products')
           .select('*')
@@ -94,167 +88,172 @@ const ProductDetails = () => {
 
         LoadingFallback.clearTimeout('product-details');
 
-        if (error || !data) {
+        if (error) {
+          console.error('❌ Error fetching product:', error);
           toast.error('Failed to load product');
           navigate('/not-found');
           return;
         }
 
-        // Normalize all JSON fields—images, colors, and sizes—to be arrays.
-        let images: string[] = [];
-        if (Array.isArray(data.images)) {
-          images = data.images as string[];
-        } else if (typeof data.images === 'string') {
-          try {
-            images = JSON.parse(data.images);
-          } catch {
-            images = [];
+        if (!data) {
+          console.log('❌ Product not found');
+          navigate('/not-found');
+          return;
+        }
+
+        // Format and validate product data
+        const formattedProduct = formatProductForDisplay(data);
+        if (!formattedProduct) {
+          navigate('/not-found');
+          return;
+        }
+
+        console.log('✅ Product loaded:', formattedProduct);
+        setProduct(formattedProduct);
+        
+        // Set default selections
+        if (formattedProduct.colors && formattedProduct.colors.length > 0) {
+          setSelectedColor(formattedProduct.colors[0]);
+        }
+        
+        if (formattedProduct.sizes && formattedProduct.sizes.length > 0) {
+          const availableSize = formattedProduct.sizes.find(size => size && size.stock > 0);
+          if (availableSize) {
+            setSelectedSize(availableSize.size);
           }
         }
-
-        let colors: string[] = [];
-        if (Array.isArray(data.colors)) {
-          colors = data.colors as string[];
-        } else if (typeof data.colors === 'string') {
-          try {
-            colors = JSON.parse(data.colors);
-          } catch {
-            colors = [];
-          }
-        }
-
-        let sizes: any[] = [];
-        if (Array.isArray(data.sizes)) {
-          sizes = data.sizes;
-        } else if (typeof data.sizes === 'string') {
-          try {
-            sizes = JSON.parse(data.sizes);
-          } catch {
-            sizes = [];
-          } else {
-            sizes = [];
-          }
-        }
-
-        // Patch the product, ensuring correct types everywhere
-        const patchedProduct: Product = {
-          ...data,
-          images,
-          colors,
-          sizes,
-          price: Number(data.price) ?? 0,
-          discount: Number(data.discount) ?? 0,
-          stock: Number(data.stock) ?? 0,
-          inventory: Number(data.inventory) ?? 0,
-        };
-
-        setProduct(patchedProduct);
-
-        // Set fallback/main image
-        let mainImg = '';
-        if (typeof patchedProduct.main_image === 'string' && patchedProduct.main_image) {
-          mainImg = patchedProduct.main_image;
-        } else if (patchedProduct.images && patchedProduct.images.length > 0 && typeof patchedProduct.images[0] === 'string') {
-          mainImg = patchedProduct.images[0];
-        } else {
-          mainImg = '/placeholder.svg';
-        }
+        
+        // Set main image
+        const mainImg = formattedProduct.main_image || 
+                       (formattedProduct.images && formattedProduct.images[0]) || 
+                       '/placeholder.svg';
         setActiveImage(mainImg);
-
+        
       } catch (error: any) {
         LoadingFallback.clearTimeout('product-details');
+        console.error('💥 Exception while fetching product:', error);
         toast.error('Failed to load product');
         navigate('/not-found');
       } finally {
         setLoading(false);
       }
     };
-
+    
     fetchProduct();
-    fetchVariants();
-  }, [id, navigate, fetchVariants]);
+  }, [id, navigate]);
 
-  // Selection state logic for variants
-  useEffect(() => {
-    if (!variantsLoading && variants.length > 0) {
-      // If none selected or invalid, pick first variant
-      if (!selectedColorId || !variants.some(v => v.id === selectedColorId)) {
-        setSelectedColorId(variants[0].id);
-        setSelectedOptionId('');
-        setActiveImage(variants[0].image || product?.main_image || '/placeholder.svg');
-      }
+  // Handle color selection
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+    setSelectedSize(null); // Reset size when color changes
+  };
+  
+  // Set the active image
+  const handleImageClick = (imageUrl: string) => {
+    setActiveImage(imageUrl);
+  };
+
+  const getAvailableSizes = () => {
+    if (!product || !product.sizes) return [];
+    return product.sizes.filter(size => size && size.size);
+  };
+  
+  const isOutOfStock = !getAvailableSizes().some(size => size && size.stock > 0);
+
+  const getColorHex = (color: string) => {
+    return colorMap[color] || color;
+  };
+
+  const getStockForSize = (size: string) => {
+    if (product && product.sizes) {
+      const sizeObj = product.sizes.find(s => s.size === size);
+      return sizeObj ? sizeObj.stock : 0;
     }
-  }, [variants, selectedColorId, variantsLoading, product]);
+    return 0;
+  };
 
-  // When color changes, load first available size/option+set image
-  useEffect(() => {
-    const cur = variants.find(v => v.id === selectedColorId);
-    if (cur && cur.options && cur.options.length > 0) {
-      if (!selectedOptionId || !cur.options.some(o => o.id === selectedOptionId)) {
-        setSelectedOptionId(cur.options[0].id);
-      }
-      setActiveImage(cur.image || product?.main_image || '/placeholder.svg');
+  const getSizePrice = (size: string) => {
+    if (product && product.sizes) {
+      const sizeObj = product.sizes.find(s => s.size === size);
+      return sizeObj ? sizeObj.price : product?.price || 0;
     }
-  }, [selectedColorId, variants, selectedOptionId, product]);
+    return product?.price || 0;
+  };
 
-  // Find currently selected color variant and option (size)
-  const selectedColorVariant = variants.find(v => v.id === selectedColorId);
-  const selectedOption = selectedColorVariant?.options?.find(o => o.id === selectedOptionId);
+  const getColorBorder = (color: string) => {
+    return colorMap[color] ? `1px solid ${colorMap[color]}` : '1px solid #ccc';
+  };
 
-  // Compute stock and price per selection, fallback to product base if not available
-  const isOutOfStock = !selectedOption || selectedOption.stock <= 0;
-  const currentPrice = selectedOption?.price ?? product?.price ?? 0;
-  const hasDiscount = !!(product?.discount && product.discount > 0);
-  const discountedPrice = hasDiscount ? currentPrice - (currentPrice * (product?.discount ?? 0) / 100) : currentPrice;
-  const originalPrice = hasDiscount ? currentPrice : null;
+  const displayStockMessage = (stock: number) => {
+    if (stock === 0) {
+      return <Badge variant="destructive">نفذت الكمية</Badge>;
+    } else if (stock === 1) {
+      return <Badge variant="destructive">بقي قطعة واحدة فقط!</Badge>;
+    } else if (stock <= 5) {
+      return <Badge variant="outline" className="text-yellow-600 border-yellow-600">بقي {stock} قطع فقط</Badge>;
+    }
+    return null;
+  };
 
-  // --- Category label ---
-  const productCategory = categories.find((cat) => cat.id === product?.category_id)?.name || product?.category;
+  const calculateDiscountedPrice = (originalPrice: number, discount: number) => {
+    if (!discount) return originalPrice;
+    return originalPrice - (originalPrice * (discount / 100));
+  };
 
-  // --- Handle add to cart ---
   const handleAddToCart = async () => {
     if (isOutOfStock) {
       toast.error('المنتج غير متوفر حالياً');
       return;
     }
-    if (!selectedColorVariant || !selectedOption) {
-      toast.error('يرجى اختيار اللون والمقاس');
+    
+    if (!selectedSize || (!selectedColor && product?.colors && product.colors.length > 0)) {
+      toast.error('يرجى اختيار المقاس واللون');
       return;
     }
-
-    if (selectedOption.stock < quantity) {
-      toast.error(`عذراً، المتاح فقط ${selectedOption.stock} قطعة من هذا المنتج`);
+    
+    // Check stock quantity
+    const currentStock = getStockForSize(selectedSize);
+    if (currentStock < quantity) {
+      toast.error(`عذراً، المتاح فقط ${currentStock} قطعة من هذا المنتج`);
       return;
     }
-
+    
     try {
       setAddingToCart(true);
-      // Save IDs for accurate cart & later ordering.
-      const cartProduct = {
-        ...product,
+      
+      // Convert product to the format expected by CartDatabase
+      const productForCart = {
         id: product!.id,
         name: product!.name,
-        main_image: selectedColorVariant.image || product!.main_image,
-        color_variant_id: selectedColorVariant.id,
-        color: selectedColorVariant.color,
-        option_id: selectedOption.id,
-        size: selectedOption.size,
-        price: selectedOption.price,
-        stock: selectedOption.stock
+        price: getSizePrice(selectedSize),
+        mainImage: product!.main_image,
+        images: product!.images,
+        colors: product!.colors,
+        sizes: product!.sizes,
+        description: product!.description,
+        category: product!.category || product!.type,
+        inventory: product!.inventory || product!.stock || 0,
+        featured: product!.featured,
+        discount: product!.discount,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       };
-      // Pass full IDs, not just names
-      const success = await addToCart(cartProduct, selectedOption.size, selectedColorVariant.color, quantity, selectedColorVariant.id, selectedOption.id);
+      
+      const success = await addToCart(productForCart, selectedSize, selectedColor || '', quantity);
+      
       if (success) {
-        // Optional UI nav
+        // Optional: Navigate to cart or stay on page
+        // navigate('/cart');
       }
     } catch (error) {
+      console.error('Error adding to cart:', error);
       toast.error('حدث خطأ أثناء إضافة المنتج للعربة');
     } finally {
       setAddingToCart(false);
     }
   };
 
-  if (loading || variantsLoading) {
+  if (loading) {
     return (
       <Layout>
         <div className="flex justify-center items-center min-h-screen">
@@ -278,12 +277,19 @@ const ProductDetails = () => {
     );
   }
 
+  // Calculate correct prices
+  const currentPrice = selectedSize ? getSizePrice(selectedSize) : product.price;
+  const hasDiscount = product.discount && product.discount > 0;
+  const discountedPrice = hasDiscount ? calculateDiscountedPrice(currentPrice, product.discount!) : currentPrice;
+  const originalPrice = hasDiscount ? currentPrice : null;
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* --- Product Image --- */}
+          {/* Product Images */}
           <div>
+            {/* Main Image */}
             <div className="mb-4 border rounded overflow-hidden">
               <AspectRatio ratio={1}>
                 <img
@@ -296,35 +302,35 @@ const ProductDetails = () => {
                 />
               </AspectRatio>
             </div>
-            {/* Variant thumbnails */}
-            {variants.length > 0 && (
+
+            {/* Thumbnails */}
+            {product.images && product.images.length > 0 && (
               <div className="flex overflow-x-auto gap-2 pb-2">
-                {variants.map((v) => (
-                  v.image ? (
-                    <div
-                      key={v.id}
-                      className={`border rounded cursor-pointer flex-shrink-0 w-16 h-16 overflow-hidden ${
-                        activeImage === v.image ? "ring-2 ring-blue-500" : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedColorId(v.id);
-                        setActiveImage(v.image);
+                {product.images.map((image, index) => (
+                  <div
+                    key={index}
+                    className={`border rounded cursor-pointer flex-shrink-0 w-16 h-16 overflow-hidden ${
+                      activeImage === image ? "ring-2 ring-blue-500" : ""
+                    }`}
+                    onClick={() => handleImageClick(image)}
+                  >
+                    <img
+                      src={image}
+                      alt={`Thumbnail ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/placeholder.svg';
                       }}
-                    >
-                      <img
-                        src={v.image}
-                        alt={`لون ${v.color}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ) : null
+                    />
+                  </div>
                 ))}
               </div>
             )}
           </div>
-          {/* --- Details column --- */}
+
+          {/* Product Details */}
           <div className="space-y-4">
-            {/* Title + Price */}
+            {/* Title and Price */}
             <div>
               <h1 className="text-2xl font-bold">{product?.name}</h1>
               <div className="flex items-center gap-2 mt-2">
@@ -345,72 +351,73 @@ const ProductDetails = () => {
                 )}
               </div>
             </div>
-            {/* Stock */}
-            {selectedOption && (
+
+            {/* Stock Status */}
+            {selectedSize && (
               <div>
-                {selectedOption.stock === 0 ? (
-                  <Badge variant="destructive">نفذت الكمية</Badge>
-                ) : selectedOption.stock === 1 ? (
-                  <Badge variant="destructive">بقي قطعة واحدة فقط!</Badge>
-                ) : selectedOption.stock <= 5 ? (
-                  <Badge variant="outline" className="text-yellow-600 border-yellow-600">
-                    بقي {selectedOption.stock} قطع فقط
-                  </Badge>
-                ) : null}
+                {displayStockMessage(getStockForSize(selectedSize))}
               </div>
             )}
-            {/* --- Color selector --- */}
-            <div>
-              <h3 className="text-sm font-medium mb-2">اللون:</h3>
-              <div className="flex flex-wrap gap-2">
-                {variants.map((v) => (
-                  <button
-                    key={v.id}
-                    className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                      selectedColorId === v.id ? "ring-2 ring-offset-2 ring-blue-500" : ""
-                    }`}
-                    style={{
-                      backgroundColor: colorMap[v.color] || v.color,
-                      border: "1px solid #ccc",
-                    }}
-                    onClick={() => {
-                      setSelectedColorId(v.id);
-                      setActiveImage(v.image || product?.main_image || '/placeholder.svg');
-                    }}
-                    aria-label={`Select ${v.color} color`}
-                  />
-                ))}
-              </div>
-            </div>
-            {/* --- Size (option) selector --- */}
-            {selectedColorVariant?.options?.length > 0 && (
+
+            {/* Colors */}
+            {product?.colors && product.colors.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium mb-2">المقاس:</h3>
+                <h3 className="text-sm font-medium mb-2">اللون:</h3>
                 <div className="flex flex-wrap gap-2">
-                  {selectedColorVariant.options.map((opt) => (
+                  {product.colors.map((color) => (
                     <button
-                      key={opt.id}
-                      className={`px-3 py-1 border rounded-md ${
-                        selectedOptionId === opt.id
-                          ? "bg-green-600 text-white border-green-600"
-                          : opt.stock > 0
-                          ? "bg-white hover:bg-gray-100"
-                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      key={color}
+                      className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                        selectedColor === color
+                          ? "ring-2 ring-offset-2 ring-blue-500"
+                          : ""
                       }`}
-                      onClick={() => opt.stock > 0 && setSelectedOptionId(opt.id!)}
-                      disabled={opt.stock <= 0}
-                    >
-                      {opt.size}
-                      {opt.stock === 0 && <span className="block text-xs">نفذت الكمية</span>}
-                      {opt.stock === 1 && (
-                        <span className="block text-xs text-red-500">آخر قطعة!</span>
-                      )}
-                    </button>
+                      style={{
+                        backgroundColor: getColorHex(color),
+                        border: getColorBorder(color),
+                      }}
+                      onClick={() => handleColorChange(color)}
+                      aria-label={`Select ${color} color`}
+                    />
                   ))}
                 </div>
               </div>
             )}
-            {/* Quantity selector */}
+
+            {/* Sizes */}
+            {getAvailableSizes().length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium mb-2">المقاس:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {getAvailableSizes().map((size) => {
+                    if (!size) return null;
+                    const isAvailable = size.stock > 0;
+                    return (
+                      <button
+                        key={size.size}
+                        className={`px-3 py-1 border rounded-md ${
+                          selectedSize === size.size
+                            ? "bg-green-600 text-white border-green-600"
+                            : isAvailable
+                            ? "bg-white hover:bg-gray-100"
+                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        }`}
+                        onClick={() => isAvailable && setSelectedSize(size.size)}
+                        disabled={!isAvailable}
+                      >
+                        {size.size}
+                        {!isAvailable && <span className="block text-xs">نفذت الكمية</span>}
+                        {isAvailable && size.stock === 1 && (
+                          <span className="block text-xs text-red-500">آخر قطعة!</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Quantity */}
             {!isOutOfStock && (
               <div>
                 <h3 className="text-sm font-medium mb-2">الكمية:</h3>
@@ -428,17 +435,18 @@ const ProductDetails = () => {
                     variant="outline"
                     size="icon"
                     onClick={() => setQuantity(quantity + 1)}
-                    disabled={selectedOption && selectedOption.stock <= quantity}
+                    disabled={selectedSize && getStockForSize(selectedSize) <= quantity}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             )}
-            {/* Add to cart */}
+
+            {/* Add to cart button */}
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={isOutOfStock || !selectedOption || addingToCart}
+              disabled={isOutOfStock || !selectedSize || addingToCart}
               onClick={handleAddToCart}
             >
               {addingToCart ? (
@@ -447,7 +455,7 @@ const ProductDetails = () => {
                 </span>
               ) : isOutOfStock ? (
                 "نفذت الكمية"
-              ) : !selectedOption ? (
+              ) : !selectedSize ? (
                 "برجاء اختيار المقاس"
               ) : (
                 <span className="flex items-center gap-2">
@@ -455,6 +463,7 @@ const ProductDetails = () => {
                 </span>
               )}
             </Button>
+
             {/* Description */}
             <div>
               <h3 className="text-md font-medium mb-2">وصف المنتج:</h3>
@@ -464,14 +473,15 @@ const ProductDetails = () => {
                 <p className="text-gray-400 italic">لا يوجد وصف متاح لهذا المنتج.</p>
               )}
             </div>
-            {/* Additional info */}
+
+            {/* Additional information */}
             <div>
               <h3 className="text-md font-medium mb-2">معلومات إضافية:</h3>
               <div className="text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-md border">
-                {productCategory && (
+                {product?.category && (
                   <p>
                     <span className="font-semibold">التصنيف: </span>
-                    {productCategory}
+                    {product.category}
                   </p>
                 )}
                 <p>

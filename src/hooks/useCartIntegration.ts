@@ -4,7 +4,6 @@ import CartDatabase from '@/models/CartDatabase';
 import { Product } from '@/models/Product';
 import { toast } from 'sonner';
 
-// Add color_variant_id, option_id
 export const useCartIntegration = () => {
   const [cartItems, setCartItems] = useState([]);
   const [cartCount, setCartCount] = useState(0);
@@ -14,6 +13,7 @@ export const useCartIntegration = () => {
       const cartDb = CartDatabase.getInstance();
       const items = await cartDb.getCartItems();
       setCartItems(items);
+      
       const count = await cartDb.getItemCount();
       setCartCount(count);
     } catch (error) {
@@ -21,45 +21,35 @@ export const useCartIntegration = () => {
     }
   };
 
-  useEffect(() => { loadCartItems(); }, []);
+  useEffect(() => {
+    loadCartItems();
+  }, []);
 
-  // Adjust signature: add colorVariantId, optionId
-  const addToCart = async (
-    product: Product, 
-    selectedSize: string, 
-    selectedColor: string, 
-    quantity: number = 1, 
-    colorVariantId?: string, 
-    optionId?: string
-  ): Promise<boolean> => {
+  const addToCart = async (product: Product, selectedSize: string, selectedColor: string, quantity: number = 1): Promise<boolean> => {
     try {
       if (!selectedSize) {
         toast.error('يرجى اختيار المقاس');
         return false;
       }
+
       if (product.colors && product.colors.length > 0 && !selectedColor) {
         toast.error('يرجى اختيار اللون');
         return false;
       }
+
       const cartDb = CartDatabase.getInstance();
-      // Save variant/option IDs (forward to DB/model)
-      const success = await cartDb.addToCart(
-        { ...product, color_variant_id: colorVariantId, option_id: optionId }, 
-        selectedSize, 
-        selectedColor, 
-        quantity, 
-        colorVariantId, 
-        optionId
-      );
+      const success = await cartDb.addToCart(product, selectedSize, selectedColor, quantity);
+      
       if (success) {
         toast.success('تم إضافة المنتج إلى العربة بنجاح!');
-        await loadCartItems();
+        await loadCartItems(); // Refresh cart data
         return true;
       } else {
         toast.error('حدث خطأ أثناء إضافة المنتج إلى العربة');
         return false;
       }
     } catch (error) {
+      console.error('Error adding to cart:', error);
       toast.error('حدث خطأ أثناء إضافة المنتج إلى العربة');
       return false;
     }

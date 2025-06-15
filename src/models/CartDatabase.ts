@@ -10,8 +10,6 @@ export interface CartItem {
   imageUrl?: string;
   size?: string;
   color?: string;
-  color_variant_id?: string;
-  option_id?: string;
 }
 
 class CartDatabase {
@@ -37,30 +35,17 @@ class CartDatabase {
     }
   }
 
-  async addToCart(
-    product: Product, 
-    size: string, 
-    color: string, 
-    quantity: number = 1,
-    colorVariantId?: string,
-    optionId?: string
-  ): Promise<boolean> {
+  async addToCart(product: Product, size: string, color: string, quantity: number = 1): Promise<boolean> {
     try {
       const cartItems = await this.getCartItems();
       const imageUrl = product.mainImage || (product.images && product.images[0]) || '';
-      // Each (product, variant, option) is unique
-      const existingItemIndex = cartItems.findIndex(item =>
-        item.productId === product.id &&
-        item.size === size && 
-        item.color === color &&
-        item.color_variant_id === colorVariantId &&
-        item.option_id === optionId
-      );
+      // كل منتج بمقاس ولون مختلف يعتبر عنصر منفصل
+      const existingItemIndex = cartItems.findIndex(item => item.productId === product.id && item.size === size && item.color === color);
       if (existingItemIndex >= 0) {
         cartItems[existingItemIndex].quantity += quantity;
       } else {
-        const price = product.price || 0;
-        const newItem: any = {
+        const price = (product.sizes || []).find(s => s.size === size)?.price || 0;
+        const newItem: CartItem = {
           id: `cart-${Date.now()}`,
           productId: product.id,
           name: product.name,
@@ -68,15 +53,15 @@ class CartDatabase {
           quantity: quantity,
           imageUrl: imageUrl,
           size: size,
-          color: color,
-          color_variant_id: colorVariantId,
-          option_id: optionId
+          color: color
         };
         cartItems.push(newItem);
       }
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cartItems));
+      console.log("Product added to cart:", product.name, "size:", size, "color:", color, "qty:", quantity);
       return true;
     } catch (error) {
+      console.error("Error adding to cart:", error);
       return false;
     }
   }

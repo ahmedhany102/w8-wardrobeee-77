@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -30,7 +31,6 @@ export const useCategories = () => {
   };
 
   const mainCategories = categories.filter(c => !c.parent_id && c.is_active);
-  // Use IDs for child category lookup
   const subcategories = (parentId: string) =>
     categories.filter(c => c.parent_id === parentId && c.is_active);
 
