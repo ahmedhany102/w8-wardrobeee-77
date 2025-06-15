@@ -3,11 +3,14 @@ import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import CategorySelector from "./CategorySelector";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ColorVariation {
+  id?: string; // add optional id for variant
   colorName: string;
   image: string;
   sizes: {
+    id?: string;    // add optional id for size option
     size: string;
     price: number;
     stock: number;
@@ -363,7 +366,8 @@ const ImprovedProductForm = ({
             image: color.image,
           })
           .select()
-          .single();
+          .maybeSingle();
+
         if (error || !data) continue;
         colorVariantId = data.id;
       } else {
