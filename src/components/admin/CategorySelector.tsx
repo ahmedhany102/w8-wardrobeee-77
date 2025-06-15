@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useCategories } from "@/hooks/useCategories";
 import {
@@ -17,7 +16,7 @@ interface CategorySelectorProps {
 const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) => {
   const { mainCategories, subcategories, loading } = useCategories();
 
-  // Only show subcategories as options
+  // Show only *active subcategories* as options
   const validSubcategories = mainCategories
     .map(main => subcategories(main.id))
     .flat()
@@ -65,4 +64,3 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
 };
 
 export default CategorySelector;
-
