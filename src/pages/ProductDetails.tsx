@@ -100,12 +100,53 @@ const ProductDetails = () => {
           return;
         }
 
-        // Fix: make sure images/colors are arrays, not Json
-        const patchedProduct = {
+        // Fix: make sure images/colors/sizes are arrays, not Json/string/null
+        let images: string[] = [];
+        if (Array.isArray(data.images)) {
+          images = data.images as string[];
+        } else if (typeof data.images === 'string') {
+          try {
+            images = JSON.parse(data.images);
+          } catch {
+            images = [];
+          }
+        }
+
+        let colors: string[] = [];
+        if (Array.isArray(data.colors)) {
+          colors = data.colors as string[];
+        } else if (typeof data.colors === 'string') {
+          try {
+            colors = JSON.parse(data.colors);
+          } catch {
+            colors = [];
+          }
+        }
+
+        let sizes: any[] = [];
+        if (Array.isArray(data.sizes)) {
+          sizes = data.sizes;
+        } else if (typeof data.sizes === 'string') {
+          try {
+            sizes = JSON.parse(data.sizes);
+          } catch {
+            sizes = [];
+          }
+        }
+
+        // Patch the product, ensuring correct types everywhere
+        const patchedProduct: Product = {
           ...data,
-          images: Array.isArray(data.images) ? (data.images as string[]) : [],
-          colors: Array.isArray(data.colors) ? (data.colors as string[]) : [],
+          images,
+          colors,
+          sizes,
+          // These two are expected by your Product interface as numbers or strings,
+          price: Number(data.price) ?? 0,
+          discount: Number(data.discount) ?? 0,
+          stock: Number(data.stock) ?? 0,
+          inventory: Number(data.inventory) ?? 0,
         };
+
         setProduct(patchedProduct);
 
         // Set fallback/main image (only use string types)
