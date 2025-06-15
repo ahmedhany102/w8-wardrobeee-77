@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Product } from '@/models/Product';
@@ -11,54 +10,49 @@ interface ProductVariantSelectorProps {
 }
 
 const ProductVariantSelector = ({ product, onVariantChange }: ProductVariantSelectorProps) => {
+  // Use new variant hook (color/option normalized model)
   const { variants, fetchVariants, loading } = useProductVariants(product.id);
-  const [selectedColor, setSelectedColor] = useState<string>("");
-  const [selectedSize, setSelectedSize] = useState<string>("");
+  const [selectedColorId, setSelectedColorId] = useState<string>("");
+  const [selectedOptionId, setSelectedOptionId] = useState<string>("");
 
-  // Get all unique colors (from variants)
-  const colorList = useMemo(
-    () => Array.from(new Set(variants.map((v) => v.color))),
-    [variants]
-  );
+  // Refetch on mount or product.id change
+  useEffect(() => { fetchVariants(); }, [product.id]);
 
-  // When color changes, get all sizes available for that color
-  const sizeList = useMemo(
-    () => variants.filter((v) => v.color === selectedColor).map((v) => v.size),
-    [variants, selectedColor]
-  );
+  // List of color variants for the product
+  const colorList = useMemo(() => variants, [variants]);
 
-  // Pick current variant for selected color/size
-  const selectedVariant = useMemo(
-    () =>
-      variants.find(
-        (v) => v.color === selectedColor && v.size === selectedSize
-      ),
-    [variants, selectedColor, selectedSize]
-  );
+  // Options (sizes) for the selected color
+  const optionList = useMemo(() => {
+    const cur = colorList.find(c => c.id === selectedColorId);
+    return cur?.options || [];
+  }, [colorList, selectedColorId]);
 
-  // When variants load, or a color is picked, update selection
+  // Keep selection in bounds after loading
   useEffect(() => {
     if (!loading && colorList.length) {
-      // Default color if not set
-      if (!selectedColor || !colorList.includes(selectedColor)) {
-        setSelectedColor(colorList[0]);
-        setSelectedSize("");
+      if (!selectedColorId || !colorList.some(c => c.id === selectedColorId)) {
+        setSelectedColorId(colorList[0].id);
+        setSelectedOptionId("");
       }
     }
-  }, [colorList, selectedColor, loading]);
+  }, [colorList, selectedColorId, loading]);
 
   useEffect(() => {
     // When color changes, choose first available size for that color
-    if (selectedColor && sizeList.length && (!selectedSize || !sizeList.includes(selectedSize))) {
-      setSelectedSize(sizeList[0]);
+    if (selectedColorId && optionList.length && (!selectedOptionId || !optionList.some(o => o.id === selectedOptionId))) {
+      setSelectedOptionId(optionList[0].id);
     }
-  }, [selectedColor, sizeList, selectedSize]);
+  }, [selectedColorId, optionList, selectedOptionId]);
 
-  // Inform parent on selection change
+  // Picked variant: ({color, image, option: {size, price, stock}})
+  const selectedColorVariant = colorList.find(c => c.id === selectedColorId);
+  const selectedOption = optionList.find(o => o.id === selectedOptionId);
+
+  // Inform parent
   useEffect(() => {
-    if (selectedVariant && onVariantChange)
-      onVariantChange(selectedVariant.color, selectedVariant.size, selectedVariant.price);
-  }, [selectedVariant, onVariantChange]);
+    if (selectedColorVariant && selectedOption && onVariantChange)
+      onVariantChange(selectedColorVariant.color, selectedOption.size, selectedOption.price);
+  }, [selectedColorVariant, selectedOption, onVariantChange]);
 
   if (loading) {
     return (
@@ -68,10 +62,10 @@ const ProductVariantSelector = ({ product, onVariantChange }: ProductVariantSele
 
   return (
     <div className="space-y-6">
-      {/* Main product image */}
+      {/* Main product image OR selected color variant image */}
       <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
         <img
-          src={selectedVariant?.image_url || product.main_image || product.image_url || "/placeholder.svg"}
+          src={selectedColorVariant?.image || product.main_image || product.image_url || "/placeholder.svg"}
           alt={product.name}
           className="w-full h-full object-cover"
         />
@@ -80,23 +74,22 @@ const ProductVariantSelector = ({ product, onVariantChange }: ProductVariantSele
       <div className="space-y-3">
         <h3 className="font-medium text-lg">اللون</h3>
         <div className="flex flex-wrap gap-2">
-          {colorList.map((color) => (
+          {colorList.map((colorVar) => (
             <Button
-              key={color}
-              variant={color === selectedColor ? "default" : "outline"}
+              key={colorVar.id}
+              variant={colorVar.id === selectedColorId ? "default" : "outline"}
               style={{
-                backgroundColor: color !== selectedColor ? color : undefined,
-                // Show color as swatch if not selected, otherwise use green highlight
-                color: color !== selectedColor ? "#fff" : undefined,
-                borderColor: color === selectedColor ? "#166534" : "#e5e7eb"
+                backgroundColor: colorVar.color !== selectedColorVariant?.color ? colorVar.color : undefined,
+                color: colorVar.color !== selectedColorVariant?.color ? "#fff" : undefined,
+                borderColor: colorVar.id === selectedColorId ? "#166534" : "#e5e7eb"
               }}
               onClick={() => {
-                setSelectedColor(color);
-                setSelectedSize("");
+                setSelectedColorId(colorVar.id);
+                setSelectedOptionId("");
               }}
               className="min-w-[2rem] px-4 py-2 rounded-full shadow border"
             >
-              {color}
+              {colorVar.color}
             </Button>
           ))}
         </div>
@@ -105,26 +98,26 @@ const ProductVariantSelector = ({ product, onVariantChange }: ProductVariantSele
       <div className="space-y-3">
         <h3 className="font-medium text-lg">المقاس</h3>
         <div className="flex flex-wrap gap-2">
-          {sizeList.map((size) => (
+          {optionList.map((option) => (
             <Button
-              key={size}
-              variant={size === selectedSize ? "default" : "outline"}
-              onClick={() => setSelectedSize(size)}
+              key={option.id}
+              variant={option.id === selectedOptionId ? "default" : "outline"}
+              onClick={() => setSelectedOptionId(option.id!)}
             >
-              {size}
+              {option.size}
             </Button>
           ))}
         </div>
       </div>
       {/* Price and stock */}
-      {selectedVariant && (
+      {selectedColorVariant && selectedOption && (
         <div>
           <div>
             <span className="font-bold text-green-700">
-              {selectedVariant.price} EGP
+              {selectedOption.price} EGP
             </span>
             <span className="ml-2">
-              {selectedVariant.stock > 0 ? "متوفر" : "غير متوفر"}
+              {selectedOption.stock > 0 ? "متوفر" : "غير متوفر"}
             </span>
           </div>
         </div>
