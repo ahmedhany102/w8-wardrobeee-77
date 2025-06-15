@@ -353,9 +353,11 @@ const ImprovedProductForm = ({
     }
 
     // CRUD for variants (replace these with API calls or direct supabase code as appropriate in your project)
+    // Refactored to use for..of for correct async/await control and type safety
     for (const color of colorVariations) {
       // (UP)SERT color variant
       let colorVariantId = color.id;
+
       if (!colorVariantId) {
         // Insert new color variant
         const { data, error } = await supabase
@@ -368,7 +370,10 @@ const ImprovedProductForm = ({
           .select()
           .maybeSingle();
 
-        if (error || !data) continue;
+        if (error || !data) {
+          // Skip if could not insert
+          continue;
+        }
         colorVariantId = data.id;
       } else {
         // Update color variant
@@ -402,8 +407,7 @@ const ImprovedProductForm = ({
             .eq("id", size.id);
         }
       }
-      // Optionally: Remove any options that were deleted
-      // (Not shown here for brevity, but should diff and issue deletes)
+      // Optionally: Remove any options that were deleted (Not shown for brevity)
     }
     toast.success("تم حفظ المنتج بجميع التعديلات بنجاح!");
   };
