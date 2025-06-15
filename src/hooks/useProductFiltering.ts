@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 
 export const useProductFiltering = (products: any[]) => {
@@ -8,11 +7,11 @@ export const useProductFiltering = (products: any[]) => {
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    // Filter by category
-    if (activeCategory !== 'ALL') {
+    // Filter by category ID
+    if (activeCategory && activeCategory !== 'ALL') {
       filtered = filtered.filter(product => {
-        // Check both type and category fields for compatibility
-        return product.type === activeCategory || product.category === activeCategory;
+        // Accept both `category_id` (UUID) and product.category_id
+        return String(product.category_id) === String(activeCategory);
       });
     }
 
@@ -21,18 +20,16 @@ export const useProductFiltering = (products: any[]) => {
       const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(product =>
         product.name?.toLowerCase().includes(query) ||
-        product.description?.toLowerCase().includes(query) ||
-        product.type?.toLowerCase().includes(query) ||
-        product.category?.toLowerCase().includes(query)
+        product.description?.toLowerCase().includes(query)
       );
     }
 
     return filtered;
   }, [products, activeCategory, searchQuery]);
 
-  const handleCategoryChange = (category: string) => {
-    setActiveCategory(category);
-    setSearchQuery(''); // Clear search when changing category
+  const handleCategoryChange = (categoryId: string) => {
+    setActiveCategory(categoryId);
+    setSearchQuery('');
   };
 
   const handleSearch = (query: string) => {

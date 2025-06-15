@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useSupabaseProducts } from "@/hooks/useSupabaseProducts";
@@ -110,14 +109,13 @@ const ProductManagement = () => {
 
   // Filter products by search and category
   const filteredProducts = products.filter(product => {
-    const matchesSearch = 
+    const matchesSearch =
       (product.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
       (product.type?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
-    
-    const matchesCategory = 
-      categoryFilter === "ALL" || 
-      product.type === categoryFilter;
-    
+
+    // Now matches only `category_id` (not text)
+    const matchesCategory = categoryFilter === "ALL" || String(product.category_id) === String(categoryFilter);
+
     return matchesSearch && matchesCategory;
   });
 

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import SearchBar from './SearchBar';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
@@ -21,9 +20,7 @@ const ProductCatalog: React.FC = () => {
     handleCategoryChange,
     clearFilters
   } = useProductFiltering(products);
-
   const [showCartDialog, setShowCartDialog] = React.useState(false);
-  const [activeSubcat, setActiveSubcat] = React.useState<string>("ALL");
 
   // Convert cart items to the format expected by ShoppingCartDialog
   const cartForDialog = cartItems.map(item => ({
@@ -61,13 +58,13 @@ const ProductCatalog: React.FC = () => {
     window.location.href = '/cart';
   };
 
-  // Filtering logic:
-const filteredProducts = React.useMemo(() => {
-  if (!activeCategory || activeCategory === "ALL") return searchFilteredProducts;
-  return searchFilteredProducts.filter(
-    (p) => p.category_id === activeCategory
-  );
-}, [searchFilteredProducts, activeCategory]);
+  // Filter by category_id universally
+  const filteredProducts = React.useMemo(() => {
+    if (!activeCategory || activeCategory === "ALL") return searchFilteredProducts;
+    return searchFilteredProducts.filter(
+      (p) => String(p.category_id) === String(activeCategory)
+    );
+  }, [searchFilteredProducts, activeCategory]);
 
   return (
     <div className="container mx-auto px-4 py-4">
@@ -102,5 +99,4 @@ const filteredProducts = React.useMemo(() => {
     </div>
   );
 };
-
 export default ProductCatalog;

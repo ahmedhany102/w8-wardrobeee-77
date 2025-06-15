@@ -30,7 +30,7 @@ export const useCategories = () => {
     setLoading(false);
   };
 
-  const mainCategories = categories.filter(c => !c.parent_id);
+  const mainCategories = categories.filter(c => !c.parent_id && c.is_active);
   const subcategories = (parentId: string) =>
     categories.filter(c => c.parent_id === parentId && c.is_active);
 

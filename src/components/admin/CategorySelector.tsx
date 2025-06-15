@@ -10,9 +10,11 @@ interface CategorySelectorProps {
 const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) => {
   const { mainCategories, subcategories, loading } = useCategories();
 
-  // Get Men category and its subcategories
-  const menCategory = mainCategories.find(c => c.slug === "men");
-  const menSubcategories = menCategory ? subcategories(menCategory.id) : [];
+  // Only show subcategories as options
+  const validSubcategories = mainCategories
+    .map(main => subcategories(main.id))
+    .flat()
+    .filter(sub => sub.is_active);
 
   if (loading) {
     return (
@@ -37,11 +39,11 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
         required
       >
         <option value="placeholder" disabled>Select a subcategory</option>
-        {menSubcategories.map((sub) => (
+        {validSubcategories.map((sub) => (
           <option key={sub.id} value={sub.id}>{sub.name}</option>
         ))}
       </select>
-      {menSubcategories.length === 0 && !loading && (
+      {validSubcategories.length === 0 && !loading && (
         <p className="text-sm text-red-600 mt-1">No subcategories found. Please check your categories table.</p>
       )}
     </div>
