@@ -280,6 +280,79 @@ export type Database = {
         }
         Relationships: []
       }
+      product_color_variant_options: {
+        Row: {
+          color_variant_id: string
+          created_at: string
+          id: string
+          price: number
+          size: string
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          color_variant_id: string
+          created_at?: string
+          id?: string
+          price?: number
+          size: string
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          color_variant_id?: string
+          created_at?: string
+          id?: string
+          price?: number
+          size?: string
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_color_variant_options_color_variant_id_fkey"
+            columns: ["color_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_color_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_color_variants: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          image: string | null
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          image?: string | null
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          image?: string | null
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_color_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_variants: {
         Row: {
           color: string
