@@ -12,16 +12,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
 
   // Get Men category and its subcategories
   const menCategory = mainCategories.find(c => c.slug === "men");
-  // Only include subcategories with non-empty IDs!
-  const menSubcategories = menCategory
-    ? subcategories(menCategory.id).filter(sub => !!sub.id && sub.id !== "")
-    : [];
-
-  // If value is invalid or empty, default to "placeholder"
-  const safeValue =
-    value && value !== "" && value !== undefined && value !== null
-      ? value
-      : "placeholder";
+  const menSubcategories = menCategory ? subcategories(menCategory.id) : [];
 
   if (loading) {
     return (
@@ -36,7 +27,7 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
     <div>
       <label className="block text-sm font-medium mb-1">Category*</label>
       <select
-        value={safeValue}
+        value={value || "placeholder"}
         onChange={e => {
           if (e.target.value !== "placeholder") {
             onChange(e.target.value);
@@ -45,23 +36,16 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
         className="w-full p-2 border rounded text-sm"
         required
       >
-        <option value="placeholder" disabled>
-          Select a subcategory
-        </option>
-        {menSubcategories.map((sub) =>
-          (!!sub.id && sub.id !== "") ? (
-            <option key={sub.id} value={sub.id}>{sub.name}</option>
-          ) : null
-        )}
+        <option value="placeholder" disabled>Select a subcategory</option>
+        {menSubcategories.map((sub) => (
+          <option key={sub.id} value={sub.id}>{sub.name}</option>
+        ))}
       </select>
       {menSubcategories.length === 0 && !loading && (
-        <p className="text-sm text-red-600 mt-1">
-          No subcategories found. Please check your categories table.
-        </p>
+        <p className="text-sm text-red-600 mt-1">No subcategories found. Please check your categories table.</p>
       )}
     </div>
   );
 };
 
 export default CategorySelector;
-
