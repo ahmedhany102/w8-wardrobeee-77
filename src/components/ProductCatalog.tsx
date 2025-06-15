@@ -1,4 +1,3 @@
-
 import React from 'react';
 import SearchBar from './SearchBar';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
@@ -13,7 +12,9 @@ import { useCategories } from "@/hooks/useCategories";
 const ProductCatalog: React.FC = () => {
   const { products, loading } = useSupabaseProducts();
   const { categories } = useCategories();
-  const { cartItems, cartCount, addToCart: addToCartDB, removeFromCart, updateQuantity, clearCart } = useCartIntegration();
+  const {
+    cartItems, cartCount, addToCart: addToCartDB, removeFromCart, updateQuantity, clearCart
+  } = useCartIntegration();
   const {
     filteredProducts: searchFilteredProducts,
     activeCategory,
@@ -36,9 +37,16 @@ const ProductCatalog: React.FC = () => {
     quantity: item.quantity
   }));
 
-  const handleAddToCart = async (product: any, size: string, quantity?: number) => {
-    const defaultColor = product.colors && product.colors.length > 0 ? product.colors[0] : '';
-    await addToCartDB(product, size, defaultColor, quantity || 1);
+  // ===== FIX: Update this function's signature to include color =====
+  const handleAddToCart = async (
+    product: any,
+    color: string,
+    size: string,
+    quantity?: number
+  ) => {
+    // Use defaults if not provided
+    const selectedColor = color || (product.colors && product.colors[0]) || '';
+    await addToCartDB(product, size, selectedColor, quantity || 1);
   };
 
   const handleUpdateCartItem = async (productId: string, newQuantity: number) => {
@@ -62,12 +70,12 @@ const ProductCatalog: React.FC = () => {
   };
 
   // Filtering logic:
-const filteredProducts = React.useMemo(() => {
-  if (!activeCategory || activeCategory === "ALL") return searchFilteredProducts;
-  return searchFilteredProducts.filter(
-    (p) => p.category_id === activeCategory
-  );
-}, [searchFilteredProducts, activeCategory]);
+  const filteredProducts = React.useMemo(() => {
+    if (!activeCategory || activeCategory === "ALL") return searchFilteredProducts;
+    return searchFilteredProducts.filter(
+      (p) => p.category_id === activeCategory
+    );
+  }, [searchFilteredProducts, activeCategory]);
 
   return (
     <div className="container mx-auto px-4 py-4">
