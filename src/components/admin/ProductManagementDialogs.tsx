@@ -47,7 +47,6 @@ const ProductManagementDialogs = ({
             submitLabel="Add Product"
             onCancel={() => setShowAddDialog(false)}
             predefinedCategories={['Men']} 
-            allowSizesWithoutColors={true}
           />
         </DialogContent>
       </Dialog>
@@ -65,7 +64,6 @@ const ProductManagementDialogs = ({
               submitLabel="Save Changes"
               onCancel={() => setShowEditDialog(false)}
               predefinedCategories={['Men']} 
-              allowSizesWithoutColors={true}
             />
           )}
         </DialogContent>
