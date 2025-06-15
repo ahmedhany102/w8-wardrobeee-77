@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -80,6 +79,16 @@ const ProductCard = ({
 
   const isOutOfStock = !selectedVariant || selectedVariant.stock <= 0;
 
+  // Color swatch select
+  const handleColorSelect = (color: string) => {
+    setSelectedColor(color);
+  };
+
+  // Size select
+  const handleSizeSelect = (size: string) => {
+    setSelectedSize(size);
+  };
+
   // Add to cart handler
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -151,10 +160,7 @@ const ProductCard = ({
                 key={color}
                 color={color}
                 selected={color === selectedColor}
-                onSelect={(e) => {
-                  e.stopPropagation();
-                  setSelectedColor(color);
-                }}
+                onSelect={() => handleColorSelect(color)}
               />
             ))}
           </div>
@@ -195,10 +201,7 @@ const ProductCard = ({
                   size={size}
                   selected={size === selectedSize}
                   disabled={stock <= 0}
-                  onSelect={(e) => {
-                    e.stopPropagation();
-                    setSelectedSize(size);
-                  }}
+                  onSelect={() => handleSizeSelect(size)}
                 />
               ))}
               {sizeOptions.length > 4 && (

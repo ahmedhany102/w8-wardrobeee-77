@@ -7,16 +7,17 @@ interface ProductGridProps {
   products: any[];
   loading: boolean;
   searchQuery: string;
-  onAddToCart: (product: any, size: string, quantity?: number) => Promise<void>;
+  onAddToCart: (product: any, color: string, size: string, quantity?: number) => void;
   onClearSearch: () => void;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ 
-  products, 
-  loading, 
-  searchQuery, 
-  onAddToCart, 
-  onClearSearch 
+// Fix the .map, add dummy color/size (to be replaced with proper in cards)
+const ProductGrid: React.FC<ProductGridProps> = ({
+  products,
+  loading,
+  searchQuery,
+  onAddToCart,
+  onClearSearch
 }) => {
   if (loading) {
     return (
@@ -30,7 +31,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <p className="text-xl text-gray-500 mb-4">No products found</p>
-        <Button 
+        <Button
           onClick={onClearSearch}
           className="bg-green-800 hover:bg-green-900 interactive-button"
         >
@@ -43,10 +44,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
       {products.filter(product => product).map((product) => (
-        <ProductCard 
-          key={product.id} 
-          product={product} 
-          onAddToCart={onAddToCart} 
+        <ProductCard
+          key={product.id}
+          product={product}
+          onAddToCart={onAddToCart}
         />
       ))}
     </div>
