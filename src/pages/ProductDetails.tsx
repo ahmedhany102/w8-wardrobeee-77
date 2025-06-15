@@ -100,7 +100,7 @@ const ProductDetails = () => {
           return;
         }
 
-        // Fix: make sure images/colors/sizes are arrays, not Json/string/null
+        // Normalize all JSON fields—images, colors, and sizes—to be arrays.
         let images: string[] = [];
         if (Array.isArray(data.images)) {
           images = data.images as string[];
@@ -131,6 +131,8 @@ const ProductDetails = () => {
             sizes = JSON.parse(data.sizes);
           } catch {
             sizes = [];
+          } else {
+            sizes = [];
           }
         }
 
@@ -140,7 +142,6 @@ const ProductDetails = () => {
           images,
           colors,
           sizes,
-          // These two are expected by your Product interface as numbers or strings,
           price: Number(data.price) ?? 0,
           discount: Number(data.discount) ?? 0,
           stock: Number(data.stock) ?? 0,
@@ -149,7 +150,7 @@ const ProductDetails = () => {
 
         setProduct(patchedProduct);
 
-        // Set fallback/main image (only use string types)
+        // Set fallback/main image
         let mainImg = '';
         if (typeof patchedProduct.main_image === 'string' && patchedProduct.main_image) {
           mainImg = patchedProduct.main_image;
