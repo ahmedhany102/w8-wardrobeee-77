@@ -10,6 +10,8 @@ export interface CartItem {
   imageUrl?: string;
   size?: string;
   color?: string;
+  color_variant_id?: string;
+  option_id?: string;
 }
 
 class CartDatabase {

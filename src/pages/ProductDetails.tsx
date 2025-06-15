@@ -100,10 +100,23 @@ const ProductDetails = () => {
           return;
         }
 
-        setProduct(data);
+        // Fix: make sure images/colors are arrays, not Json
+        const patchedProduct = {
+          ...data,
+          images: Array.isArray(data.images) ? (data.images as string[]) : [],
+          colors: Array.isArray(data.colors) ? (data.colors as string[]) : [],
+        };
+        setProduct(patchedProduct);
 
-        // Set fallback image
-        const mainImg = data.main_image || (Array.isArray(data.images) && data.images[0]) || '/placeholder.svg';
+        // Set fallback/main image (only use string types)
+        let mainImg = '';
+        if (typeof patchedProduct.main_image === 'string' && patchedProduct.main_image) {
+          mainImg = patchedProduct.main_image;
+        } else if (patchedProduct.images && patchedProduct.images.length > 0 && typeof patchedProduct.images[0] === 'string') {
+          mainImg = patchedProduct.images[0];
+        } else {
+          mainImg = '/placeholder.svg';
+        }
         setActiveImage(mainImg);
 
       } catch (error: any) {
