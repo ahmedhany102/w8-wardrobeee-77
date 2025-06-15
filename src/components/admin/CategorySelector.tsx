@@ -1,6 +1,13 @@
 
 import React from "react";
 import { useCategories } from "@/hooks/useCategories";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 interface CategorySelectorProps {
   value: string | null;
@@ -28,21 +35,28 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
   return (
     <div>
       <label className="block text-sm font-medium mb-1">Category*</label>
-      <select
+      <Select
         value={value || "placeholder"}
-        onChange={e => {
-          if (e.target.value !== "placeholder") {
-            onChange(e.target.value);
+        onValueChange={(val) => {
+          if (val !== "placeholder") {
+            onChange(val);
           }
         }}
-        className="w-full p-2 border rounded text-sm"
-        required
       >
-        <option value="placeholder" disabled>Select a subcategory</option>
-        {validSubcategories.map((sub) => (
-          <option key={sub.id} value={sub.id}>{sub.name}</option>
-        ))}
-      </select>
+        <SelectTrigger>
+          <SelectValue placeholder="Select a subcategory" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="placeholder" disabled>
+            Select a subcategory
+          </SelectItem>
+          {validSubcategories.map((sub) => (
+            <SelectItem key={sub.id} value={sub.id}>
+              {sub.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {validSubcategories.length === 0 && !loading && (
         <p className="text-sm text-red-600 mt-1">No subcategories found. Please check your categories table.</p>
       )}
@@ -51,3 +65,4 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
 };
 
 export default CategorySelector;
+
