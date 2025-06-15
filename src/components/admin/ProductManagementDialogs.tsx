@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -48,7 +47,6 @@ const ProductManagementDialogs = ({
             submitLabel="Add Product"
             onCancel={() => setShowAddDialog(false)}
             predefinedCategories={['Men']} 
-            predefinedTypes={['T-Shirts', 'Trousers', 'Shoes', 'Jackets']}
             allowSizesWithoutColors={true}
           />
         </DialogContent>
@@ -67,7 +65,6 @@ const ProductManagementDialogs = ({
               submitLabel="Save Changes"
               onCancel={() => setShowEditDialog(false)}
               predefinedCategories={['Men']} 
-              predefinedTypes={['T-Shirts', 'Trousers', 'Shoes', 'Jackets']}
               allowSizesWithoutColors={true}
             />
           )}
