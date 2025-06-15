@@ -8,11 +8,11 @@ import Layout from '@/components/Layout';
 import { Plus, Minus, ShoppingCart, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { formatProductForDisplay } from '@/utils/productUtils';
-import { LoadingFallback } from '@/utils/loadingFallback';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
+import { useProductVariants } from "@/hooks/useProductVariants";
+import { useCategories } from '@/hooks/useCategories';
 
-// Common color names to hex colors mapping
+// Map for common color names to hex values
 const colorMap: Record<string, string> = {
   'أحمر': '#ff0000',
   'أزرق': '#0074D9',
@@ -26,234 +26,153 @@ const colorMap: Record<string, string> = {
   'بني': '#8B4513',
 };
 
-interface ProductSize {
-  size: string;
-  stock: number;
-  price: number;
-}
-
-interface Product {
+// Fallback interface for categories
+interface Category {
   id: string;
   name: string;
-  description?: string;
-  price: number;
-  type?: string;
-  category?: string;
-  main_image?: string;
-  images?: string[];
-  colors?: string[];
-  sizes?: ProductSize[];
-  discount?: number;
-  featured?: boolean;
-  stock?: number;
-  inventory?: number;
-  [key: string]: any;
 }
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCartIntegration();
-  const [product, setProduct] = useState<Product | null>(null);
+  const { variants, fetchVariants, loading: variantsLoading } = useProductVariants(id || "");
+  const { categories } = useCategories();
+
+  const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
+  const [selectedColorId, setSelectedColorId] = useState<string>('');
+  const [selectedOptionId, setSelectedOptionId] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string>('');
   const [addingToCart, setAddingToCart] = useState(false);
-  
+
+  // 1. Load the base product for details
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!id) {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast.error('Failed to load product');
         navigate('/not-found');
         return;
       }
 
-      try {
-        setLoading(true);
-        
-        // Start loading timeout
-        LoadingFallback.startTimeout('product-details', 5000, () => {
-          setLoading(false);
-          navigate('/not-found');
-        });
-
-        console.log('🔍 Fetching product details for ID:', id);
-        
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-
-        LoadingFallback.clearTimeout('product-details');
-
-        if (error) {
-          console.error('❌ Error fetching product:', error);
-          toast.error('Failed to load product');
-          navigate('/not-found');
-          return;
+      // Parse images as array if not already
+      let images: string[] = [];
+      if (Array.isArray(data.images)) {
+        images = data.images as string[];
+      } else if (typeof data.images === 'string') {
+        try {
+          images = JSON.parse(data.images);
+        } catch {
+          images = [];
         }
-
-        if (!data) {
-          console.log('❌ Product not found');
-          navigate('/not-found');
-          return;
-        }
-
-        // Format and validate product data
-        const formattedProduct = formatProductForDisplay(data);
-        if (!formattedProduct) {
-          navigate('/not-found');
-          return;
-        }
-
-        console.log('✅ Product loaded:', formattedProduct);
-        setProduct(formattedProduct);
-        
-        // Set default selections
-        if (formattedProduct.colors && formattedProduct.colors.length > 0) {
-          setSelectedColor(formattedProduct.colors[0]);
-        }
-        
-        if (formattedProduct.sizes && formattedProduct.sizes.length > 0) {
-          const availableSize = formattedProduct.sizes.find(size => size && size.stock > 0);
-          if (availableSize) {
-            setSelectedSize(availableSize.size);
-          }
-        }
-        
-        // Set main image
-        const mainImg = formattedProduct.main_image || 
-                       (formattedProduct.images && formattedProduct.images[0]) || 
-                       '/placeholder.svg';
-        setActiveImage(mainImg);
-        
-      } catch (error: any) {
-        LoadingFallback.clearTimeout('product-details');
-        console.error('💥 Exception while fetching product:', error);
-        toast.error('Failed to load product');
-        navigate('/not-found');
-      } finally {
-        setLoading(false);
       }
+
+      setProduct({ ...data, images });
+      setActiveImage(data.main_image || images?.[0] || '/placeholder.svg');
+      setLoading(false);
     };
-    
+
     fetchProduct();
-  }, [id, navigate]);
+    fetchVariants();
+    // eslint-disable-next-line
+  }, [id]);
 
-  // Handle color selection
-  const handleColorChange = (color: string) => {
-    setSelectedColor(color);
-    setSelectedSize(null); // Reset size when color changes
-  };
-  
-  // Set the active image
-  const handleImageClick = (imageUrl: string) => {
-    setActiveImage(imageUrl);
-  };
-
-  const getAvailableSizes = () => {
-    if (!product || !product.sizes) return [];
-    return product.sizes.filter(size => size && size.size);
-  };
-  
-  const isOutOfStock = !getAvailableSizes().some(size => size && size.stock > 0);
-
-  const getColorHex = (color: string) => {
-    return colorMap[color] || color;
-  };
-
-  const getStockForSize = (size: string) => {
-    if (product && product.sizes) {
-      const sizeObj = product.sizes.find(s => s.size === size);
-      return sizeObj ? sizeObj.stock : 0;
+  // 2. Set default selected color and size/option when variants are loaded
+  useEffect(() => {
+    if (!variantsLoading && variants.length > 0) {
+      if (!selectedColorId || !variants.some(v => v.id === selectedColorId)) {
+        setSelectedColorId(variants[0].id);
+        setSelectedOptionId('');
+        setActiveImage(variants[0].image || product?.main_image || '/placeholder.svg');
+      }
     }
-    return 0;
-  };
+    // eslint-disable-next-line
+  }, [variants, variantsLoading, product]);
 
-  const getSizePrice = (size: string) => {
-    if (product && product.sizes) {
-      const sizeObj = product.sizes.find(s => s.size === size);
-      return sizeObj ? sizeObj.price : product?.price || 0;
+  // 3. When color changes, pick the first available option
+  useEffect(() => {
+    const cur = variants.find(v => v.id === selectedColorId);
+    if (cur && cur.options && cur.options.length > 0) {
+      if (!selectedOptionId || !cur.options.some(o => o.id === selectedOptionId)) {
+        setSelectedOptionId(cur.options[0].id);
+      }
+      setActiveImage(cur.image || product?.main_image || '/placeholder.svg');
     }
-    return product?.price || 0;
-  };
+    // eslint-disable-next-line
+  }, [selectedColorId, variants, selectedOptionId, product]);
 
-  const getColorBorder = (color: string) => {
-    return colorMap[color] ? `1px solid ${colorMap[color]}` : '1px solid #ccc';
-  };
+  // Helpers
+  const selectedColorVariant = variants.find(v => v.id === selectedColorId);
+  const selectedOption = selectedColorVariant?.options?.find(o => o.id === selectedOptionId);
 
-  const displayStockMessage = (stock: number) => {
-    if (stock === 0) {
-      return <Badge variant="destructive">نفذت الكمية</Badge>;
-    } else if (stock === 1) {
-      return <Badge variant="destructive">بقي قطعة واحدة فقط!</Badge>;
-    } else if (stock <= 5) {
-      return <Badge variant="outline" className="text-yellow-600 border-yellow-600">بقي {stock} قطع فقط</Badge>;
-    }
-    return null;
-  };
+  const isOutOfStock = !selectedOption || selectedOption.stock <= 0;
+  const currentPrice = selectedOption?.price ?? product?.price ?? 0;
+  const hasDiscount = !!(product?.discount && product.discount > 0);
+  const discountedPrice = hasDiscount ? currentPrice - (currentPrice * (product?.discount ?? 0) / 100) : currentPrice;
+  const originalPrice = hasDiscount ? currentPrice : null;
 
-  const calculateDiscountedPrice = (originalPrice: number, discount: number) => {
-    if (!discount) return originalPrice;
-    return originalPrice - (originalPrice * (discount / 100));
-  };
+  // -- Category label display --
+  const productCategory = categories.find((cat: Category) => cat.id === product?.category_id)?.name || product?.category;
 
+  // --- Add to cart (normalized variant) ---
   const handleAddToCart = async () => {
     if (isOutOfStock) {
       toast.error('المنتج غير متوفر حالياً');
       return;
     }
-    
-    if (!selectedSize || (!selectedColor && product?.colors && product.colors.length > 0)) {
-      toast.error('يرجى اختيار المقاس واللون');
+    if (!selectedColorVariant || !selectedOption) {
+      toast.error('يرجى اختيار اللون والمقاس');
       return;
     }
-    
-    // Check stock quantity
-    const currentStock = getStockForSize(selectedSize);
-    if (currentStock < quantity) {
-      toast.error(`عذراً، المتاح فقط ${currentStock} قطعة من هذا المنتج`);
+    if (selectedOption.stock < quantity) {
+      toast.error(`عذراً، المتاح فقط ${selectedOption.stock} قطعة من هذا المنتج`);
       return;
     }
-    
+
     try {
       setAddingToCart(true);
-      
-      // Convert product to the format expected by CartDatabase
-      const productForCart = {
+      // Pass variant/option ids, price, etc to cart:
+      const cartProduct = {
         id: product!.id,
         name: product!.name,
-        price: getSizePrice(selectedSize),
-        mainImage: product!.main_image,
+        price: selectedOption.price,
+        mainImage: selectedColorVariant.image || product!.main_image,
         images: product!.images,
-        colors: product!.colors,
-        sizes: product!.sizes,
+        color: selectedColorVariant.color,
+        colorVariantId: selectedColorVariant.id,
+        size: selectedOption.size,
+        optionId: selectedOption.id,
+        category: productCategory,
         description: product!.description,
-        category: product!.category || product!.type,
-        inventory: product!.inventory || product!.stock || 0,
-        featured: product!.featured,
         discount: product!.discount,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        inventory: product!.inventory,
       };
-      
-      const success = await addToCart(productForCart, selectedSize, selectedColor || '', quantity);
-      
+      const success = await addToCart(
+        cartProduct,
+        selectedOption.size, // real size
+        selectedColorVariant.color, // real color string
+        quantity
+      );
       if (success) {
-        // Optional: Navigate to cart or stay on page
-        // navigate('/cart');
+        // Optionally show a toast or move to the cart page.
       }
     } catch (error) {
-      console.error('Error adding to cart:', error);
       toast.error('حدث خطأ أثناء إضافة المنتج للعربة');
     } finally {
       setAddingToCart(false);
     }
   };
 
-  if (loading) {
+  if (loading || variantsLoading) {
     return (
       <Layout>
         <div className="flex justify-center items-center min-h-screen">
@@ -277,19 +196,12 @@ const ProductDetails = () => {
     );
   }
 
-  // Calculate correct prices
-  const currentPrice = selectedSize ? getSizePrice(selectedSize) : product.price;
-  const hasDiscount = product.discount && product.discount > 0;
-  const discountedPrice = hasDiscount ? calculateDiscountedPrice(currentPrice, product.discount!) : currentPrice;
-  const originalPrice = hasDiscount ? currentPrice : null;
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Product Images */}
+          {/* --- Product Image --- */}
           <div>
-            {/* Main Image */}
             <div className="mb-4 border rounded overflow-hidden">
               <AspectRatio ratio={1}>
                 <img
@@ -302,122 +214,114 @@ const ProductDetails = () => {
                 />
               </AspectRatio>
             </div>
-
-            {/* Thumbnails */}
-            {product.images && product.images.length > 0 && (
+            {/* Variant thumbnails */}
+            {variants.length > 0 && (
               <div className="flex overflow-x-auto gap-2 pb-2">
-                {product.images.map((image, index) => (
-                  <div
-                    key={index}
-                    className={`border rounded cursor-pointer flex-shrink-0 w-16 h-16 overflow-hidden ${
-                      activeImage === image ? "ring-2 ring-blue-500" : ""
-                    }`}
-                    onClick={() => handleImageClick(image)}
-                  >
-                    <img
-                      src={image}
-                      alt={`Thumbnail ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/placeholder.svg';
+                {variants.map((v) => (
+                  v.image ? (
+                    <div
+                      key={v.id}
+                      className={`border rounded cursor-pointer flex-shrink-0 w-16 h-16 overflow-hidden ${activeImage === v.image ? "ring-2 ring-blue-500" : ""}`}
+                      onClick={() => {
+                        setSelectedColorId(v.id);
+                        setActiveImage(v.image);
                       }}
-                    />
-                  </div>
+                    >
+                      <img
+                        src={v.image}
+                        alt={`لون ${v.color}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : null
                 ))}
               </div>
             )}
           </div>
 
-          {/* Product Details */}
+          {/* --- Details column --- */}
           <div className="space-y-4">
-            {/* Title and Price */}
+            {/* Title + Price */}
             <div>
               <h1 className="text-2xl font-bold">{product?.name}</h1>
               <div className="flex items-center gap-2 mt-2">
                 {hasDiscount ? (
                   <>
-                    <span className="text-gray-500 line-through">
-                      {originalPrice} جنيه
-                    </span>
-                    <span className="text-xl font-bold text-green-600">
-                      {discountedPrice} جنيه
-                    </span>
+                    <span className="text-gray-500 line-through">{originalPrice} جنيه</span>
+                    <span className="text-xl font-bold text-green-600">{discountedPrice} جنيه</span>
                     <Badge className="bg-red-600">خصم {product.discount}%</Badge>
                   </>
                 ) : (
-                  <span className="text-xl font-bold text-green-600">
-                    {currentPrice} جنيه
-                  </span>
+                  <span className="text-xl font-bold text-green-600">{currentPrice} جنيه</span>
                 )}
               </div>
             </div>
 
-            {/* Stock Status */}
-            {selectedSize && (
+            {/* Stock */}
+            {selectedOption && (
               <div>
-                {displayStockMessage(getStockForSize(selectedSize))}
+                {selectedOption.stock === 0 ? (
+                  <Badge variant="destructive">نفذت الكمية</Badge>
+                ) : selectedOption.stock === 1 ? (
+                  <Badge variant="destructive">بقي قطعة واحدة فقط!</Badge>
+                ) : selectedOption.stock <= 5 ? (
+                  <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                    بقي {selectedOption.stock} قطع فقط
+                  </Badge>
+                ) : null}
               </div>
             )}
 
-            {/* Colors */}
-            {product?.colors && product.colors.length > 0 && (
+            {/* --- Color selector --- */}
+            <div>
+              <h3 className="text-sm font-medium mb-2">اللون:</h3>
+              <div className="flex flex-wrap gap-2">
+                {variants.map((v) => (
+                  <button
+                    key={v.id}
+                    className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${selectedColorId === v.id ? "ring-2 ring-offset-2 ring-blue-500" : ""}`}
+                    style={{
+                      backgroundColor: colorMap[v.color] || v.color,
+                      border: "1px solid #ccc",
+                    }}
+                    onClick={() => {
+                      setSelectedColorId(v.id);
+                      setActiveImage(v.image || product?.main_image || '/placeholder.svg');
+                    }}
+                    aria-label={`Select ${v.color} color`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* --- Size (option) selector --- */}
+            {selectedColorVariant?.options?.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium mb-2">اللون:</h3>
+                <h3 className="text-sm font-medium mb-2">المقاس:</h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.colors.map((color) => (
+                  {selectedColorVariant.options.map((opt) => (
                     <button
-                      key={color}
-                      className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                        selectedColor === color
-                          ? "ring-2 ring-offset-2 ring-blue-500"
-                          : ""
+                      key={opt.id}
+                      className={`px-3 py-1 border rounded-md ${
+                        selectedOptionId === opt.id
+                          ? "bg-green-600 text-white border-green-600"
+                          : opt.stock > 0
+                          ? "bg-white hover:bg-gray-100"
+                          : "bg-gray-100 text-gray-400 cursor-not-allowed"
                       }`}
-                      style={{
-                        backgroundColor: getColorHex(color),
-                        border: getColorBorder(color),
-                      }}
-                      onClick={() => handleColorChange(color)}
-                      aria-label={`Select ${color} color`}
-                    />
+                      onClick={() => opt.stock > 0 && setSelectedOptionId(opt.id!)}
+                      disabled={opt.stock <= 0}
+                    >
+                      {opt.size}
+                      {opt.stock === 0 && <span className="block text-xs">نفذت الكمية</span>}
+                      {opt.stock === 1 && <span className="block text-xs text-red-500">آخر قطعة!</span>}
+                    </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Sizes */}
-            {getAvailableSizes().length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium mb-2">المقاس:</h3>
-                <div className="flex flex-wrap gap-2">
-                  {getAvailableSizes().map((size) => {
-                    if (!size) return null;
-                    const isAvailable = size.stock > 0;
-                    return (
-                      <button
-                        key={size.size}
-                        className={`px-3 py-1 border rounded-md ${
-                          selectedSize === size.size
-                            ? "bg-green-600 text-white border-green-600"
-                            : isAvailable
-                            ? "bg-white hover:bg-gray-100"
-                            : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        }`}
-                        onClick={() => isAvailable && setSelectedSize(size.size)}
-                        disabled={!isAvailable}
-                      >
-                        {size.size}
-                        {!isAvailable && <span className="block text-xs">نفذت الكمية</span>}
-                        {isAvailable && size.stock === 1 && (
-                          <span className="block text-xs text-red-500">آخر قطعة!</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Quantity */}
+            {/* Quantity selector */}
             {!isOutOfStock && (
               <div>
                 <h3 className="text-sm font-medium mb-2">الكمية:</h3>
@@ -435,7 +339,7 @@ const ProductDetails = () => {
                     variant="outline"
                     size="icon"
                     onClick={() => setQuantity(quantity + 1)}
-                    disabled={selectedSize && getStockForSize(selectedSize) <= quantity}
+                    disabled={selectedOption && selectedOption.stock <= quantity}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -443,10 +347,10 @@ const ProductDetails = () => {
               </div>
             )}
 
-            {/* Add to cart button */}
+            {/* Add to cart */}
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={isOutOfStock || !selectedSize || addingToCart}
+              disabled={isOutOfStock || !selectedOption || addingToCart}
               onClick={handleAddToCart}
             >
               {addingToCart ? (
@@ -455,7 +359,7 @@ const ProductDetails = () => {
                 </span>
               ) : isOutOfStock ? (
                 "نفذت الكمية"
-              ) : !selectedSize ? (
+              ) : !selectedOption ? (
                 "برجاء اختيار المقاس"
               ) : (
                 <span className="flex items-center gap-2">
@@ -474,14 +378,14 @@ const ProductDetails = () => {
               )}
             </div>
 
-            {/* Additional information */}
+            {/* Additional info */}
             <div>
               <h3 className="text-md font-medium mb-2">معلومات إضافية:</h3>
               <div className="text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-md border">
-                {product?.category && (
+                {productCategory && (
                   <p>
                     <span className="font-semibold">التصنيف: </span>
-                    {product.category}
+                    {productCategory}
                   </p>
                 )}
                 <p>
