@@ -1,18 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import CategorySelector from "./CategorySelector";
-
-interface ColorVariation {
-  colorName: string;
-  image: string;
-  sizes: {
-    size: string;
-    price: number;
-    stock: number;
-  }[];
-}
+import ProductColorVariantManager from "./ProductColorVariantManager";
+import { ProductVariantService, ProductVariant } from "@/services/productVariantService";
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
@@ -43,43 +36,36 @@ const ImprovedProductForm = ({
   const [hasDiscount, setHasDiscount] = useState(initialData.hasDiscount || false);
   const [discount, setDiscount] = useState(initialData.discount || 0);
   
-  // Color variations
-  const [colorVariations, setColorVariations] = useState<ColorVariation[]>([]);
-  const [hasColorVariations, setHasColorVariations] = useState(false);
+  // Product variants
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [hasVariants, setHasVariants] = useState(false);
   
   // Simple product (no variations)
   const [simpleProductPrice, setSimpleProductPrice] = useState(initialData.price || 0);
   const [simpleProductStock, setSimpleProductStock] = useState(initialData.inventory || 0);
 
-  // Additional images for gallery (separate from main image and color images)
+  // Additional images for gallery
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
   
   // Validation state
   const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
-  // Initialize data from initialData if available
+  // Load existing variants when editing
   useEffect(() => {
-    if (initialData.colors && Array.isArray(initialData.colors) && initialData.colors.length > 0) {
-      const variations: ColorVariation[] = [];
-      
-      initialData.colors.forEach(colorName => {
-        const colorSizes = initialData.sizes ? 
-          initialData.sizes.map(s => ({
-            size: s.size,
-            price: s.price,
-            stock: s.stock
-          })) : [];
-          
-        variations.push({
-          colorName,
-          image: initialData.main_image || "",
-          sizes: colorSizes
-        });
-      });
-      
-      setColorVariations(variations);
-      setHasColorVariations(variations.length > 0);
-    }
+    const loadVariants = async () => {
+      if (initialData.id) {
+        console.log('🔄 Loading existing variants for product:', initialData.id);
+        const existingVariants = await ProductVariantService.loadProductVariants(initialData.id);
+        if (existingVariants.length > 0) {
+          setVariants(existingVariants);
+          setHasVariants(true);
+          console.log('✅ Loaded existing variants:', existingVariants);
+        }
+      }
+    };
+
+    loadVariants();
 
     // Initialize gallery images (exclude main image)
     if (initialData.images && Array.isArray(initialData.images)) {
@@ -120,95 +106,30 @@ const ImprovedProductForm = ({
     setGalleryImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Add a new color variation
-  const addColorVariation = () => {
-    setColorVariations([...colorVariations, { 
-      colorName: "", 
-      image: "",
-      sizes: []
-    }]);
-  };
-
-  // Remove a color variation
-  const removeColorVariation = (index: number) => {
-    setColorVariations(colorVariations.filter((_, i) => i !== index));
-  };
-
-  // Update a color variation
-  const updateColorVariation = (index: number, field: keyof ColorVariation, value: any) => {
-    const updated = [...colorVariations];
-    updated[index] = { ...updated[index], [field]: value };
-    setColorVariations(updated);
-  };
-
-  // Handle color image upload
-  const handleColorImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        updateColorVariation(index, "image", reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Add a new size to a color variation
-  const addSizeToColor = (colorIndex: number) => {
-    const updated = [...colorVariations];
-    updated[colorIndex].sizes.push({
-      size: "",
-      price: 0,
-      stock: 0
-    });
-    setColorVariations(updated);
-  };
-
-  // Remove a size from a color variation
-  const removeSizeFromColor = (colorIndex: number, sizeIndex: number) => {
-    const updated = [...colorVariations];
-    updated[colorIndex].sizes = updated[colorIndex].sizes.filter((_, i) => i !== sizeIndex);
-    setColorVariations(updated);
-  };
-
-  // Update a size in a color variation
-  const updateSizeInColor = (colorIndex: number, sizeIndex: number, field: string, value: any) => {
-    const updated = [...colorVariations];
-    updated[colorIndex].sizes[sizeIndex] = {
-      ...updated[colorIndex].sizes[sizeIndex],
-      [field]: field === 'size' ? value : Number(value)
-    };
-    setColorVariations(updated);
-  };
-
   // Form validation
   const validateForm = () => {
-    // Basic validation
     if (!name.trim()) return "يرجى إدخال اسم المنتج";
-    if (!categoryId || categoryId === "") return "يرجى اختيار القسم - Please select a valid subcategory";
+    if (!categoryId || categoryId === "") return "يرجى اختيار القسم";
     if (!mainImage) return "يرجى تحميل صورة رئيسية للمنتج";
     
-    // Validate based on product type (simple vs. with variations)
-    if (hasColorVariations) {
-      // With variations
-      if (colorVariations.length === 0) return "يرجى إضافة لون واحد على الأقل";
+    if (hasVariants) {
+      if (variants.length === 0) return "يرجى إضافة لون واحد على الأقل";
       
-      for (let i = 0; i < colorVariations.length; i++) {
-        const color = colorVariations[i];
-        if (!color.colorName.trim()) return "يرجى إدخال اسم لكل لون";
-        if (!color.image) return `يرجى تحميل صورة للون: ${color.colorName || `#${i+1}`}`;
+      for (let i = 0; i < variants.length; i++) {
+        const variant = variants[i];
+        if (!variant.color.trim()) return "يرجى إدخال اسم لكل لون";
+        if (!variant.image) return `يرجى تحميل صورة للون: ${variant.color || `#${i+1}`}`;
         
-        if (color.sizes.length === 0) return `يرجى إضافة مقاس واحد على الأقل للون: ${color.colorName}`;
+        if (variant.options.length === 0) return `يرجى إضافة مقاس واحد على الأقل للون: ${variant.color}`;
         
-        for (let j = 0; j < color.sizes.length; j++) {
-          const size = color.sizes[j];
-          if (!size.size.trim()) return `يرجى إدخال اسم المقاس للون: ${color.colorName}`;
-          if (size.price <= 0) return `يرجى إدخال سعر صحيح للمقاس: ${size.size} من اللون: ${color.colorName}`;
-          if (size.stock < 0) return `يرجى إدخال كمية صالحة للمقاس: ${size.size} من اللون: ${color.colorName}`;
+        for (let j = 0; j < variant.options.length; j++) {
+          const option = variant.options[j];
+          if (!option.size.trim()) return `يرجى إدخال اسم المقاس للون: ${variant.color}`;
+          if (option.price <= 0) return `يرجى إدخال سعر صحيح للمقاس: ${option.size} من اللون: ${variant.color}`;
+          if (option.stock < 0) return `يرجى إدخال كمية صالحة للمقاس: ${option.size} من اللون: ${variant.color}`;
         }
       }
     } else {
-      // Simple product
       if (simpleProductPrice <= 0) return "يرجى إدخال سعر صحيح للمنتج";
       if (simpleProductStock < 0) return "يرجى إدخال كمية صالحة للمنتج";
     }
@@ -217,16 +138,18 @@ const ImprovedProductForm = ({
   };
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     console.log('🎯 Form submission - categoryId:', categoryId);
 
-    // Validate form - CRITICAL: ensure category is selected
+    // Validate form
     if (!categoryId || categoryId === "") {
-      const validationError = "يرجى اختيار القسم - Please select a valid subcategory";
+      const validationError = "يرجى اختيار القسم";
       setError(validationError);
       toast.error(validationError);
+      setLoading(false);
       return;
     }
 
@@ -234,86 +157,108 @@ const ImprovedProductForm = ({
     if (validationError) {
       setError(validationError);
       toast.error(validationError);
+      setLoading(false);
       return;
     }
     
-    // Format data for submission
-    let formattedSizes: SizeWithStock[] = [];
-    let formattedColors: string[] = [];
-    let allImages: string[] = [];
-    
-    // Build image arrays properly separated
-    if (mainImage) {
-      allImages.push(mainImage);
-    }
-    
-    // Add gallery images (these are completely separate from color images)
-    allImages = [...allImages, ...galleryImages];
-    
-    if (hasColorVariations) {
-      // Process variations
-      formattedColors = colorVariations.map(color => color.colorName);
+    try {
+      // Format data for submission
+      let formattedSizes: SizeWithStock[] = [];
+      let formattedColors: string[] = [];
+      let allImages: string[] = [];
       
-      // Add color-specific images to the main images array
-      colorVariations.forEach(color => {
-        if (color.image && !allImages.includes(color.image)) {
-          allImages.push(color.image);
-        }
-      });
+      // Build image arrays
+      if (mainImage) {
+        allImages.push(mainImage);
+      }
+      allImages = [...allImages, ...galleryImages];
       
-      // Collect all sizes from all color variations
-      colorVariations.forEach(color => {
-        color.sizes.forEach(size => {
-          formattedSizes.push({
-            size: size.size,
-            price: size.price,
-            stock: size.stock
+      if (hasVariants) {
+        // For variants, we'll handle them separately after product creation
+        formattedColors = variants.map(variant => variant.color);
+        
+        // Add variant images to main images array
+        variants.forEach(variant => {
+          if (variant.image && !allImages.includes(variant.image)) {
+            allImages.push(variant.image);
+          }
+        });
+        
+        // For compatibility, create a basic size array from all variants
+        variants.forEach(variant => {
+          variant.options.forEach(option => {
+            formattedSizes.push({
+              size: option.size,
+              price: option.price,
+              stock: option.stock
+            });
           });
         });
-      });
-    } else {
-      // Simple product
-      formattedSizes = [{
-        size: "standard",
-        price: simpleProductPrice,
-        stock: simpleProductStock
-      }];
+      } else {
+        // Simple product
+        formattedSizes = [{
+          size: "standard",
+          price: simpleProductPrice,
+          stock: simpleProductStock
+        }];
+      }
+      
+      // Calculate inventory
+      const calculatedInventory = formattedSizes.reduce((sum, item) => sum + item.stock, 0);
+      
+      // Create the product object
+      const productData: any = {
+        name: name.trim(),
+        category_id: categoryId,
+        description: details,
+        discount: hasDiscount ? discount : 0,
+        main_image: mainImage,
+        image_url: mainImage,
+        images: allImages,
+        colors: formattedColors,
+        sizes: formattedSizes,
+        price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
+        inventory: calculatedInventory,
+        stock: calculatedInventory,
+        featured: false
+      };
+      
+      console.log('🎯 Submitting product data:', productData);
+      
+      // Submit the product
+      await onSubmit(productData);
+      
+      // If we have variants and this is a new product, we need to handle variant saving
+      // This will be handled by the parent component after getting the product ID
+      
+      setError("");
+      
+    } catch (error: any) {
+      console.error('💥 Error submitting product:', error);
+      setError('حدث خطأ أثناء حفظ المنتج');
+      toast.error('حدث خطأ أثناء حفظ المنتج');
+    } finally {
+      setLoading(false);
     }
-    
-    // Calculate inventory as sum of all sizes stock
-    const calculatedInventory = formattedSizes.reduce((sum, item) => sum + item.stock, 0);
-    
-    // Clear error
-    setError("");
-    
-    // Create the final product object - REMOVED colorImages to fix update error
-    const productData: any = {
-      name: name.trim(),
-      category_id: categoryId, // CRITICAL: This must be saved
-      description: details,
-      discount: hasDiscount ? discount : 0,
-      main_image: mainImage, // Main product image
-      image_url: mainImage, // Keep both for compatibility
-      images: allImages, // All images including main + gallery + color images
-      colors: hasColorVariations ? formattedColors : [], // Store as array
-      sizes: formattedSizes, // Store as array
-      price: formattedSizes.length > 0 ? formattedSizes[0].price : 0,
-      inventory: calculatedInventory,
-      stock: calculatedInventory,
-      featured: false // Default value
-    };
-    
-    console.log('🎯 Submitting product data with category_id:', productData.category_id);
-    console.log('📸 Image data structure:', { 
-      main_image: productData.main_image, 
-      images: productData.images,
-      galleryImages: galleryImages.length,
-      totalImages: productData.images.length
-    });
-    
-    // Submit the product
-    onSubmit(productData);
   };
+
+  // Expose variant saving method for parent component
+  const saveVariants = async (productId: string) => {
+    if (hasVariants && variants.length > 0) {
+      console.log('🔄 Saving variants for product:', productId);
+      const success = await ProductVariantService.saveProductVariants(productId, variants);
+      if (success) {
+        toast.success('تم حفظ ألوان المنتج بنجاح');
+      }
+      return success;
+    }
+    return true;
+  };
+
+  // Expose the saveVariants method to parent
+  React.useImperativeHandle(React.createRef(), () => ({
+    saveVariants
+  }));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto p-4">
@@ -383,7 +328,7 @@ const ImprovedProductForm = ({
 
         {/* Gallery Images Upload */}
         <div className="mt-4">
-          <label className="block text-sm font-medium mb-1">صور إضافية للمعرض (منفصلة عن الصورة الرئيسية)</label>
+          <label className="block text-sm font-medium mb-1">صور إضافية للمعرض</label>
           <input
             type="file"
             accept="image/*"
@@ -418,25 +363,25 @@ const ImprovedProductForm = ({
           <label className="flex items-center">
             <input
               type="radio"
-              checked={!hasColorVariations}
-              onChange={() => setHasColorVariations(false)}
+              checked={!hasVariants}
+              onChange={() => setHasVariants(false)}
               className="mr-2"
             />
-            منتج بسيط (بدون ألوان)
+            منتج بسيط (بدون ألوان متعددة)
           </label>
           
           <label className="flex items-center">
             <input
               type="radio"
-              checked={hasColorVariations}
-              onChange={() => setHasColorVariations(true)}
+              checked={hasVariants}
+              onChange={() => setHasVariants(true)}
               className="mr-2"
             />
-            منتج بعدة ألوان
+            منتج بألوان ومقاسات متعددة
           </label>
         </div>
         
-        {!hasColorVariations ? (
+        {!hasVariants ? (
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">السعر*</label>
@@ -465,122 +410,11 @@ const ImprovedProductForm = ({
           </div>
         ) : (
           <div className="mt-4">
-            <div className="flex justify-between items-center mb-2">
-              <h4 className="font-medium">الألوان والمقاسات المتوفرة</h4>
-              <Button
-                type="button"
-                onClick={addColorVariation}
-                className="bg-green-600 hover:bg-green-700 text-white text-xs py-1 px-2"
-              >
-                + إضافة لون جديد
-              </Button>
-            </div>
-            
-            {colorVariations.map((color, colorIndex) => (
-              <div key={colorIndex} className="border rounded-md p-4 mb-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h5 className="font-medium">لون #{colorIndex + 1}</h5>
-                  <Button
-                    type="button"
-                    onClick={() => removeColorVariation(colorIndex)}
-                    className="bg-red-600 hover:bg-red-700 text-white text-xs py-1 px-2"
-                  >
-                    حذف اللون
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">اسم اللون*</label>
-                    <input
-                      type="text"
-                      value={color.colorName}
-                      onChange={e => updateColorVariation(colorIndex, "colorName", e.target.value)}
-                      className="w-full p-2 border rounded text-sm"
-                      placeholder="مثل: أحمر، أزرق، إلخ"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-1">صورة اللون* (منفصلة عن باقي الصور)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={e => handleColorImageUpload(colorIndex, e)}
-                      className="w-full p-2 border rounded text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
-                    />
-                    {color.image && (
-                      <div className="mt-1">
-                        <img src={color.image} alt={color.colorName} className="h-16 w-16 object-cover rounded" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="mb-2">
-                  <div className="flex justify-between items-center">
-                    <h6 className="text-sm font-medium">المقاسات المتوفرة لهذا اللون</h6>
-                    <Button
-                      type="button"
-                      onClick={() => addSizeToColor(colorIndex)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-1 px-2"
-                    >
-                      + إضافة مقاس
-                    </Button>
-                  </div>
-                  
-                  {color.sizes.length === 0 ? (
-                    <p className="text-gray-500 text-sm mt-2">لا يوجد مقاسات بعد. أضف مقاس جديد.</p>
-                  ) : (
-                    <div className="mt-2">
-                      <div className="grid grid-cols-4 gap-1 font-medium text-xs mb-1 bg-gray-100 p-1 rounded">
-                        <div>المقاس</div>
-                        <div>السعر</div>
-                        <div>الكمية</div>
-                        <div></div>
-                      </div>
-                      {color.sizes.map((size, sizeIndex) => (
-                        <div key={sizeIndex} className="grid grid-cols-4 gap-1 mb-1 items-center border-b pb-1">
-                          <input
-                            type="text"
-                            value={size.size}
-                            onChange={e => updateSizeInColor(colorIndex, sizeIndex, "size", e.target.value)}
-                            className="p-1 border rounded text-sm"
-                            placeholder="مثل: S, M, L"
-                            required
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={size.price}
-                            onChange={e => updateSizeInColor(colorIndex, sizeIndex, "price", e.target.value)}
-                            className="p-1 border rounded text-sm"
-                            required
-                          />
-                          <input
-                            type="number"
-                            min="0"
-                            value={size.stock}
-                            onChange={e => updateSizeInColor(colorIndex, sizeIndex, "stock", e.target.value)}
-                            className="p-1 border rounded text-sm"
-                            required
-                          />
-                          <Button
-                            type="button"
-                            onClick={() => removeSizeFromColor(colorIndex, sizeIndex)}
-                            className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-xs py-1"
-                          >
-                            حذف
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+            <ProductColorVariantManager
+              variants={variants}
+              onChange={setVariants}
+              productId={initialData.id}
+            />
           </div>
         )}
       </div>
@@ -625,6 +459,7 @@ const ImprovedProductForm = ({
             type="button"
             onClick={onCancel}
             className="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded font-bold text-sm"
+            disabled={loading}
           >
             إلغاء
           </Button>
@@ -632,8 +467,9 @@ const ImprovedProductForm = ({
         <Button
           type="submit"
           className="bg-green-700 hover:bg-green-800 text-white px-6 py-3 rounded font-bold text-sm"
+          disabled={loading}
         >
-          {submitLabel}
+          {loading ? "جاري الحفظ..." : submitLabel}
         </Button>
       </div>
     </form>

@@ -6,9 +6,9 @@ import { toast } from 'sonner';
 interface Ad {
   id: string;
   title?: string;
+  description?: string;
   image_url: string;
   redirect_url?: string;
-  description?: string;
   position: number;
   is_active: boolean;
   created_at: string;
@@ -26,151 +26,133 @@ export const useSupabaseAds = () => {
   const fetchAds = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching promotional banners...');
-      
-      // FIXED: Using the direct Supabase client to avoid AdBlock issues
+      console.log('🔄 Fetching ads from database...');
+
       const { data, error } = await supabase
         .from('ads')
         .select('*')
         .order('position', { ascending: true });
-      
+
       if (error) {
-        console.error('❌ Error fetching promotional banners:', error);
-        toast.error('Failed to load promotional banners: ' + error.message);
-        setAds([]);
+        console.error('❌ Error fetching ads:', error);
+        toast.error('Failed to load ads: ' + error.message);
         return;
       }
-      
-      console.log('✅ Promotional banners fetched:', data?.length || 0, data);
+
+      console.log('✅ Ads loaded:', data?.length || 0);
       setAds(data || []);
-      
     } catch (error: any) {
-      console.error('💥 Exception while fetching promotional banners:', error);
-      toast.error('Failed to load promotional banners: ' + error.message);
-      setAds([]);
+      console.error('💥 Exception while fetching ads:', error);
+      toast.error('Failed to load ads: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchActiveAds = async (): Promise<Ad[]> => {
+  const addAd = async (adData: Omit<Ad, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      console.log('🔄 Fetching active promotional banners for display...');
-      
+      console.log('🆕 Adding new ad:', adData);
+
       const { data, error } = await supabase
         .from('ads')
-        .select('*')
-        .eq('is_active', true)
-        .order('position', { ascending: true });
-      
+        .insert([{
+          title: adData.title,
+          description: adData.description,
+          image_url: adData.image_url,
+          redirect_url: adData.redirect_url,
+          position: adData.position,
+          is_active: adData.is_active
+        }])
+        .select()
+        .single();
+
       if (error) {
-        console.error('❌ Error fetching active promotional banners:', error);
-        return [];
+        console.error('❌ Error adding ad:', error);
+        toast.error('Failed to add ad: ' + error.message);
+        return false;
       }
-      
-      console.log('✅ Active promotional banners fetched:', data?.length || 0, data);
-      return data || [];
-      
+
+      console.log('✅ Ad added successfully:', data);
+      toast.success('Ad added successfully!');
+      await fetchAds(); // Refresh the list
+      return true;
     } catch (error: any) {
-      console.error('💥 Exception while fetching active promotional banners:', error);
-      return [];
+      console.error('💥 Exception while adding ad:', error);
+      toast.error('Failed to add ad: ' + error.message);
+      return false;
     }
   };
 
-  // FIXED: Using direct Supabase client to avoid AdBlock interference
+  const updateAd = async (id: string, updates: Partial<Omit<Ad, 'id' | 'created_at' | 'updated_at'>>) => {
+    try {
+      console.log('✏️ Updating ad:', id, updates);
+
+      const { data, error } = await supabase
+        .from('ads')
+        .update({
+          title: updates.title,
+          description: updates.description,
+          image_url: updates.image_url,
+          redirect_url: updates.redirect_url,
+          position: updates.position,
+          is_active: updates.is_active,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Error updating ad:', error);
+        toast.error('Failed to update ad: ' + error.message);
+        return false;
+      }
+
+      console.log('✅ Ad updated successfully:', data);
+      toast.success('Ad updated successfully!');
+      await fetchAds(); // Refresh the list
+      return true;
+    } catch (error: any) {
+      console.error('💥 Exception while updating ad:', error);
+      toast.error('Failed to update ad: ' + error.message);
+      return false;
+    }
+  };
+
   const deleteAd = async (id: string) => {
     try {
-      console.log('🗑️ Deleting promotional banner:', id);
-      
+      console.log('🗑️ Deleting ad:', id);
+
       const { error } = await supabase
         .from('ads')
         .delete()
         .eq('id', id);
-      
+
       if (error) {
-        console.error('❌ Error deleting promotional banner:', error);
-        toast.error('Failed to delete promotional banner: ' + error.message);
+        console.error('❌ Error deleting ad:', error);
+        toast.error('Failed to delete ad: ' + error.message);
         return false;
       }
-      
-      console.log('✅ Promotional banner deleted successfully');
-      toast.success('Promotional banner deleted successfully!');
-      
-      // Refresh ads list
-      await fetchAds();
+
+      console.log('✅ Ad deleted successfully');
+      toast.success('Ad deleted successfully!');
+      await fetchAds(); // Refresh the list
       return true;
     } catch (error: any) {
-      console.error('💥 Exception deleting promotional banner:', error);
-      toast.error('Failed to delete promotional banner: ' + error.message);
+      console.error('💥 Exception while deleting ad:', error);
+      toast.error('Failed to delete ad: ' + error.message);
       return false;
     }
   };
 
-  // FIXED: Add file upload support alongside URL input
-  const addAd = async (adData: Omit<Ad, 'id' | 'created_at' | 'updated_at'>) => {
-    try {
-      console.log('🆕 Adding promotional banner:', adData);
-      
-      const { data, error } = await supabase
-        .from('ads')
-        .insert([adData])
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('❌ Error adding promotional banner:', error);
-        toast.error('Failed to add promotional banner: ' + error.message);
-        return false;
-      }
-      
-      console.log('✅ Promotional banner added successfully');
-      toast.success('Promotional banner added successfully!');
-      
-      await fetchAds();
-      return true;
-    } catch (error: any) {
-      console.error('💥 Exception adding promotional banner:', error);
-      toast.error('Failed to add promotional banner: ' + error.message);
-      return false;
-    }
-  };
+  const refetch = fetchAds;
 
-  const updateAd = async (id: string, updates: Partial<Ad>) => {
-    try {
-      console.log('✏️ Updating promotional banner:', id, updates);
-      
-      const { data, error } = await supabase
-        .from('ads')
-        .update(updates)
-        .eq('id', id)
-        .select('*')
-        .single();
-      
-      if (error) {
-        console.error('❌ Error updating promotional banner:', error);
-        toast.error('Failed to update promotional banner: ' + error.message);
-        return false;
-      }
-      
-      console.log('✅ Promotional banner updated successfully');
-      toast.success('Promotional banner updated successfully!');
-      
-      await fetchAds();
-      return true;
-    } catch (error: any) {
-      console.error('💥 Exception updating promotional banner:', error);
-      toast.error('Failed to update promotional banner: ' + error.message);
-      return false;
-    }
-  };
-
-  return { 
-    ads, 
-    loading, 
-    fetchActiveAds,
-    deleteAd,
+  return {
+    ads,
+    loading,
     addAd,
     updateAd,
-    refetch: fetchAds 
+    deleteAd,
+    refetch
   };
 };

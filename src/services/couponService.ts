@@ -1,0 +1,112 @@
+
+import { supabase } from '@/integrations/supabase/client';
+
+export class CouponService {
+  static async validateCoupon(code: string, orderTotal: number) {
+    try {
+      console.log('🎟️ Validating coupon:', code, 'for order total:', orderTotal);
+
+      // Query the coupon
+      const { data: coupon, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('code', code.toUpperCase().trim())
+        .eq('is_active', true)
+        .single();
+
+      if (error || !coupon) {
+        console.log('❌ Coupon not found or inactive:', code);
+        return {
+          valid: false,
+          error: 'كوبون الخصم غير صحيح أو غير نشط'
+        };
+      }
+
+      // Check expiration date
+      if (coupon.expiration_date) {
+        const expirationDate = new Date(coupon.expiration_date);
+        const now = new Date();
+        if (expirationDate < now) {
+          console.log('❌ Coupon expired:', code);
+          return {
+            valid: false,
+            error: 'انتهت صلاحية كوبون الخصم'
+          };
+        }
+      }
+
+      // Check usage limit
+      if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+        console.log('❌ Coupon usage limit exceeded:', code);
+        return {
+          valid: false,
+          error: 'تم استخدام كوبون الخصم بالكامل'
+        };
+      }
+
+      // Check minimum amount
+      if (coupon.minimum_amount && orderTotal < coupon.minimum_amount) {
+        console.log('❌ Order total below minimum:', orderTotal, 'required:', coupon.minimum_amount);
+        return {
+          valid: false,
+          error: `الحد الأدنى للطلب ${coupon.minimum_amount} جنيه`
+        };
+      }
+
+      // Calculate discount
+      let discountAmount = 0;
+      if (coupon.discount_type === 'percentage') {
+        discountAmount = (orderTotal * coupon.discount_value) / 100;
+      } else {
+        discountAmount = coupon.discount_value;
+      }
+
+      // Ensure discount doesn't exceed order total
+      discountAmount = Math.min(discountAmount, orderTotal);
+
+      console.log('✅ Coupon valid, discount amount:', discountAmount);
+
+      return {
+        valid: true,
+        coupon: {
+          id: coupon.id,
+          code: coupon.code,
+          discount_type: coupon.discount_type,
+          discount_value: coupon.discount_value,
+          discount_amount: discountAmount
+        }
+      };
+
+    } catch (error: any) {
+      console.error('💥 Error validating coupon:', error);
+      return {
+        valid: false,
+        error: 'حدث خطأ أثناء التحقق من كوبون الخصم'
+      };
+    }
+  }
+
+  static async applyCoupon(couponId: string) {
+    try {
+      // Increment usage count
+      const { error } = await supabase
+        .from('coupons')
+        .update({ 
+          used_count: supabase.raw('used_count + 1'),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', couponId);
+
+      if (error) {
+        console.error('❌ Error applying coupon:', error);
+        return false;
+      }
+
+      console.log('✅ Coupon applied successfully:', couponId);
+      return true;
+    } catch (error) {
+      console.error('💥 Error in applyCoupon:', error);
+      return false;
+    }
+  }
+}
