@@ -20,7 +20,14 @@ const SizeOptionRow: React.FC<SizeOptionRowProps> = ({
   onRemoveOption
 }) => {
   const handleOptionChange = (field: keyof ColorVariantOption, value: any) => {
-    onOptionChange(optionIndex, field, value);
+    // Convert string values to appropriate types
+    let convertedValue = value;
+    if (field === 'price') {
+      convertedValue = parseFloat(value) || 0;
+    } else if (field === 'stock') {
+      convertedValue = parseInt(value) || 0;
+    }
+    onOptionChange(optionIndex, field, convertedValue);
   };
 
   return (
