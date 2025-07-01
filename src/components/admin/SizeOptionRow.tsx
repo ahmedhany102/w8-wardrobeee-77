@@ -42,7 +42,7 @@ const SizeOptionRow: React.FC<SizeOptionRowProps> = ({
       <Input
         type="number"
         value={option.price?.toString() || '0'}
-        onChange={(e) => handleOptionChange('price', e.target.value)}
+        onChange={(e) => handleOptionChange('price', parseFloat(e.target.value) || 0)}
         placeholder="السعر"
         min="0"
         step="0.01"
@@ -52,7 +52,7 @@ const SizeOptionRow: React.FC<SizeOptionRowProps> = ({
       <Input
         type="number"
         value={option.stock?.toString() || '0'}
-        onChange={(e) => handleOptionChange('stock', e.target.value)}
+        onChange={(e) => handleOptionChange('stock', parseInt(e.target.value) || 0)}
         placeholder="الكمية"
         min="0"
         size="sm"
