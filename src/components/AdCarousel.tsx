@@ -14,24 +14,13 @@ interface Ad {
 }
 
 const AdCarousel: React.FC = () => {
-  const { fetchActiveAds } = useSupabaseAds();
-  const [activeAds, setActiveAds] = useState<Ad[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { ads, loading } = useSupabaseAds();
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
 
-  useEffect(() => {
-    loadActiveAds();
-  }, []);
+  // Filter only active ads
+  const activeAds = ads.filter(ad => ad.is_active);
 
-  const loadActiveAds = async () => {
-    setLoading(true);
-    const ads = await fetchActiveAds();
-    console.log('🎬 Active ads loaded for carousel:', ads.length);
-    setActiveAds(ads);
-    setLoading(false);
-  };
-
-  // FIXED: Auto-rotate ads every 5 seconds if multiple ads exist
+  // Auto-rotate ads every 5 seconds if multiple ads exist
   useEffect(() => {
     if (activeAds.length > 1) {
       console.log('🔄 Starting ad rotation with', activeAds.length, 'ads');
@@ -53,7 +42,7 @@ const AdCarousel: React.FC = () => {
     }
   };
 
-  // FIXED: Don't render anything if no ads or still loading
+  // Don't render anything if no ads or still loading
   if (loading || activeAds.length === 0) {
     console.log('🚫 Not showing ad carousel - loading:', loading, 'ads count:', activeAds.length);
     return null;
@@ -78,7 +67,7 @@ const AdCarousel: React.FC = () => {
             }}
           />
           
-          {/* FIXED: Improved overlay for title and description */}
+          {/* Improved overlay for title and description */}
           {(currentAd.title || currentAd.description) && (
             <div className="absolute inset-0 bg-black bg-opacity-30 flex items-end">
               <div className="p-4 md:p-6 text-white">
@@ -92,7 +81,7 @@ const AdCarousel: React.FC = () => {
             </div>
           )}
 
-          {/* FIXED: Modern pagination dots for multiple ads - mobile friendly */}
+          {/* Modern pagination dots for multiple ads - mobile friendly */}
           {activeAds.length > 1 && (
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
               {activeAds.map((_, index) => (

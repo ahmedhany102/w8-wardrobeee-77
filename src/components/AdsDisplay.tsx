@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useSupabaseAds } from '@/hooks/useSupabaseAds';
 
 interface Ad {
@@ -13,20 +13,10 @@ interface Ad {
 }
 
 const AdsDisplay: React.FC = () => {
-  const { fetchActiveAds } = useSupabaseAds();
-  const [activeAds, setActiveAds] = useState<Ad[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { ads, loading } = useSupabaseAds();
 
-  useEffect(() => {
-    loadActiveAds();
-  }, []);
-
-  const loadActiveAds = async () => {
-    setLoading(true);
-    const ads = await fetchActiveAds();
-    setActiveAds(ads);
-    setLoading(false);
-  };
+  // Filter only active ads
+  const activeAds = ads.filter(ad => ad.is_active);
 
   const handleAdClick = (ad: Ad) => {
     if (ad.redirect_url) {

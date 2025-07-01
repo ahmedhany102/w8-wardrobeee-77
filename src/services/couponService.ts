@@ -88,11 +88,23 @@ export class CouponService {
 
   static async applyCoupon(couponId: string) {
     try {
+      // First get the current used_count
+      const { data: currentCoupon, error: fetchError } = await supabase
+        .from('coupons')
+        .select('used_count')
+        .eq('id', couponId)
+        .single();
+
+      if (fetchError || !currentCoupon) {
+        console.error('❌ Error fetching coupon for update:', fetchError);
+        return false;
+      }
+
       // Increment usage count
       const { error } = await supabase
         .from('coupons')
         .update({ 
-          used_count: supabase.raw('used_count + 1'),
+          used_count: currentCoupon.used_count + 1,
           updated_at: new Date().toISOString()
         })
         .eq('id', couponId);
