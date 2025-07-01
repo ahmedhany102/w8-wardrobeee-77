@@ -6,11 +6,14 @@ export class CouponService {
     try {
       console.log('🎟️ Validating coupon:', code, 'for order total:', orderTotal);
 
-      // Query the coupon
+      // Normalize the code for comparison
+      const normalizedCode = code.toUpperCase().trim();
+
+      // Query the coupon with case-insensitive matching
       const { data: coupon, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('code', code.toUpperCase().trim())
+        .ilike('code', normalizedCode)
         .eq('is_active', true)
         .single();
 
@@ -27,7 +30,7 @@ export class CouponService {
         const expirationDate = new Date(coupon.expiration_date);
         const now = new Date();
         if (expirationDate < now) {
-          console.log('❌ Coupon expired:', code);
+          console.log('❌ Coupon expired:', code, 'expired on:', expirationDate);
           return {
             valid: false,
             error: 'انتهت صلاحية كوبون الخصم'
@@ -37,19 +40,20 @@ export class CouponService {
 
       // Check usage limit
       if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
-        console.log('❌ Coupon usage limit exceeded:', code);
+        console.log('❌ Coupon usage limit exceeded:', code, 'used:', coupon.used_count, 'limit:', coupon.usage_limit);
         return {
           valid: false,
           error: 'تم استخدام كوبون الخصم بالكامل'
         };
       }
 
-      // Check minimum amount
-      if (coupon.minimum_amount && orderTotal < coupon.minimum_amount) {
-        console.log('❌ Order total below minimum:', orderTotal, 'required:', coupon.minimum_amount);
+      // Check minimum amount (handle null values properly)
+      const minimumAmount = coupon.minimum_amount || 0;
+      if (minimumAmount > 0 && orderTotal < minimumAmount) {
+        console.log('❌ Order total below minimum:', orderTotal, 'required:', minimumAmount);
         return {
           valid: false,
-          error: `الحد الأدنى للطلب ${coupon.minimum_amount} جنيه`
+          error: `الحد الأدنى للطلب ${minimumAmount} جنيه`
         };
       }
 

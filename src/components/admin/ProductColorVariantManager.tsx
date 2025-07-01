@@ -210,7 +210,7 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
                         />
                         <Input
                           type="number"
-                          value={option.price}
+                          value={option.price.toString()}
                           onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'price', e.target.value)}
                           placeholder="السعر"
                           min="0"
@@ -220,7 +220,7 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
                         />
                         <Input
                           type="number"
-                          value={option.stock}
+                          value={option.stock.toString()}
                           onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'stock', e.target.value)}
                           placeholder="الكمية"
                           min="0"

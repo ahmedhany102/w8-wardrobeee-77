@@ -36,9 +36,10 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
     <div>
       <label className="block text-sm font-medium mb-1">Category*</label>
       <Select
-        value={value || "placeholder"}
+        value={value || ""}
         onValueChange={(val) => {
-          if (val !== "placeholder") {
+          if (val && val !== "" && val !== "placeholder") {
+            console.log('🎯 Category selected via CategorySelector:', val);
             onChange(val);
           }
         }}
@@ -46,15 +47,18 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
         <SelectTrigger>
           <SelectValue placeholder="Select a subcategory" />
         </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="placeholder" disabled>
-            Select a subcategory
-          </SelectItem>
-          {validSubcategories.map((sub) => (
-            <SelectItem key={sub.id} value={sub.id}>
-              {sub.name}
+        <SelectContent className="bg-white z-50 shadow-lg border">
+          {validSubcategories.length === 0 ? (
+            <SelectItem value="no-categories" disabled>
+              No subcategories available
             </SelectItem>
-          ))}
+          ) : (
+            validSubcategories.map((sub) => (
+              <SelectItem key={sub.id} value={sub.id}>
+                {sub.name}
+              </SelectItem>
+            ))
+          )}
         </SelectContent>
       </Select>
       {validSubcategories.length === 0 && !loading && (
@@ -65,4 +69,3 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
 };
 
 export default CategorySelector;
-

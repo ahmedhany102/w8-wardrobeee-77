@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Product, SizeWithStock } from "@/models/Product";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { ProductVariantService, ProductVariant } from "@/services/productVariant
 
 interface ProductFormProps {
   initialData?: Partial<Product>;
-  onSubmit: (product: Omit<Product, "id">) => void;
+  onSubmit: (product: Omit<Product, "id">, saveVariants?: (productId: string) => Promise<boolean>) => void;
   submitLabel?: string;
   onCancel?: () => void;
   allowSizesWithoutColors?: boolean;
@@ -109,7 +108,7 @@ const ImprovedProductForm = ({
   // Form validation
   const validateForm = () => {
     if (!name.trim()) return "يرجى إدخال اسم المنتج";
-    if (!categoryId || categoryId === "") return "يرجى اختيار القسم";
+    if (!categoryId || categoryId === "" || categoryId === "placeholder") return "يرجى اختيار القسم";
     if (!mainImage) return "يرجى تحميل صورة رئيسية للمنتج";
     
     if (hasVariants) {
@@ -137,22 +136,29 @@ const ImprovedProductForm = ({
     return "";
   };
 
+  // Variant saving function
+  const saveVariantsToDatabase = async (productId: string): Promise<boolean> => {
+    if (hasVariants && variants.length > 0) {
+      console.log('🔄 Saving variants for product:', productId);
+      const success = await ProductVariantService.saveProductVariants(productId, variants);
+      if (success) {
+        toast.success('تم حفظ ألوان المنتج بنجاح');
+      }
+      return success;
+    }
+    return true;
+  };
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     console.log('🎯 Form submission - categoryId:', categoryId);
+    console.log('🎯 Form submission - hasVariants:', hasVariants);
+    console.log('🎯 Form submission - variants:', variants);
 
     // Validate form
-    if (!categoryId || categoryId === "") {
-      const validationError = "يرجى اختيار القسم";
-      setError(validationError);
-      toast.error(validationError);
-      setLoading(false);
-      return;
-    }
-
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -225,11 +231,8 @@ const ImprovedProductForm = ({
       
       console.log('🎯 Submitting product data:', productData);
       
-      // Submit the product
-      await onSubmit(productData);
-      
-      // If we have variants and this is a new product, we need to handle variant saving
-      // This will be handled by the parent component after getting the product ID
+      // Submit the product with variant saving callback
+      await onSubmit(productData, saveVariantsToDatabase);
       
       setError("");
       
@@ -241,24 +244,6 @@ const ImprovedProductForm = ({
       setLoading(false);
     }
   };
-
-  // Expose variant saving method for parent component
-  const saveVariants = async (productId: string) => {
-    if (hasVariants && variants.length > 0) {
-      console.log('🔄 Saving variants for product:', productId);
-      const success = await ProductVariantService.saveProductVariants(productId, variants);
-      if (success) {
-        toast.success('تم حفظ ألوان المنتج بنجاح');
-      }
-      return success;
-    }
-    return true;
-  };
-
-  // Expose the saveVariants method to parent
-  React.useImperativeHandle(React.createRef(), () => ({
-    saveVariants
-  }));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto p-4">
