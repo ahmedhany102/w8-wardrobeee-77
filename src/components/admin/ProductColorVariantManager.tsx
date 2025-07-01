@@ -49,7 +49,16 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
   const handleOptionChange = (variantIndex: number, optionIndex: number, field: keyof ColorVariantOption, value: any) => {
     const updatedVariants = [...localVariants];
     const updatedOptions = [...updatedVariants[variantIndex].options];
-    updatedOptions[optionIndex] = { ...updatedOptions[optionIndex], [field]: value };
+    
+    // Handle type conversion for numeric fields
+    let convertedValue = value;
+    if (field === 'price') {
+      convertedValue = parseFloat(value) || 0;
+    } else if (field === 'stock') {
+      convertedValue = parseInt(value) || 0;
+    }
+    
+    updatedOptions[optionIndex] = { ...updatedOptions[optionIndex], [field]: convertedValue };
     updatedVariants[variantIndex] = { ...updatedVariants[variantIndex], options: updatedOptions };
     setLocalVariants(updatedVariants);
     onChange(updatedVariants);
@@ -202,7 +211,7 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
                         <Input
                           type="number"
                           value={option.price}
-                          onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'price', parseFloat(e.target.value) || 0)}
+                          onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'price', e.target.value)}
                           placeholder="السعر"
                           min="0"
                           step="0.01"
@@ -212,7 +221,7 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
                         <Input
                           type="number"
                           value={option.stock}
-                          onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'stock', parseInt(e.target.value) || 0)}
+                          onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'stock', e.target.value)}
                           placeholder="الكمية"
                           min="0"
                           size="sm"
