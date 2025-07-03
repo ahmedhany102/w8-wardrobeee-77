@@ -205,26 +205,26 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
                           value={option.size}
                           onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'size', e.target.value)}
                           placeholder="S, M, L"
-                          size="sm"
+                          className="text-sm"
                           required
                         />
                         <Input
                           type="number"
                           value={option.price.toString()}
-                          onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'price', e.target.value)}
+                          onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'price', parseFloat(e.target.value) || 0)}
                           placeholder="السعر"
                           min="0"
                           step="0.01"
-                          size="sm"
+                          className="text-sm"
                           required
                         />
                         <Input
                           type="number"
                           value={option.stock.toString()}
-                          onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'stock', e.target.value)}
+                          onChange={(e) => handleOptionChange(variantIndex, optionIndex, 'stock', parseInt(e.target.value) || 0)}
                           placeholder="الكمية"
                           min="0"
-                          size="sm"
+                          className="text-sm"
                           required
                         />
                         <Badge className={option.stock > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
