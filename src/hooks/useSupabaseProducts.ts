@@ -154,6 +154,13 @@ export const useSupabaseProducts = () => {
       console.log('🆕 Adding product with data:', productData);
       console.log('🎯 CRITICAL - Category ID being saved:', productData.category_id);
       
+      // CRITICAL: Validate category_id before saving
+      if (!productData.category_id || productData.category_id === "" || productData.category_id === "placeholder") {
+        console.error('❌ Invalid category_id provided:', productData.category_id);
+        toast.error('Please select a valid category');
+        return false;
+      }
+      
       // FIXED: Ensure category_id is properly set and remove problematic fields
       const cleanProductData = {
         name: productData.name?.trim() || '',

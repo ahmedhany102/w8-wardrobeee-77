@@ -38,8 +38,8 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
       <Select
         value={value || ""}
         onValueChange={(val) => {
-          if (val && val !== "" && val !== "placeholder") {
-            console.log('🎯 Category selected via CategorySelector:', val);
+          console.log('🎯 Category selected via CategorySelector:', val);
+          if (val && val !== "" && val !== "placeholder" && val !== "no-categories") {
             onChange(val);
           }
         }}

@@ -73,7 +73,8 @@ export const useSupabaseCoupons = () => {
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('code', trimmedCode)
+        .ilike('code', trimmedCode)
+        .eq('is_active', true)
         .single();
 
       if (error || !data) {

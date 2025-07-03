@@ -121,26 +121,27 @@ export const useSupabaseAds = () => {
 
   const deleteAd = async (id: string) => {
     try {
-      console.log('🗑️ Deleting ad:', id);
+      console.log('🗑️ Deleting promotional banner:', id);
 
+      // Direct delete to avoid AdBlock issues with "ads" route
       const { error } = await supabase
         .from('ads')
         .delete()
         .eq('id', id);
-
+      
       if (error) {
-        console.error('❌ Error deleting ad:', error);
-        toast.error('Failed to delete ad: ' + error.message);
+        console.error('❌ Error deleting promotional banner:', error);
+        toast.error('Failed to delete promotional banner: ' + error.message);
         return false;
       }
 
-      console.log('✅ Ad deleted successfully');
-      toast.success('Ad deleted successfully!');
+      console.log('✅ Promotional banner deleted successfully');
+      toast.success('Promotional banner deleted successfully!');
       await fetchAds(); // Refresh the list
       return true;
     } catch (error: any) {
-      console.error('💥 Exception while deleting ad:', error);
-      toast.error('Failed to delete ad: ' + error.message);
+      console.error('💥 Exception while deleting promotional banner:', error);
+      toast.error('Failed to delete promotional banner: ' + error.message);
       return false;
     }
   };
