@@ -26,13 +26,24 @@ const ProductManagement = () => {
     });
   }, [products, loading]);
 
-  const handleAddProduct = async (product: ProductFormData) => {
+  const handleAddProduct = async (product: ProductFormData, saveVariants?: (productId: string) => Promise<boolean>) => {
     try {
-      console.log('🆕 Starting product addition...');
+      console.log('🆕 Starting product addition...', { hasVariantSaver: !!saveVariants });
       
       const result = await addProduct(product);
       
-      if (result) {
+      if (result && typeof result === 'object' && result.id) {
+        // If product was created successfully and we have variants to save
+        if (saveVariants) {
+          console.log('🎨 Saving variants for new product:', result.id);
+          const variantResult = await saveVariants(result.id);
+          if (!variantResult) {
+            toast.error('Product created but failed to save variants');
+          } else {
+            console.log('✅ Variants saved successfully');
+          }
+        }
+        
         setShowAddDialog(false);
         toast.success('Product added successfully!');
         // Force a refetch to ensure UI updates
@@ -49,18 +60,29 @@ const ProductManagement = () => {
     }
   };
 
-  const handleEditProduct = async (product: ProductFormData) => {
+  const handleEditProduct = async (product: ProductFormData, saveVariants?: (productId: string) => Promise<boolean>) => {
     if (!editProduct?.id) {
       toast.error('No product selected for editing');
       return;
     }
     
     try {
-      console.log('✏️ Starting product update...');
+      console.log('✏️ Starting product update...', { hasVariantSaver: !!saveVariants });
       
       const result = await updateProduct(editProduct.id, product);
       
       if (result) {
+        // If product was updated successfully and we have variants to save
+        if (saveVariants) {
+          console.log('🎨 Saving variants for updated product:', editProduct.id);
+          const variantResult = await saveVariants(editProduct.id);
+          if (!variantResult) {
+            toast.error('Product updated but failed to save variants');
+          } else {
+            console.log('✅ Variants saved successfully');
+          }
+        }
+        
         setShowEditDialog(false);
         setEditProduct(null);
         toast.success('Product updated successfully!');

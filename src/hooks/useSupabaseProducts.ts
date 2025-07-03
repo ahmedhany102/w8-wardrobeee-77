@@ -197,18 +197,25 @@ export const useSupabaseProducts = () => {
       if (error) {
         console.error('❌ Error adding product:', error);
         toast.error('Failed to add product: ' + error.message);
-        return false;
+        return { success: false, error };
       }
       
       console.log('✅ Product added successfully with category_id:', data.category_id);
+      console.log('🆔 New product ID:', data.id);
+      
+      // Store the product ID for variant saving
+      const productId = data.id;
+      
       toast.success('Product added successfully!');
       
       await fetchProducts();
-      return true;
+      
+      // Return the product data including the ID for variant saving
+      return { success: true, id: productId, data };
     } catch (error: any) {
       console.error('💥 Exception adding product:', error);
       toast.error('Failed to add product: ' + error.message);
-      return false;
+      return { success: false, error };
     }
   };
 

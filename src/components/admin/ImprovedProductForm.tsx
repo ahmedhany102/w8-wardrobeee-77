@@ -232,7 +232,8 @@ const ImprovedProductForm = ({
       console.log('🎯 Submitting product data:', productData);
       
       // Submit the product with variant saving callback
-      await onSubmit(productData, saveVariantsToDatabase);
+      console.log('🎯 About to call onSubmit with product data and variant saver');
+      await onSubmit(productData, hasVariants ? saveVariantsToDatabase : undefined);
       
       setError("");
       

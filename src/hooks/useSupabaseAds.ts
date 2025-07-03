@@ -121,17 +121,20 @@ export const useSupabaseAds = () => {
 
   const deleteAd = async (id: string) => {
     try {
-      console.log('🗑️ Deleting promotional banner:', id);
+      console.log('🗑️ Deleting promotional banner via secure function:', id);
 
-      // Direct delete to avoid AdBlock issues with "ads" route
-      const { error } = await supabase
-        .from('ads')
-        .delete()
-        .eq('id', id);
-      
+      // Use RPC function to avoid AdBlock issues
+      const { data, error } = await supabase.rpc('delete_promotional_banner', { banner_id: id });
+
       if (error) {
         console.error('❌ Error deleting promotional banner:', error);
         toast.error('Failed to delete promotional banner: ' + error.message);
+        return false;
+      }
+
+      if (!data) {
+        console.error('❌ Promotional banner not found or could not be deleted');
+        toast.error('Promotional banner not found or could not be deleted');
         return false;
       }
 
