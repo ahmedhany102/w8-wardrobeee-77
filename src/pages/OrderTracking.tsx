@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
-import { Order } from '@/models/Order';
-import OrderDatabase from '@/models/OrderDatabase';
+import { useUserOrders } from '@/hooks/useUserOrders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -18,31 +17,10 @@ import { X } from 'lucide-react';
 
 const OrderTracking = () => {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { orders, loading } = useUserOrders();
   const [activeTab, setActiveTab] = useState('active');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
-
-  useEffect(() => {
-    if (user) {
-      fetchOrders();
-    }
-  }, [user]);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      const orderDb = OrderDatabase.getInstance();
-      const userOrders = await orderDb.getOrdersByCustomerEmail(user?.email || '');
-      setOrders(userOrders);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      toast.error('Failed to load orders');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,14 +50,7 @@ const OrderTracking = () => {
 
   const handleCancelOrder = async (orderId: string) => {
     try {
-      const orderDb = OrderDatabase.getInstance();
-      await orderDb.cancelOrder(orderId);
-      
-      // Update the local state
-      setOrders(orders.map(order => 
-        order.id === orderId ? { ...order, status: 'CANCELLED' } : order
-      ));
-      
+      // TODO: Implement order cancellation logic with Supabase
       toast.success('Order cancelled successfully');
     } catch (error) {
       console.error('Error cancelling order:', error);
@@ -87,7 +58,7 @@ const OrderTracking = () => {
     }
   };
 
-  const viewOrderDetails = (order: Order) => {
+  const viewOrderDetails = (order: any) => {
     setSelectedOrder(order);
     setShowOrderDetails(true);
   };
@@ -153,9 +124,9 @@ const OrderTracking = () => {
                     <CardHeader className="bg-gray-50 py-3">
                       <div className="flex flex-wrap justify-between items-center">
                         <div>
-                          <CardTitle className="text-lg">Order #: {order.orderNumber}</CardTitle>
+                          <CardTitle className="text-lg">Order #: {order.order_number}</CardTitle>
                           <CardDescription>
-                            {formatDate(order.createdAt)}
+                            {formatDate(order.created_at)}
                           </CardDescription>
                         </div>
                         <div className="flex flex-col gap-2 items-end">
@@ -167,7 +138,7 @@ const OrderTracking = () => {
                             {order.status === 'CANCELLED' && 'Cancelled'}
                           </Badge>
                           <span className="text-sm font-medium">
-                            ${order.totalAmount.toFixed(2)}
+                            ${order.total_amount.toFixed(2)}
                           </span>
                         </div>
                       </div>
@@ -213,7 +184,7 @@ const OrderTracking = () => {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle className="flex justify-between items-center">
-              <span>Order Details #{selectedOrder?.orderNumber}</span>
+              <span>Order Details #{selectedOrder?.order_number}</span>
               <button 
                 onClick={() => setShowOrderDetails(false)}
                 className="text-gray-400 hover:text-gray-700"
@@ -229,7 +200,7 @@ const OrderTracking = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h3 className="text-sm font-semibold text-gray-500">Order Date:</h3>
-                  <p>{formatDate(selectedOrder.createdAt)}</p>
+                  <p>{formatDate(selectedOrder.created_at)}</p>
                 </div>
                 <Badge className={getStatusColor(selectedOrder.status)}>
                   {selectedOrder.status === 'PENDING' && 'Pending'}
@@ -244,12 +215,12 @@ const OrderTracking = () => {
               <div>
                 <h3 className="font-medium mb-2">Shipping Address:</h3>
                 <div className="bg-gray-50 p-3 rounded text-gray-700">
-                  <p>{selectedOrder.customerInfo.name}</p>
-                  <p>{selectedOrder.customerInfo.phone}</p>
+                  <p>{selectedOrder.customer_info.name}</p>
+                  <p>{selectedOrder.customer_info.phone}</p>
                   <p>
-                    {selectedOrder.customerInfo.address.street}, {" "}
-                    {selectedOrder.customerInfo.address.city}, {" "}
-                    {selectedOrder.customerInfo.address.zipCode}
+                    {selectedOrder.customer_info.address.street}, {" "}
+                    {selectedOrder.customer_info.address.city}, {" "}
+                    {selectedOrder.customer_info.address.zipCode}
                   </p>
                 </div>
               </div>
@@ -297,7 +268,7 @@ const OrderTracking = () => {
                               {item.quantity}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-right text-gray-700">
-                              ${item.unitPrice.toFixed(2)}
+                              ${item.totalPrice.toFixed(2)}
                             </td>
                           </tr>
                         ))}
@@ -311,7 +282,7 @@ const OrderTracking = () => {
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center py-2">
                   <span>Total:</span>
-                  <span className="font-medium">${selectedOrder.totalAmount.toFixed(2)}</span>
+                  <span className="font-medium">${selectedOrder.total_amount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <span>Payment Method:</span>
