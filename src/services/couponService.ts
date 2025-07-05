@@ -6,31 +6,55 @@ export class CouponService {
     try {
       console.log('🎟️ Validating coupon:', code, 'for order total:', orderTotal);
 
-      // Normalize the code for comparison
-      const normalizedCode = code.toUpperCase().trim();
+      if (!code || code.trim().length === 0) {
+        console.log('❌ Empty coupon code');
+        return {
+          valid: false,
+          error: 'يرجى إدخال كود الكوبون'
+        };
+      }
 
-      // Query the coupon with case-insensitive matching
+      const normalizedCode = code.trim().toUpperCase();
+      console.log('🔍 Searching for coupon with normalized code:', normalizedCode);
+
+      // Fixed query: Use proper Supabase filtering
       const { data: coupon, error } = await supabase
         .from('coupons')
         .select('*')
-        .ilike('code', normalizedCode)
         .eq('is_active', true)
-        .single();
+        .ilike('code', normalizedCode)
+        .maybeSingle();
 
-      if (error || !coupon) {
-        console.log('❌ Coupon not found or inactive:', code);
+      if (error) {
+        console.error('❌ Database error:', error);
+        return {
+          valid: false,
+          error: 'حدث خطأ أثناء التحقق من الكوبون'
+        };
+      }
+
+      if (!coupon) {
+        console.log('❌ Coupon not found or inactive:', normalizedCode);
         return {
           valid: false,
           error: 'كوبون الخصم غير صحيح أو غير نشط'
         };
       }
 
+      console.log('✅ Found coupon:', coupon);
+
       // Check expiration date
       if (coupon.expiration_date) {
         const expirationDate = new Date(coupon.expiration_date);
         const now = new Date();
+        console.log('📅 Checking expiration:', {
+          expiration: expirationDate.toISOString(),
+          current: now.toISOString(),
+          expired: expirationDate < now
+        });
+        
         if (expirationDate < now) {
-          console.log('❌ Coupon expired:', code, 'expired on:', expirationDate);
+          console.log('❌ Coupon expired:', normalizedCode);
           return {
             valid: false,
             error: 'انتهت صلاحية كوبون الخصم'
@@ -38,17 +62,32 @@ export class CouponService {
         }
       }
 
-      // Check usage limit
-      if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
-        console.log('❌ Coupon usage limit exceeded:', code, 'used:', coupon.used_count, 'limit:', coupon.usage_limit);
-        return {
-          valid: false,
-          error: 'تم استخدام كوبون الخصم بالكامل'
-        };
+      // Check usage limit - Fixed: Handle null values properly
+      if (coupon.usage_limit !== null && coupon.usage_limit !== undefined && coupon.usage_limit > 0) {
+        const usedCount = coupon.used_count || 0;
+        console.log('📊 Checking usage limit:', {
+          used: usedCount,
+          limit: coupon.usage_limit,
+          exceeded: usedCount >= coupon.usage_limit
+        });
+        
+        if (usedCount >= coupon.usage_limit) {
+          console.log('❌ Coupon usage limit exceeded:', normalizedCode);
+          return {
+            valid: false,
+            error: 'تم استخدام كوبون الخصم بالكامل'
+          };
+        }
       }
 
-      // Check minimum amount (handle null values properly)
+      // Check minimum amount - Fixed: Handle null values properly
       const minimumAmount = coupon.minimum_amount || 0;
+      console.log('💰 Checking minimum amount:', {
+        orderTotal,
+        minimumRequired: minimumAmount,
+        meetsRequirement: orderTotal >= minimumAmount
+      });
+      
       if (minimumAmount > 0 && orderTotal < minimumAmount) {
         console.log('❌ Order total below minimum:', orderTotal, 'required:', minimumAmount);
         return {
@@ -61,14 +100,19 @@ export class CouponService {
       let discountAmount = 0;
       if (coupon.discount_type === 'percentage') {
         discountAmount = (orderTotal * coupon.discount_value) / 100;
-      } else {
+      } else if (coupon.discount_type === 'fixed') {
         discountAmount = coupon.discount_value;
       }
 
       // Ensure discount doesn't exceed order total
       discountAmount = Math.min(discountAmount, orderTotal);
 
-      console.log('✅ Coupon valid, discount amount:', discountAmount);
+      console.log('✅ Coupon validation successful:', {
+        code: coupon.code,
+        discountType: coupon.discount_type,
+        discountValue: coupon.discount_value,
+        discountAmount
+      });
 
       return {
         valid: true,
@@ -108,7 +152,7 @@ export class CouponService {
       const { error } = await supabase
         .from('coupons')
         .update({ 
-          used_count: currentCoupon.used_count + 1,
+          used_count: (currentCoupon.used_count || 0) + 1,
           updated_at: new Date().toISOString()
         })
         .eq('id', couponId);
