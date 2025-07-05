@@ -5,12 +5,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export const useUserOrders = () => {
-  const { user } = useAuth();
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user, session } = useAuth();
 
-  const fetchOrders = async () => {
-    if (!user) {
+  const fetchUserOrders = async () => {
+    if (!user?.id || !session) {
+      console.log('No authenticated user available for fetching orders');
       setOrders([]);
       setLoading(false);
       return;
@@ -18,34 +19,45 @@ export const useUserOrders = () => {
 
     try {
       setLoading(true);
-      console.log('🔄 Fetching orders for user:', user.id);
+      console.log('Fetching orders for authenticated user:', {
+        id: user.id,
+        email: user.email
+      });
 
-      const { data, error } = await supabase
+      // Primary query: Find orders by user_id in customer_info
+      const { data: userIdOrders, error: userIdError } = await supabase
         .from('orders')
         .select('*')
-        .or(`customer_info->>user_id.eq.${user.id},customer_info->>email.eq.${user.email}`)
+        .eq('customer_info->>user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Error fetching orders:', error);
-        toast.error('Failed to load orders');
-        setOrders([]);
-        return;
+      if (userIdError) {
+        console.error('Error fetching orders by user ID:', userIdError);
       }
 
-      console.log('✅ Orders fetched:', data?.length || 0);
+      // Fallback query: Find orders by email in customer_info
+      const { data: emailOrders, error: emailError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('customer_info->>email', user.email)
+        .order('created_at', { ascending: false });
+
+      if (emailError) {
+        console.error('Error fetching orders by email:', emailError);
+      }
+
+      // Combine and deduplicate results
+      const allOrders = [...(userIdOrders || []), ...(emailOrders || [])];
+      const uniqueOrders = allOrders.filter((order, index, self) => 
+        index === self.findIndex(o => o.id === order.id)
+      );
+
+      console.log('Successfully found user orders:', uniqueOrders);
+      setOrders(uniqueOrders);
       
-      // Parse items if they're stored as strings
-      const ordersWithParsedItems = (data || []).map(order => ({
-        ...order,
-        items: Array.isArray(order.items) ? order.items : 
-               typeof order.items === 'string' ? JSON.parse(order.items) : []
-      }));
-      
-      setOrders(ordersWithParsedItems);
-    } catch (error: any) {
-      console.error('💥 Exception fetching orders:', error);
-      toast.error('Failed to load orders');
+    } catch (error) {
+      console.error('Exception while fetching user orders:', error);
+      toast.error('Failed to load your orders');
       setOrders([]);
     } finally {
       setLoading(false);
@@ -53,12 +65,19 @@ export const useUserOrders = () => {
   };
 
   useEffect(() => {
-    fetchOrders();
-  }, [user]);
+    if (user?.id && session) {
+      console.log('User authenticated, fetching orders for:', user.id);
+      fetchUserOrders();
+    } else {
+      console.log('No authenticated user, clearing orders');
+      setLoading(false);
+      setOrders([]);
+    }
+  }, [user?.id, user?.email, session]);
 
   return { 
     orders, 
     loading, 
-    refetch: fetchOrders 
+    refetch: fetchUserOrders 
   };
 };
