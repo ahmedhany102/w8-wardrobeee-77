@@ -38,8 +38,8 @@ export class CouponService {
         }
       }
 
-      // Check usage limit
-      if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+      // Check usage limit (handle null values properly)
+      if (coupon.usage_limit && coupon.usage_limit > 0 && coupon.used_count >= coupon.usage_limit) {
         console.log('❌ Coupon usage limit exceeded:', code, 'used:', coupon.used_count, 'limit:', coupon.usage_limit);
         return {
           valid: false,

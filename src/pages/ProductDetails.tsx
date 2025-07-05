@@ -8,9 +8,9 @@ import Layout from '@/components/Layout';
 import { Plus, Minus, ShoppingCart, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
-import { formatProductForDisplay } from '@/utils/productUtils';
 import { LoadingFallback } from '@/utils/loadingFallback';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
+import { useProductVariants, ProductColorVariant, ProductColorVariantOption } from '@/hooks/useProductVariants';
 
 // Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
@@ -26,12 +26,6 @@ const colorMap: Record<string, string> = {
   'بني': '#8B4513',
 };
 
-interface ProductSize {
-  size: string;
-  stock: number;
-  price: number;
-}
-
 interface Product {
   id: string;
   name: string;
@@ -42,7 +36,7 @@ interface Product {
   main_image?: string;
   images?: string[];
   colors?: string[];
-  sizes?: ProductSize[];
+  sizes?: any[];
   discount?: number;
   featured?: boolean;
   stock?: number;
@@ -58,9 +52,14 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedColorVariant, setSelectedColorVariant] = useState<ProductColorVariant | null>(null);
+  const [selectedOption, setSelectedOption] = useState<ProductColorVariantOption | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string>('');
   const [addingToCart, setAddingToCart] = useState(false);
+  
+  // Use the variants hook
+  const { variants, loading: variantsLoading, fetchVariants } = useProductVariants(id || '');
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -101,27 +100,24 @@ const ProductDetails = () => {
           return;
         }
 
-        // Format and validate product data
-        const formattedProduct = formatProductForDisplay(data);
-        if (!formattedProduct) {
-          navigate('/not-found');
-          return;
-        }
-
-        console.log('✅ Product loaded:', formattedProduct);
+        console.log('✅ Product loaded:', data);
+        
+        // Handle the Supabase Json types properly
+        const formattedProduct: Product = {
+          ...data,
+          images: Array.isArray(data.images) 
+            ? data.images.filter((img): img is string => typeof img === 'string')
+            : (typeof data.images === 'string' ? [data.images] : []),
+          colors: Array.isArray(data.colors) 
+            ? data.colors.filter((color): color is string => typeof color === 'string')
+            : (typeof data.colors === 'string' ? [data.colors] : []),
+          sizes: Array.isArray(data.sizes) ? data.sizes : (data.sizes ? [data.sizes] : [])
+        };
+        
         setProduct(formattedProduct);
         
-        // Set default selections
-        if (formattedProduct.colors && formattedProduct.colors.length > 0) {
-          setSelectedColor(formattedProduct.colors[0]);
-        }
-        
-        if (formattedProduct.sizes && formattedProduct.sizes.length > 0) {
-          const availableSize = formattedProduct.sizes.find(size => size && size.stock > 0);
-          if (availableSize) {
-            setSelectedSize(availableSize.size);
-          }
-        }
+        // Fetch variants after product is loaded
+        await fetchVariants();
         
         // Set main image
         const mainImg = formattedProduct.main_image || 
@@ -142,10 +138,49 @@ const ProductDetails = () => {
     fetchProduct();
   }, [id, navigate]);
 
+  // Set default selections when variants are loaded
+  useEffect(() => {
+    if (variants.length > 0 && !selectedColorVariant) {
+      const firstVariant = variants[0];
+      setSelectedColorVariant(firstVariant);
+      setSelectedColor(firstVariant.color);
+      
+      if (firstVariant.options && firstVariant.options.length > 0) {
+        const firstOption = firstVariant.options.find(opt => opt.stock > 0) || firstVariant.options[0];
+        setSelectedOption(firstOption);
+        setSelectedSize(firstOption.size);
+      }
+      
+      // Set color-specific image
+      if (firstVariant.image) {
+        setActiveImage(firstVariant.image);
+      }
+    }
+  }, [variants, selectedColorVariant]);
+
   // Handle color selection
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
-    setSelectedSize(null); // Reset size when color changes
+    setSelectedSize(null);
+    setSelectedOption(null);
+    
+    // Find the variant for this color
+    const variant = variants.find(v => v.color === color);
+    if (variant) {
+      setSelectedColorVariant(variant);
+      
+      // Set the image for this color
+      if (variant.image) {
+        setActiveImage(variant.image);
+      }
+      
+      // Auto-select first available size for this color
+      if (variant.options && variant.options.length > 0) {
+        const firstAvailable = variant.options.find(opt => opt.stock > 0) || variant.options[0];
+        setSelectedOption(firstAvailable);
+        setSelectedSize(firstAvailable.size);
+      }
+    }
   };
   
   // Set the active image
@@ -154,28 +189,28 @@ const ProductDetails = () => {
   };
 
   const getAvailableSizes = () => {
-    if (!product || !product.sizes) return [];
-    return product.sizes.filter(size => size && size.size);
+    if (!selectedColorVariant || !selectedColorVariant.options) return [];
+    return selectedColorVariant.options.filter(option => option && option.size);
   };
   
-  const isOutOfStock = !getAvailableSizes().some(size => size && size.stock > 0);
+  const isOutOfStock = !getAvailableSizes().some(option => option && option.stock > 0);
 
   const getColorHex = (color: string) => {
     return colorMap[color] || color;
   };
 
   const getStockForSize = (size: string) => {
-    if (product && product.sizes) {
-      const sizeObj = product.sizes.find(s => s.size === size);
-      return sizeObj ? sizeObj.stock : 0;
+    if (selectedColorVariant && selectedColorVariant.options) {
+      const option = selectedColorVariant.options.find(opt => opt.size === size);
+      return option ? option.stock : 0;
     }
     return 0;
   };
 
   const getSizePrice = (size: string) => {
-    if (product && product.sizes) {
-      const sizeObj = product.sizes.find(s => s.size === size);
-      return sizeObj ? sizeObj.price : product?.price || 0;
+    if (selectedColorVariant && selectedColorVariant.options) {
+      const option = selectedColorVariant.options.find(opt => opt.size === size);
+      return option ? option.price : product?.price || 0;
     }
     return product?.price || 0;
   };
@@ -206,7 +241,7 @@ const ProductDetails = () => {
       return;
     }
     
-    if (!selectedSize || (!selectedColor && product?.colors && product.colors.length > 0)) {
+    if (!selectedSize || (!selectedColor && variants.length > 0)) {
       toast.error('يرجى اختيار المقاس واللون');
       return;
     }
@@ -225,14 +260,14 @@ const ProductDetails = () => {
       const productForCart = {
         id: product!.id,
         name: product!.name,
-        price: getSizePrice(selectedSize),
-        mainImage: product!.main_image,
+        price: selectedOption ? selectedOption.price : (product!.price || 0),
+        mainImage: selectedColorVariant?.image || product!.main_image,
         images: product!.images,
-        colors: product!.colors,
-        sizes: product!.sizes,
+        colors: variants.map(v => v.color),
+        sizes: selectedColorVariant?.options || [],
         description: product!.description,
         category: product!.category || product!.type,
-        inventory: product!.inventory || product!.stock || 0,
+        inventory: selectedOption ? selectedOption.stock : (product!.inventory || product!.stock || 0),
         featured: product!.featured,
         discount: product!.discount,
         createdAt: new Date().toISOString(),
@@ -253,7 +288,7 @@ const ProductDetails = () => {
     }
   };
 
-  if (loading) {
+  if (loading || variantsLoading) {
     return (
       <Layout>
         <div className="flex justify-center items-center min-h-screen">
@@ -278,7 +313,7 @@ const ProductDetails = () => {
   }
 
   // Calculate correct prices
-  const currentPrice = selectedSize ? getSizePrice(selectedSize) : product.price;
+  const currentPrice = selectedOption ? selectedOption.price : (selectedSize ? getSizePrice(selectedSize) : product.price);
   const hasDiscount = product.discount && product.discount > 0;
   const discountedPrice = hasDiscount ? calculateDiscountedPrice(currentPrice, product.discount!) : currentPrice;
   const originalPrice = hasDiscount ? currentPrice : null;
@@ -360,24 +395,24 @@ const ProductDetails = () => {
             )}
 
             {/* Colors */}
-            {product?.colors && product.colors.length > 0 && (
+            {variants.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium mb-2">اللون:</h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.colors.map((color) => (
+                  {variants.map((variant) => (
                     <button
-                      key={color}
+                      key={variant.color}
                       className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                        selectedColor === color
+                        selectedColor === variant.color
                           ? "ring-2 ring-offset-2 ring-blue-500"
                           : ""
                       }`}
                       style={{
-                        backgroundColor: getColorHex(color),
-                        border: getColorBorder(color),
+                        backgroundColor: getColorHex(variant.color),
+                        border: getColorBorder(variant.color),
                       }}
-                      onClick={() => handleColorChange(color)}
-                      aria-label={`Select ${color} color`}
+                      onClick={() => handleColorChange(variant.color)}
+                      aria-label={`Select ${variant.color} color`}
                     />
                   ))}
                 </div>
@@ -389,25 +424,30 @@ const ProductDetails = () => {
               <div>
                 <h3 className="text-sm font-medium mb-2">المقاس:</h3>
                 <div className="flex flex-wrap gap-2">
-                  {getAvailableSizes().map((size) => {
-                    if (!size) return null;
-                    const isAvailable = size.stock > 0;
+                  {getAvailableSizes().map((option) => {
+                    if (!option) return null;
+                    const isAvailable = option.stock > 0;
                     return (
                       <button
-                        key={size.size}
+                        key={option.size}
                         className={`px-3 py-1 border rounded-md ${
-                          selectedSize === size.size
+                          selectedSize === option.size
                             ? "bg-green-600 text-white border-green-600"
                             : isAvailable
                             ? "bg-white hover:bg-gray-100"
                             : "bg-gray-100 text-gray-400 cursor-not-allowed"
                         }`}
-                        onClick={() => isAvailable && setSelectedSize(size.size)}
+                        onClick={() => {
+                          if (isAvailable) {
+                            setSelectedSize(option.size);
+                            setSelectedOption(option);
+                          }
+                        }}
                         disabled={!isAvailable}
                       >
-                        {size.size}
+                        {option.size}
                         {!isAvailable && <span className="block text-xs">نفذت الكمية</span>}
-                        {isAvailable && size.stock === 1 && (
+                        {isAvailable && option.stock === 1 && (
                           <span className="block text-xs text-red-500">آخر قطعة!</span>
                         )}
                       </button>
