@@ -48,7 +48,7 @@ const OrderTracking = () => {
         })
         .eq('id', orderId)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('❌ Error cancelling order:', error);

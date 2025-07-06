@@ -193,7 +193,9 @@ const ProductDetails = () => {
     return selectedColorVariant.options.filter(option => option && option.size);
   };
   
-  const isOutOfStock = !getAvailableSizes().some(option => option && option.stock > 0);
+  const isOutOfStock = variants.length > 0 
+    ? !getAvailableSizes().some(option => option && option.stock > 0)
+    : (!product?.inventory && !product?.stock);
 
   const getColorHex = (color: string) => {
     return colorMap[color] || color;

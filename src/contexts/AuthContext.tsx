@@ -42,6 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           setSession(null);
           setLoading(false);
+          // Force redirect to login on sign out
+          if (window.location.pathname !== '/login' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/product/')) {
+            window.location.href = '/login';
+          }
           return;
         }
         
