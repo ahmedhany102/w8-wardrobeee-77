@@ -397,27 +397,33 @@ const ProductDetails = () => {
             )}
 
             {/* Colors */}
-            {variants.length > 0 && (
+            {variants.length > 0 ? (
               <div>
                 <h3 className="text-sm font-medium mb-2">اللون:</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-3">
                   {variants.map((variant) => (
-                    <button
-                      key={variant.color}
-                      className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                        selectedColor === variant.color
-                          ? "ring-2 ring-offset-2 ring-blue-500"
-                          : ""
-                      }`}
-                      style={{
-                        backgroundColor: getColorHex(variant.color),
-                        border: getColorBorder(variant.color),
-                      }}
-                      onClick={() => handleColorChange(variant.color)}
-                      aria-label={`Select ${variant.color} color`}
-                    />
+                    <div key={variant.color} className="flex flex-col items-center gap-1">
+                      <button
+                        className={`w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all ${
+                          selectedColor === variant.color
+                            ? "ring-2 ring-offset-2 ring-blue-500 scale-110"
+                            : "hover:scale-105"
+                        }`}
+                        style={{
+                          backgroundColor: getColorHex(variant.color),
+                          border: getColorBorder(variant.color),
+                        }}
+                        onClick={() => handleColorChange(variant.color)}
+                        aria-label={`Select ${variant.color} color`}
+                      />
+                      <span className="text-xs text-gray-600 text-center">{variant.color}</span>
+                    </div>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">
+                {variantsLoading ? "جاري تحميل الألوان..." : "لا توجد ألوان متاحة"}
               </div>
             )}
 
