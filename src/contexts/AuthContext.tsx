@@ -42,9 +42,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(null);
           setSession(null);
           setLoading(false);
-          // Force redirect to login on sign out
-          if (window.location.pathname !== '/login' && window.location.pathname !== '/' && !window.location.pathname.startsWith('/product/')) {
-            window.location.href = '/login';
+          // Clear auth state and redirect to login on sign out
+          clearSessionData();
+          const currentPath = window.location.pathname;
+          const publicPaths = ['/login', '/signup', '/', '/contact', '/terms'];
+          const isProductPath = currentPath.startsWith('/product/');
+          
+          if (!publicPaths.includes(currentPath) && !isProductPath) {
+            console.log('🔄 Redirecting to login after logout');
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 100);
           }
           return;
         }

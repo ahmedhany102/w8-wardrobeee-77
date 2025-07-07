@@ -193,9 +193,13 @@ const ProductDetails = () => {
     return selectedColorVariant.options.filter(option => option && option.size);
   };
   
+  // Calculate stock based on variants or fallback to product stock
   const isOutOfStock = variants.length > 0 
-    ? !getAvailableSizes().some(option => option && option.stock > 0)
-    : (!product?.inventory && !product?.stock);
+    ? variants.every(variant => 
+        !variant.options || variant.options.length === 0 || 
+        variant.options.every(option => option.stock <= 0)
+      )
+    : (product?.inventory === 0 || product?.stock === 0);
 
   const getColorHex = (color: string) => {
     return colorMap[color] || color;
@@ -401,29 +405,47 @@ const ProductDetails = () => {
               <div>
                 <h3 className="text-sm font-medium mb-2">اللون:</h3>
                 <div className="flex flex-wrap gap-3">
-                  {variants.map((variant) => (
-                    <div key={variant.color} className="flex flex-col items-center gap-1">
-                      <button
-                        className={`w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all ${
-                          selectedColor === variant.color
-                            ? "ring-2 ring-offset-2 ring-blue-500 scale-110"
-                            : "hover:scale-105"
-                        }`}
-                        style={{
-                          backgroundColor: getColorHex(variant.color),
-                          border: getColorBorder(variant.color),
-                        }}
-                        onClick={() => handleColorChange(variant.color)}
-                        aria-label={`Select ${variant.color} color`}
-                      />
-                      <span className="text-xs text-gray-600 text-center">{variant.color}</span>
-                    </div>
-                  ))}
+                  {variants.map((variant) => {
+                    const hasStock = variant.options && variant.options.some(opt => opt.stock > 0);
+                    return (
+                      <div key={variant.color} className="flex flex-col items-center gap-1">
+                        <button
+                          className={`w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all ${
+                            selectedColor === variant.color
+                              ? "ring-2 ring-offset-2 ring-blue-500 scale-110"
+                              : hasStock 
+                              ? "hover:scale-105"
+                              : "opacity-50 cursor-not-allowed"
+                          }`}
+                          style={{
+                            backgroundColor: getColorHex(variant.color),
+                            border: getColorBorder(variant.color),
+                          }}
+                          onClick={() => hasStock && handleColorChange(variant.color)}
+                          disabled={!hasStock}
+                          aria-label={`Select ${variant.color} color${!hasStock ? ' (out of stock)' : ''}`}
+                        />
+                        <span className={`text-xs text-center ${hasStock ? 'text-gray-600' : 'text-gray-400'}`}>
+                          {variant.color}
+                          {!hasStock && <div className="text-xs text-red-500">نفذت</div>}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
+              </div>
+            ) : variantsLoading ? (
+              <div className="text-sm text-gray-500">
+                <div className="animate-pulse flex space-x-2">
+                  <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+                  <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+                  <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
+                </div>
+                <p className="mt-2">جاري تحميل الألوان...</p>
               </div>
             ) : (
               <div className="text-sm text-gray-500">
-                {variantsLoading ? "جاري تحميل الألوان..." : "لا توجد ألوان متاحة"}
+                <p>منتج عادي - لا توجد ألوان متعددة</p>
               </div>
             )}
 

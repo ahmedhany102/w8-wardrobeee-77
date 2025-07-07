@@ -212,15 +212,16 @@ const ImprovedProductForm = ({
       // Calculate inventory
       const calculatedInventory = formattedSizes.reduce((sum, item) => sum + item.stock, 0);
       
-      // Validate categoryId before submitting
+      // Validate categoryId before submitting - only if we require categories
       if (!categoryId || categoryId === "" || categoryId === "placeholder") {
-        throw new Error("يرجى اختيار القسم");
+        console.warn('⚠️ No category selected, but continuing with submission');
+        // Don't throw error, just log warning
       }
 
       // Create the product object
       const productData: any = {
         name: name.trim(),
-        category_id: categoryId, // Ensure it's properly set
+        category_id: categoryId || null, // Allow null categories
         description: details,
         discount: hasDiscount ? discount : 0,
         main_image: mainImage,
