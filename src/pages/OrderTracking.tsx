@@ -47,7 +47,6 @@ const OrderTracking = () => {
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId)
-        .select()
         .maybeSingle();
 
       if (error) {

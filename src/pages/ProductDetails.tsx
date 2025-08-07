@@ -193,13 +193,16 @@ const ProductDetails = () => {
     return selectedColorVariant.options.filter(option => option && option.size);
   };
   
-  // Calculate stock based on variants or fallback to product stock
-  const isOutOfStock = variants.length > 0 
-    ? variants.every(variant => 
-        !variant.options || variant.options.length === 0 || 
-        variant.options.every(option => option.stock <= 0)
-      )
-    : (product?.inventory === 0 || product?.stock === 0);
+  // Calculate stock based on ONLY variants (not legacy JSONB fields)
+  const getTotalStock = () => {
+    if (variants.length === 0) return 0;
+    return variants.reduce((total, variant) => {
+      if (!variant.options) return total;
+      return total + variant.options.reduce((variantTotal, option) => variantTotal + (option.stock || 0), 0);
+    }, 0);
+  };
+
+  const isOutOfStock = getTotalStock() === 0;
 
   const getColorHex = (color: string) => {
     return colorMap[color] || color;
@@ -408,7 +411,7 @@ const ProductDetails = () => {
                   {variants.map((variant) => {
                     const hasStock = variant.options && variant.options.some(opt => opt.stock > 0);
                     return (
-                      <div key={variant.color} className="flex flex-col items-center gap-1">
+                      <div key={variant.id} className="flex flex-col items-center gap-1">
                         <button
                           className={`w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all ${
                             selectedColor === variant.color
@@ -443,9 +446,14 @@ const ProductDetails = () => {
                 </div>
                 <p className="mt-2">جاري تحميل الألوان...</p>
               </div>
+            ) : !product ? (
+              <div className="text-sm text-red-500 bg-red-50 p-3 rounded-lg">
+                <p>فشل في تحميل بيانات المنتج</p>
+              </div>
             ) : (
-              <div className="text-sm text-gray-500">
-                <p>منتج عادي - لا توجد ألوان متعددة</p>
+              <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+                <p>هذا المنتج لا يحتوي على متغيرات ألوان أو مقاسات</p>
+                <p className="text-xs mt-1">سعر المنتج: {product.price} جنيه</p>
               </div>
             )}
 
