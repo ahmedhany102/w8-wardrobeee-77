@@ -42,83 +42,64 @@ const CategoryManagement = () => {
   const handleAddCategory = async () => {
     if (!name.trim()) return toast.error("Category name is required");
 
-    try {
-      const categorySlug = slug || generateSlug(name);
-      const { error } = await supabase
-        .from('categories')
-        .insert([{
-          name: name.trim(),
-          slug: categorySlug,
-          parent_id: parentId || null,
-          is_active: isActive,
-          sort_order: sortOrder,
-        }]);
-      if (error) {
-        console.error('❌ Error adding category:', error);
-        toast.error('Failed to add category: ' + error.message);
-        return;
-      }
-      toast.success('Category added successfully!');
-      setShowAddDialog(false);
-      resetForm();
-      await refetch();
-    } catch (error) {
-      console.error('💥 Exception adding category:', error);
-      toast.error('حدث خطأ أثناء إضافة القسم');
+    const categorySlug = slug || generateSlug(name);
+    const { error } = await supabase
+      .from('categories')
+      .insert([{
+        name: name.trim(),
+        slug: categorySlug,
+        parent_id: parentId || null,
+        is_active: isActive,
+        sort_order: sortOrder,
+      }]);
+    if (error) {
+      toast.error('Failed to add category: ' + error.message);
+      return;
     }
+    toast.success('Category added successfully!');
+    setShowAddDialog(false);
+    resetForm();
+    refetch();
   };
 
   // Edit category
   const handleEditCategory = async () => {
     if (!editingCategory || !name.trim()) return toast.error("Category name is required");
 
-    try {
-      const categorySlug = slug || generateSlug(name);
+    const categorySlug = slug || generateSlug(name);
 
-      const { error } = await supabase
-        .from('categories')
-        .update({
-          name: name.trim(),
-          slug: categorySlug,
-          parent_id: parentId || null,
-          is_active: isActive,
-          sort_order: sortOrder
-        })
-        .eq('id', editingCategory.id);
+    const { error } = await supabase
+      .from('categories')
+      .update({
+        name: name.trim(),
+        slug: categorySlug,
+        parent_id: parentId || null,
+        is_active: isActive,
+        sort_order: sortOrder
+      })
+      .eq('id', editingCategory.id);
 
-      if (error) {
-        console.error('❌ Error updating category:', error);
-        toast.error('Failed to update category: ' + error.message);
-        return;
-      }
-      toast.success('Category updated successfully!');
-      setShowEditDialog(false);
-      setEditingCategory(null);
-      resetForm();
-      await refetch();
-    } catch (error) {
-      console.error('💥 Exception updating category:', error);
-      toast.error('حدث خطأ أثناء تحديث القسم');
+    if (error) {
+      toast.error('Failed to update category: ' + error.message);
+      return;
     }
+    toast.success('Category updated successfully!');
+    setShowEditDialog(false);
+    setEditingCategory(null);
+    resetForm();
+    refetch();
   };
 
   // Delete category
   const handleDeleteCategory = async (id: string, categoryName: string) => {
     if (!window.confirm(`Are you sure you want to delete "${categoryName}"?`)) return;
-    
-    try {
-      const { error } = await supabase.from('categories').delete().eq('id', id);
-      if (error) {
-        console.error('❌ Error deleting category:', error);
-        toast.error('Failed to delete category: ' + error.message);
-        return;
-      }
-      toast.success('Category deleted successfully!');
-      await refetch();
-    } catch (error) {
-      console.error('💥 Exception deleting category:', error);
-      toast.error('حدث خطأ أثناء حذف القسم');
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) {
+      toast.error('Failed to delete category: ' + error.message);
+      return;
     }
+    toast.success('Category deleted successfully!');
+    refetch();
   };
 
   // Open edit dialog

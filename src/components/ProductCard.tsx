@@ -1,15 +1,13 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Product } from '@/models/Product';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Eye } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import CartDatabase from "@/models/CartDatabase";
-import { useProductVariants } from '@/hooks/useProductVariants';
 
 interface ProductCardProps {
   product: Product;
@@ -24,37 +22,20 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
   }
 
   const navigate = useNavigate();
-  const { variants, fetchVariants } = useProductVariants(product.id);
   
-  useEffect(() => {
-    fetchVariants();
-  }, [product.id]);
-
   // Get the default image - handle both arrays and strings
   const mainImage =
-    product.main_image || product.image_url ||
+    (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
     (product.images && Array.isArray(product.images) && product.images.length > 0 && product.images[0]) ||
     "/placeholder.svg";
   
-  // Calculate stock from variants (CORRECTED LOGIC)
-  const getTotalStock = () => {
-    if (variants.length === 0) {
-      // Fallback to legacy stock for products without variants
-      return product.inventory || product.stock || 0;
-    }
-    return variants.reduce((total, variant) => {
-      if (!variant.options) return total;
-      return total + variant.options.reduce((variantTotal, option) => 
-        variantTotal + (option.stock || 0), 0);
-    }, 0);
-  };
-
-  const totalStock = getTotalStock();
-  const isOutOfStock = totalStock === 0;
+  // Safe calculation for out of stock - ensure sizes is an array
+  const productSizes = Array.isArray(product.sizes) ? product.sizes : [];
+  const isOutOfStock = productSizes.length === 0 || productSizes.every(s => !s || s.stock <= 0);
   
-  // Get minimum price from variants or fallback to product price
-  const minPrice = variants.length > 0 
-    ? Math.min(...variants.flatMap(v => v.options?.map(o => o.price) || []))
+  // Safe calculation for minimum price
+  const minPrice = productSizes.length > 0 
+    ? Math.min(...productSizes.filter(s => s && s.stock > 0).map(s => s.price || product.price || 0)) 
     : (product.price || 0);
 
   // Calculate original price if there is a discount
@@ -72,16 +53,27 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
       return;
     }
 
-    // If product has variants, redirect to details page for selection
-    if (variants.length > 0) {
-      navigate(`/product/${product.id}`);
-      return;
-    }
-
     try {
-      // Simple product without variants
+      // Get the first available size if product has sizes
+      let size = "";
+      let color = "";
+      
+      if (productSizes.length > 0) {
+        const availableSize = productSizes.find(s => s && s.stock > 0);
+        if (availableSize) {
+          size = availableSize.size;
+        }
+      }
+
+      // Get default color if available
+      if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
+        color = product.colors[0];
+      }
+
+      // Add to cart using CartDatabase singleton instance
       const cartDb = CartDatabase.getInstance();
-      await cartDb.addToCart(product, 'واحد', '', 1);
+      await cartDb.addToCart(product, size, color, 1);
+
       toast.success("تم إضافة المنتج إلى السلة");
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -143,83 +135,67 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
           )}
         </div>
 
-        {/* Available colors from variants */}
-        {variants.length > 0 && (
+        {/* Available colors */}
+        {product.colors && Array.isArray(product.colors) && product.colors.length > 1 && (
           <div className="flex items-center gap-1 mb-2">
             <span className="text-xs text-gray-600">الألوان:</span>
             <div className="flex gap-1">
-              {variants.slice(0, 3).map((variant, index) => (
+              {product.colors.slice(0, 3).map((color, index) => (
                 <div
-                  key={variant.id}
+                  key={index}
                   className="w-3 h-3 rounded-full border border-gray-300"
-                  style={{ backgroundColor: getColorHex(variant.color) }}
-                  title={variant.color}
+                  style={{ backgroundColor: color.toLowerCase() }}
+                  title={color}
                 />
               ))}
-              {variants.length > 3 && (
-                <span className="text-xs text-gray-500">+{variants.length - 3}</span>
+              {product.colors.length > 3 && (
+                <span className="text-xs text-gray-500">+{product.colors.length - 3}</span>
               )}
             </div>
           </div>
         )}
 
-        {/* Stock Badge */}
-        <div className="mb-2">
-          {isOutOfStock ? (
-            <Badge variant="destructive" className="text-xs">نفذت الكمية</Badge>
-          ) : totalStock <= 5 ? (
-            <Badge variant="outline" className="text-yellow-600 border-yellow-600 text-xs">كمية محدودة</Badge>
-          ) : (
-            <Badge variant="outline" className="text-green-600 border-green-600 text-xs">متوفر</Badge>
-          )}
-        </div>
+        {/* Available sizes */}
+        {productSizes.length > 0 && (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs text-gray-600">المقاسات:</span>
+            <div className="flex gap-1 flex-wrap">
+              {productSizes.slice(0, 4).map((sizeInfo, index) => (
+                <span
+                  key={index}
+                  className={`text-xs px-1 py-0.5 rounded border ${
+                    sizeInfo.stock > 0 
+                      ? 'bg-green-50 border-green-200 text-green-700' 
+                      : 'bg-gray-50 border-gray-200 text-gray-400'
+                  }`}
+                >
+                  {sizeInfo.size}
+                </span>
+              ))}
+              {productSizes.length > 4 && (
+                <span className="text-xs text-gray-500">+{productSizes.length - 4}</span>
+              )}
+            </div>
+          </div>
+        )}
       </CardContent>
 
       <CardFooter className="p-3 pt-0">
-        <div className="flex gap-2">
-          <Button
-            onClick={handleProductClick}
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs"
-          >
-            <Eye className="w-3 h-3 mr-1" />
-            عرض
-          </Button>
-          <Button
-            onClick={handleQuickAddToCart}
-            disabled={isOutOfStock}
-            size="sm"
-            className={`flex-1 text-xs ${
-              isOutOfStock 
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
-          >
-            <ShoppingCart className="w-3 h-3 mr-1" />
-            {isOutOfStock ? 'نفذت' : variants.length > 0 ? 'اختيار' : 'أضف'}
-          </Button>
-        </div>
+        <Button
+          onClick={handleQuickAddToCart}
+          disabled={isOutOfStock}
+          className={`w-full text-sm ${
+            isOutOfStock 
+              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+              : 'bg-green-600 hover:bg-green-700 text-white'
+          }`}
+        >
+          <ShoppingCart className="w-4 h-4 mr-2" />
+          {isOutOfStock ? 'غير متوفر' : 'أضف للسلة'}
+        </Button>
       </CardFooter>
     </Card>
   );
-};
-
-// Color mapping helper
-const getColorHex = (color: string) => {
-  const colorMap: Record<string, string> = {
-    'أحمر': '#ff0000',
-    'أزرق': '#0074D9',
-    'أسود': '#111111',
-    'أبيض': '#ffffff',
-    'أخضر': '#2ECC40',
-    'أصفر': '#FFDC00',
-    'رمادي': '#AAAAAA',
-    'وردي': '#FF69B4',
-    'بنفسجي': '#B10DC9',
-    'بني': '#8B4513',
-  };
-  return colorMap[color] || '#cccccc';
 };
 
 export default ProductCard;
