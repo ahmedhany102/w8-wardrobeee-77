@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 interface Coupon {
   id: string;
   code: string;
-  discount_type: 'percentage' | 'fixed';
+  discount_kind: 'percent' | 'fixed';
   discount_value: number;
   expiration_date?: string;
   usage_limit?: number;
@@ -45,7 +45,7 @@ export const useSupabaseCoupons = () => {
       console.log('✅ Coupons fetched:', data?.length || 0);
       const typedCoupons = (data || []).map(coupon => ({
         ...coupon,
-        discount_type: coupon.discount_type as 'percentage' | 'fixed'
+        discount_kind: coupon.discount_kind as 'percent' | 'fixed'
       })) as Coupon[];
       setCoupons(typedCoupons);
       
@@ -85,7 +85,7 @@ export const useSupabaseCoupons = () => {
 
       const coupon = {
         ...data,
-        discount_type: data.discount_type as 'percentage' | 'fixed'
+        discount_kind: data.discount_kind as 'percent' | 'fixed'
       } as Coupon;
 
       console.log('✅ Found coupon in DB:', coupon);
@@ -151,9 +151,9 @@ export const useSupabaseCoupons = () => {
       
       // Calculate discount amount for display
       let discountAmount = 0;
-      if (coupon.discount_type === 'percentage') {
+      if (coupon.discount_kind === 'percent') {
         discountAmount = orderTotal * (coupon.discount_value / 100);
-      } else if (coupon.discount_type === 'fixed') {
+      } else if (coupon.discount_kind === 'fixed') {
         discountAmount = Math.min(coupon.discount_value, orderTotal);
       }
       

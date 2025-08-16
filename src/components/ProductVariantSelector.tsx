@@ -1,179 +1,116 @@
-
-import React, { useState, useEffect, useMemo } from 'react';
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
+import { Button } from './ui/button';
+import { useProductVariants, ProductVariant } from '@/hooks/useProductVariants';
 import { Product } from '@/models/Product';
-import { useProductVariants } from "@/hooks/useProductVariants";
 
 interface ProductVariantSelectorProps {
   product: Product;
-  onVariantChange?: (selectedColor: string, selectedSize: string, price: number, stock: number) => void;
+  onVariantChange?: (selectedVariant: ProductVariant | null, price: number, stock: number) => void;
 }
 
-const ProductVariantSelector = ({ product, onVariantChange }: ProductVariantSelectorProps) => {
-  const { variants, fetchVariants, loading } = useProductVariants(product.id);
-  const [selectedColorId, setSelectedColorId] = useState<string>("");
-  const [selectedOptionId, setSelectedOptionId] = useState<string>("");
+export const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
+  product,
+  onVariantChange
+}) => {
+  const { variants, loading, fetchVariants } = useProductVariants(product.id);
+  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
 
-  useEffect(() => { 
-    fetchVariants(); 
+  useEffect(() => {
+    fetchVariants();
   }, [product.id]);
 
-  const colorList = useMemo(() => variants, [variants]);
-
-  const optionList = useMemo(() => {
-    const cur = colorList.find(c => c.id === selectedColorId);
-    return cur?.options || [];
-  }, [colorList, selectedColorId]);
-
-  // Auto-select first available options
   useEffect(() => {
-    if (!loading && colorList.length) {
-      if (!selectedColorId || !colorList.some(c => c.id === selectedColorId)) {
-        const firstColor = colorList[0];
-        setSelectedColorId(firstColor.id);
-        setSelectedOptionId("");
-      }
+    // Auto-select default variant or first variant
+    if (variants.length > 0 && !selectedVariantId) {
+      const defaultVariant = variants.find(v => v.is_default) || variants[0];
+      setSelectedVariantId(defaultVariant.id);
     }
-  }, [colorList, selectedColorId, loading]);
+  }, [variants, selectedVariantId]);
 
   useEffect(() => {
-    if (selectedColorId && optionList.length && (!selectedOptionId || !optionList.some(o => o.id === selectedOptionId))) {
-      const availableOption = optionList.find(o => o.stock > 0) || optionList[0];
-      if (availableOption) {
-        setSelectedOptionId(availableOption.id!);
-      }
+    const selectedVariant = variants.find(v => v.id === selectedVariantId);
+    if (selectedVariant && onVariantChange) {
+      const finalPrice = (product.price || 0) + selectedVariant.price_adjustment;
+      onVariantChange(selectedVariant, finalPrice, selectedVariant.stock);
+    } else if (!selectedVariant && onVariantChange) {
+      onVariantChange(null, product.price || 0, product.stock || 0);
     }
-  }, [selectedColorId, optionList, selectedOptionId]);
-
-  const selectedColorVariant = colorList.find(c => c.id === selectedColorId);
-  const selectedOption = optionList.find(o => o.id === selectedOptionId);
-
-  // Notify parent of selection changes
-  useEffect(() => {
-    if (selectedColorVariant && selectedOption && onVariantChange) {
-      onVariantChange(
-        selectedColorVariant.color, 
-        selectedOption.size, 
-        selectedOption.price,
-        selectedOption.stock
-      );
-    }
-  }, [selectedColorVariant, selectedOption, onVariantChange]);
+  }, [selectedVariantId, variants, product.price, product.stock, onVariantChange]);
 
   if (loading) {
     return (
-      <div className="py-8 text-center text-gray-500">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-800 mx-auto mb-2"></div>
-        جاري تحميل الخيارات...
+      <div className="space-y-4">
+        <div className="flex space-x-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="w-16 h-16 bg-muted rounded-lg animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (colorList.length === 0) {
-    return (
-      <div className="py-4 text-center text-gray-500">
-        لا توجد خيارات متاحة لهذا المنتج
-      </div>
-    );
+  if (variants.length === 0) {
+    return null; // No variants available
   }
+
+  const selectedVariant = variants.find(v => v.id === selectedVariantId);
+  const finalPrice = selectedVariant 
+    ? (product.price || 0) + selectedVariant.price_adjustment 
+    : (product.price || 0);
 
   return (
-    <div className="space-y-6">
-      {/* Main product image OR selected color variant image */}
-      <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border">
-        <img
-          src={selectedColorVariant?.image || product.main_image || product.image_url || "/placeholder.svg"}
-          alt={product.name}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "/placeholder.svg";
-          }}
-        />
-      </div>
-
-      {/* Color selection */}
-      <div className="space-y-3">
-        <h3 className="font-medium text-lg">اللون المتاح</h3>
+    <div className="space-y-4">
+      {/* Color Swatches */}
+      <div>
+        <h3 className="text-sm font-medium mb-2">اللون</h3>
         <div className="flex flex-wrap gap-2">
-          {colorList.map((colorVar) => (
-            <Button
-              key={colorVar.id}
-              variant={colorVar.id === selectedColorId ? "default" : "outline"}
-              onClick={() => {
-                setSelectedColorId(colorVar.id);
-                setSelectedOptionId("");
-              }}
-              className={`px-4 py-2 rounded-lg transition-all ${
-                colorVar.id === selectedColorId 
-                ? "bg-green-600 text-white border-green-600" 
-                : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+          {variants.map((variant) => (
+            <button
+              key={variant.id}
+              onClick={() => setSelectedVariantId(variant.id)}
+              className={`relative group ${
+                selectedVariantId === variant.id
+                  ? 'ring-2 ring-primary ring-offset-2'
+                  : 'ring-1 ring-border hover:ring-2 hover:ring-primary/50'
               }`}
+              disabled={variant.stock === 0}
             >
-              {colorVar.color}
-            </Button>
+              <div className="w-16 h-16 rounded-lg overflow-hidden">
+                <img
+                  src={variant.image_url}
+                  alt={variant.label}
+                  className={`w-full h-full object-cover ${
+                    variant.stock === 0 ? 'grayscale opacity-50' : ''
+                  }`}
+                />
+              </div>
+              <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-xs font-medium whitespace-nowrap">
+                {variant.label}
+              </div>
+              {variant.stock === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
+                  <span className="text-white text-xs font-bold">نفذ</span>
+                </div>
+              )}
+            </button>
           ))}
         </div>
       </div>
 
-      {/* Size selection */}
-      <div className="space-y-3">
-        <h3 className="font-medium text-lg">المقاس المتاح</h3>
-        <div className="flex flex-wrap gap-2">
-          {optionList.map((option) => {
-            const isAvailable = option.stock > 0;
-            const isSelected = option.id === selectedOptionId;
-            
-            return (
-              <Button
-                key={option.id}
-                variant={isSelected ? "default" : "outline"}
-                onClick={() => isAvailable && setSelectedOptionId(option.id!)}
-                disabled={!isAvailable}
-                className={`px-4 py-2 rounded-lg transition-all ${
-                  isSelected 
-                  ? "bg-green-600 text-white border-green-600"
-                  : isAvailable
-                  ? "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                }`}
-              >
-                <div className="text-center">
-                  <div className="font-medium">{option.size}</div>
-                  <div className="text-xs">
-                    {isAvailable ? `${option.stock} متوفر` : "نفذ"}
-                  </div>
-                </div>
-              </Button>
-            );
-          })}
-        </div>
-        
-        {optionList.length === 0 && (
-          <p className="text-gray-500 text-sm">لا توجد مقاسات متاحة لهذا اللون</p>
-        )}
-      </div>
-
-      {/* Price and stock display */}
-      {selectedColorVariant && selectedOption && (
-        <div className="bg-gray-50 p-4 rounded-lg border">
+      {/* Selected Variant Info */}
+      {selectedVariant && (
+        <div className="p-4 bg-muted rounded-lg">
           <div className="flex justify-between items-center">
             <div>
-              <span className="font-bold text-xl text-green-700">
-                {selectedOption.price} جنيه
-              </span>
+              <p className="font-medium">{selectedVariant.label}</p>
+              <p className="text-lg font-bold text-primary">{finalPrice} جنيه</p>
             </div>
-            <div className="text-right">
-              <div className={`text-sm font-medium ${
-                selectedOption.stock > 0 ? "text-green-600" : "text-red-600"
-              }`}>
-                {selectedOption.stock > 0 
-                  ? `متوفر (${selectedOption.stock} قطعة)`
-                  : "غير متوفر"
-                }
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                اللون: {selectedColorVariant.color} | المقاس: {selectedOption.size}
-              </div>
+            <div className="text-sm text-muted-foreground">
+              {selectedVariant.stock > 0 ? (
+                <span className="text-green-600">متوفر ({selectedVariant.stock})</span>
+              ) : (
+                <span className="text-red-600">نفذ المخزون</span>
+              )}
             </div>
           </div>
         </div>
@@ -181,5 +118,3 @@ const ProductVariantSelector = ({ product, onVariantChange }: ProductVariantSele
     </div>
   );
 };
-
-export default ProductVariantSelector;

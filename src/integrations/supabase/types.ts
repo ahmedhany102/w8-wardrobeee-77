@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -62,6 +62,7 @@ export type Database = {
           quantity: number
           size: string | null
           user_id: string
+          variant_id: string | null
         }
         Insert: {
           color?: string | null
@@ -74,6 +75,7 @@ export type Database = {
           quantity?: number
           size?: string | null
           user_id: string
+          variant_id?: string | null
         }
         Update: {
           color?: string | null
@@ -86,6 +88,7 @@ export type Database = {
           quantity?: number
           size?: string | null
           user_id?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -93,6 +96,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -198,44 +208,97 @@ export type Database = {
         }
         Relationships: []
       }
+      coupon_redemptions: {
+        Row: {
+          coupon_id: string
+          created_at: string | null
+          id: string
+          order_id: string | null
+          redeemed_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          coupon_id: string
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          redeemed_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          coupon_id?: string
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          redeemed_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
+          applies_to: string | null
           code: string
           created_at: string
-          discount_type: string
+          discount_kind: string
           discount_value: number
+          ends_at: string | null
           expiration_date: string | null
           id: string
           is_active: boolean | null
+          max_discount: number | null
           minimum_amount: number | null
+          starts_at: string | null
           updated_at: string
           usage_limit: number | null
+          usage_limit_global: number | null
+          usage_limit_per_user: number | null
           used_count: number | null
         }
         Insert: {
+          applies_to?: string | null
           code: string
           created_at?: string
-          discount_type?: string
+          discount_kind?: string
           discount_value: number
+          ends_at?: string | null
           expiration_date?: string | null
           id?: string
           is_active?: boolean | null
+          max_discount?: number | null
           minimum_amount?: number | null
+          starts_at?: string | null
           updated_at?: string
           usage_limit?: number | null
+          usage_limit_global?: number | null
+          usage_limit_per_user?: number | null
           used_count?: number | null
         }
         Update: {
+          applies_to?: string | null
           code?: string
           created_at?: string
-          discount_type?: string
+          discount_kind?: string
           discount_value?: number
+          ends_at?: string | null
           expiration_date?: string | null
           id?: string
           is_active?: boolean | null
+          max_discount?: number | null
           minimum_amount?: number | null
+          starts_at?: string | null
           updated_at?: string
           usage_limit?: number | null
+          usage_limit_global?: number | null
+          usage_limit_per_user?: number | null
           used_count?: number | null
         }
         Relationships: []
@@ -360,35 +423,41 @@ export type Database = {
       }
       product_variants: {
         Row: {
-          color: string
           created_at: string
+          hex_code: string | null
           id: string
           image_url: string
-          price: number
+          is_default: boolean | null
+          label: string | null
+          position: number | null
+          price_adjustment: number | null
           product_id: string
-          size: string
           stock: number
           updated_at: string
         }
         Insert: {
-          color: string
           created_at?: string
+          hex_code?: string | null
           id?: string
           image_url: string
-          price: number
+          is_default?: boolean | null
+          label?: string | null
+          position?: number | null
+          price_adjustment?: number | null
           product_id: string
-          size: string
           stock?: number
           updated_at?: string
         }
         Update: {
-          color?: string
           created_at?: string
+          hex_code?: string | null
           id?: string
           image_url?: string
-          price?: number
+          is_default?: boolean | null
+          label?: string | null
+          position?: number | null
+          price_adjustment?: number | null
           product_id?: string
-          size?: string
           stock?: number
           updated_at?: string
         }

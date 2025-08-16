@@ -59,7 +59,7 @@ export class CouponService {
 
       // Calculate discount
       let discountAmount = 0;
-      if (coupon.discount_type === 'percentage') {
+      if (coupon.discount_kind === 'percent') {
         discountAmount = (orderTotal * coupon.discount_value) / 100;
       } else {
         discountAmount = coupon.discount_value;
@@ -75,7 +75,7 @@ export class CouponService {
         coupon: {
           id: coupon.id,
           code: coupon.code,
-          discount_type: coupon.discount_type,
+          discount_kind: coupon.discount_kind,
           discount_value: coupon.discount_value,
           discount_amount: discountAmount
         }

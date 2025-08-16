@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface Coupon {
   id: string;
   code: string;
-  discount_type: 'percentage' | 'fixed';
+  discount_kind: 'percent' | 'fixed';
   discount_value: number;
   expiration_date?: string;
   usage_limit?: number;
@@ -34,7 +34,7 @@ const CouponManagement = () => {
   
   const [couponFormData, setCouponFormData] = useState<{
     code: string;
-    discount_type: 'percentage' | 'fixed';
+    discount_kind: 'percent' | 'fixed';
     discount_value: number;
     expiration_date?: string;
     usage_limit?: number;
@@ -42,7 +42,7 @@ const CouponManagement = () => {
     is_active: boolean;
   }>({
     code: '',
-    discount_type: 'percentage',
+    discount_kind: 'percent',
     discount_value: 10,
     expiration_date: undefined,
     usage_limit: undefined,
@@ -53,7 +53,7 @@ const CouponManagement = () => {
   const resetFormData = () => {
     setCouponFormData({
       code: '',
-      discount_type: 'percentage',
+      discount_kind: 'percent',
       discount_value: 10,
       expiration_date: undefined,
       usage_limit: undefined,
@@ -93,7 +93,7 @@ const CouponManagement = () => {
 
       const insertData: any = {
         code: couponFormData.code.toUpperCase().trim(),
-        discount_type: couponFormData.discount_type,
+        discount_kind: couponFormData.discount_kind,
         discount_value: couponFormData.discount_value,
         minimum_amount: couponFormData.minimum_amount,
         is_active: couponFormData.is_active,
@@ -132,7 +132,7 @@ const CouponManagement = () => {
     try {
       const updateData: any = {
         code: couponFormData.code.toUpperCase().trim(),
-        discount_type: couponFormData.discount_type,
+        discount_kind: couponFormData.discount_kind,
         discount_value: couponFormData.discount_value,
         minimum_amount: couponFormData.minimum_amount,
         is_active: couponFormData.is_active
@@ -192,7 +192,7 @@ const CouponManagement = () => {
     setEditCoupon(coupon);
     setCouponFormData({
       code: coupon.code,
-      discount_type: coupon.discount_type,
+      discount_kind: coupon.discount_kind,
       discount_value: coupon.discount_value,
       expiration_date: coupon.expiration_date ? new Date(coupon.expiration_date).toISOString().split('T')[0] : undefined,
       usage_limit: coupon.usage_limit,
@@ -265,9 +265,9 @@ const CouponManagement = () => {
                   {coupons.map(coupon => (
                     <TableRow key={coupon.id} className="hover:bg-green-50 transition-colors">
                       <TableCell className="font-bold">{coupon.code}</TableCell>
-                      <TableCell>{coupon.discount_type === 'percentage' ? 'نسبة مئوية' : 'مبلغ ثابت'}</TableCell>
+                      <TableCell>{coupon.discount_kind === 'percent' ? 'نسبة مئوية' : 'مبلغ ثابت'}</TableCell>
                       <TableCell>
-                        {coupon.discount_value}{coupon.discount_type === 'percentage' ? '%' : ' EGP'}
+                        {coupon.discount_value}{coupon.discount_kind === 'percent' ? '%' : ' EGP'}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {coupon.expiration_date ? formatDate(coupon.expiration_date) : 'بدون انتهاء'}
@@ -340,13 +340,13 @@ const CouponManagement = () => {
                 <div>
                   <label className="block text-sm font-medium mb-1">نوع الخصم*</label>
                   <select
-                    name="discount_type"
-                    value={couponFormData.discount_type}
+                    name="discount_kind"
+                    value={couponFormData.discount_kind}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
                     required
                   >
-                    <option value="percentage">نسبة مئوية</option>
+                    <option value="percent">نسبة مئوية</option>
                     <option value="fixed">مبلغ ثابت</option>
                   </select>
                 </div>
@@ -450,13 +450,13 @@ const CouponManagement = () => {
                 <div>
                   <label className="block text-sm font-medium mb-1">نوع الخصم*</label>
                   <select
-                    name="discount_type"
-                    value={couponFormData.discount_type}
+                    name="discount_kind"
+                    value={couponFormData.discount_kind}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
                     required
                   >
-                    <option value="percentage">نسبة مئوية</option>
+                    <option value="percent">نسبة مئوية</option>
                     <option value="fixed">مبلغ ثابت</option>
                   </select>
                 </div>
