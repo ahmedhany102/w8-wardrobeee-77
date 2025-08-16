@@ -15,13 +15,10 @@ interface CategorySelectorProps {
 }
 
 const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) => {
-  const { mainCategories, subcategories, loading } = useCategories();
+  const { categories, loading } = useCategories();
 
-  // Only show subcategories as options
-  const validSubcategories = mainCategories
-    .map(main => subcategories(main.id))
-    .flat()
-    .filter(sub => sub.is_active);
+  // Show all active categories (both main and subcategories)
+  const allActiveCategories = categories.filter(cat => cat.is_active);
 
   if (loading) {
     return (
@@ -45,24 +42,24 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
         }}
       >
         <SelectTrigger>
-          <SelectValue placeholder="Select a subcategory" />
+          <SelectValue placeholder="Select a category" />
         </SelectTrigger>
         <SelectContent className="bg-white z-50 shadow-lg border">
-          {validSubcategories.length === 0 ? (
+          {allActiveCategories.length === 0 ? (
             <SelectItem value="no-categories" disabled>
-              No subcategories available
+              No categories available
             </SelectItem>
           ) : (
-            validSubcategories.map((sub) => (
-              <SelectItem key={sub.id} value={sub.id}>
-                {sub.name}
+            allActiveCategories.map((category) => (
+              <SelectItem key={category.id} value={category.id}>
+                {category.parent_id ? `→ ${category.name}` : category.name}
               </SelectItem>
             ))
           )}
         </SelectContent>
       </Select>
-      {validSubcategories.length === 0 && !loading && (
-        <p className="text-sm text-red-600 mt-1">No subcategories found. Please check your categories table.</p>
+      {allActiveCategories.length === 0 && !loading && (
+        <p className="text-sm text-red-600 mt-1">No categories found. Please check your categories table.</p>
       )}
     </div>
   );
