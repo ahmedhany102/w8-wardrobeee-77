@@ -28,9 +28,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
     const newQuery = e.target.value;
     setQuery(newQuery);
     
-    // Optional: Auto search after a short delay (better UX)
-    // If you want instant search, uncomment this
-    // setTimeout(() => onSearch(newQuery), 300);
+    // Instant search - البحث الفوري أثناء الكتابة
+    onSearch(newQuery);
   };
 
   return (

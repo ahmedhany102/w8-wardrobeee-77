@@ -3,21 +3,17 @@ import SearchBar from './SearchBar';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { useProductFiltering } from '@/hooks/useProductFiltering';
 import ProductCatalogHeader from './ProductCatalogHeader';
-import ProductCatalogTabs from './ProductCatalogTabs';
 import ProductGrid from './ProductGrid';
 import ShoppingCartDialog from './ShoppingCartDialog';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
-import { useCategories } from "@/hooks/useCategories";
 
 const ProductCatalog: React.FC = () => {
   const { products, loading } = useSupabaseProducts();
-  const { categories } = useCategories();
   const { cartItems, cartCount, addToCart: addToCartDB, removeFromCart, updateQuantity, clearCart } = useCartIntegration();
   const {
-    filteredProducts: searchFilteredProducts,
-    activeCategory,
+    filteredProducts,
     searchQuery,
-    handleCategoryChange,
+    handleSearch,
     clearFilters
   } = useProductFiltering(products);
   const [showCartDialog, setShowCartDialog] = React.useState(false);
@@ -58,13 +54,6 @@ const ProductCatalog: React.FC = () => {
     window.location.href = '/cart';
   };
 
-  // Filter by category_id universally
-  const filteredProducts = React.useMemo(() => {
-    if (!activeCategory || activeCategory === "ALL") return searchFilteredProducts;
-    return searchFilteredProducts.filter(
-      (p) => String(p.category_id) === String(activeCategory)
-    );
-  }, [searchFilteredProducts, activeCategory]);
 
   return (
     <div className="container mx-auto px-4 py-4">
@@ -73,20 +62,15 @@ const ProductCatalog: React.FC = () => {
         onCartClick={() => setShowCartDialog(true)}
       />
       
-      <SearchBar onSearch={handleCategoryChange} />
+      <SearchBar onSearch={handleSearch} placeholder="ابحث عن المنتجات..." />
       
-      <ProductCatalogTabs 
-        activeTab={activeCategory} 
-        onTabChange={handleCategoryChange}
-      >
-        <ProductGrid 
-          products={filteredProducts}
-          loading={loading}
-          searchQuery={searchQuery}
-          onAddToCart={handleAddToCart}
-          onClearSearch={clearFilters}
-        />
-      </ProductCatalogTabs>
+      <ProductGrid 
+        products={filteredProducts}
+        loading={loading}
+        searchQuery={searchQuery}
+        onAddToCart={handleAddToCart}
+        onClearSearch={clearFilters}
+      />
 
       <ShoppingCartDialog
         isOpen={showCartDialog}
