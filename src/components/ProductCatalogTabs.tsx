@@ -21,31 +21,7 @@ const ProductCatalogTabs: React.FC<ProductCatalogTabsProps> = ({
             value="ALL" 
             className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
           >
-            All
-          </TabsTrigger>
-          <TabsTrigger 
-            value="T-Shirts" 
-            className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
-          >
-            T-Shirts
-          </TabsTrigger>
-          <TabsTrigger 
-            value="Trousers" 
-            className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
-          >
-            Trousers
-          </TabsTrigger>
-          <TabsTrigger 
-            value="Shoes" 
-            className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
-          >
-            Shoes
-          </TabsTrigger>
-          <TabsTrigger 
-            value="Jackets" 
-            className="data-[state=active]:bg-green-200 data-[state=active]:text-green-800 px-3 text-sm"
-          >
-            Jackets
+            الكل
           </TabsTrigger>
         </TabsList>
       </div>
