@@ -11,6 +11,8 @@ import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatProductForDisplay } from '@/utils/productUtils';
 import { LoadingFallback } from '@/utils/loadingFallback';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
+import { ProductVariantSelector } from '@/components/ProductVariantSelector';
+import { ProductVariant } from '@/hooks/useProductVariants';
 
 // Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
@@ -61,6 +63,9 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string>('');
   const [addingToCart, setAddingToCart] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [variantPrice, setVariantPrice] = useState<number>(0);
+  const [variantStock, setVariantStock] = useState<number>(0);
   
   useEffect(() => {
     const fetchProduct = async () => {
@@ -111,23 +116,14 @@ const ProductDetails = () => {
         console.log('✅ Product loaded:', formattedProduct);
         setProduct(formattedProduct);
         
-        // Set default selections
-        if (formattedProduct.colors && formattedProduct.colors.length > 0) {
-          setSelectedColor(formattedProduct.colors[0]);
-        }
-        
-        if (formattedProduct.sizes && formattedProduct.sizes.length > 0) {
-          const availableSize = formattedProduct.sizes.find(size => size && size.stock > 0);
-          if (availableSize) {
-            setSelectedSize(availableSize.size);
-          }
-        }
-        
         // Set main image
         const mainImg = formattedProduct.main_image || 
                        (formattedProduct.images && formattedProduct.images[0]) || 
                        '/placeholder.svg';
         setActiveImage(mainImg);
+        
+        // Initialize variant price with base product price
+        setVariantPrice(formattedProduct.price || 0);
         
       } catch (error: any) {
         LoadingFallback.clearTimeout('product-details');
@@ -142,10 +138,17 @@ const ProductDetails = () => {
     fetchProduct();
   }, [id, navigate]);
 
-  // Handle color selection
-  const handleColorChange = (color: string) => {
-    setSelectedColor(color);
-    setSelectedSize(null); // Reset size when color changes
+  // Handle variant selection
+  const handleVariantChange = (variant: ProductVariant | null, price: number, stock: number) => {
+    setSelectedVariant(variant);
+    setVariantPrice(price);
+    setVariantStock(stock);
+    
+    if (variant) {
+      // Update the active image to the variant's image
+      setActiveImage(variant.image_url);
+      setSelectedColor(variant.label);
+    }
   };
   
   // Set the active image
@@ -158,7 +161,7 @@ const ProductDetails = () => {
     return product.sizes.filter(size => size && size.size);
   };
   
-  const isOutOfStock = !getAvailableSizes().some(size => size && size.stock > 0);
+  const isOutOfStock = selectedVariant ? variantStock <= 0 : !getAvailableSizes().some(size => size && size.stock > 0);
 
   const getColorHex = (color: string) => {
     return colorMap[color] || color;
@@ -206,16 +209,25 @@ const ProductDetails = () => {
       return;
     }
     
-    if (!selectedSize || (!selectedColor && product?.colors && product.colors.length > 0)) {
-      toast.error('يرجى اختيار المقاس واللون');
-      return;
-    }
-    
-    // Check stock quantity
-    const currentStock = getStockForSize(selectedSize);
-    if (currentStock < quantity) {
-      toast.error(`عذراً، المتاح فقط ${currentStock} قطعة من هذا المنتج`);
-      return;
+    // For products with variants, check variant selection
+    if (selectedVariant) {
+      if (variantStock < quantity) {
+        toast.error(`عذراً، المتاح فقط ${variantStock} قطعة من هذا اللون`);
+        return;
+      }
+    } else {
+      // For products without variants, use legacy system
+      if (!selectedSize || (!selectedColor && product?.colors && product.colors.length > 0)) {
+        toast.error('يرجى اختيار المقاس واللون');
+        return;
+      }
+      
+      // Check stock quantity
+      const currentStock = getStockForSize(selectedSize);
+      if (currentStock < quantity) {
+        toast.error(`عذراً، المتاح فقط ${currentStock} قطعة من هذا المنتج`);
+        return;
+      }
     }
     
     try {
@@ -225,21 +237,23 @@ const ProductDetails = () => {
       const productForCart = {
         id: product!.id,
         name: product!.name,
-        price: getSizePrice(selectedSize),
-        mainImage: product!.main_image,
+        price: currentPrice,
+        mainImage: selectedVariant ? selectedVariant.image_url : product!.main_image,
         images: product!.images,
         colors: product!.colors,
         sizes: product!.sizes,
         description: product!.description,
         category: product!.category || product!.type,
-        inventory: product!.inventory || product!.stock || 0,
+        inventory: selectedVariant ? variantStock : (product!.inventory || product!.stock || 0),
         featured: product!.featured,
         discount: product!.discount,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
       
-      const success = await addToCart(productForCart, selectedSize, selectedColor || '', quantity);
+      const cartSize = selectedSize || 'متاح';
+      const cartColor = selectedVariant ? selectedVariant.label : (selectedColor || '');
+      const success = await addToCart(productForCart, cartSize, cartColor, quantity);
       
       if (success) {
         // Optional: Navigate to cart or stay on page
@@ -277,8 +291,8 @@ const ProductDetails = () => {
     );
   }
 
-  // Calculate correct prices
-  const currentPrice = selectedSize ? getSizePrice(selectedSize) : product.price;
+  // Calculate correct prices - use variant price if available
+  const currentPrice = selectedVariant ? variantPrice : (selectedSize ? getSizePrice(selectedSize) : product.price);
   const hasDiscount = product.discount && product.discount > 0;
   const discountedPrice = hasDiscount ? calculateDiscountedPrice(currentPrice, product.discount!) : currentPrice;
   const originalPrice = hasDiscount ? currentPrice : null;
@@ -353,36 +367,17 @@ const ProductDetails = () => {
             </div>
 
             {/* Stock Status */}
-            {selectedSize && (
+            {selectedVariant && (
               <div>
-                {displayStockMessage(getStockForSize(selectedSize))}
+                {displayStockMessage(variantStock)}
               </div>
             )}
 
-            {/* Colors */}
-            {product?.colors && product.colors.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium mb-2">اللون:</h3>
-                <div className="flex flex-wrap gap-2">
-                  {product.colors.map((color) => (
-                    <button
-                      key={color}
-                      className={`w-8 h-8 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                        selectedColor === color
-                          ? "ring-2 ring-offset-2 ring-blue-500"
-                          : ""
-                      }`}
-                      style={{
-                        backgroundColor: getColorHex(color),
-                        border: getColorBorder(color),
-                      }}
-                      onClick={() => handleColorChange(color)}
-                      aria-label={`Select ${color} color`}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+            {/* Product Variants (Colors with Images) */}
+            <ProductVariantSelector 
+              product={product}
+              onVariantChange={handleVariantChange}
+            />
 
             {/* Sizes */}
             {getAvailableSizes().length > 0 && (
@@ -435,7 +430,7 @@ const ProductDetails = () => {
                     variant="outline"
                     size="icon"
                     onClick={() => setQuantity(quantity + 1)}
-                    disabled={selectedSize && getStockForSize(selectedSize) <= quantity}
+                    disabled={selectedVariant ? variantStock <= quantity : (selectedSize && getStockForSize(selectedSize) <= quantity)}
                   >
                     <Plus className="h-4 w-4" />
                   </Button>
@@ -446,7 +441,7 @@ const ProductDetails = () => {
             {/* Add to cart button */}
             <Button
               className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={isOutOfStock || !selectedSize || addingToCart}
+              disabled={isOutOfStock || (!selectedVariant && !selectedSize) || addingToCart}
               onClick={handleAddToCart}
             >
               {addingToCart ? (
@@ -455,8 +450,8 @@ const ProductDetails = () => {
                 </span>
               ) : isOutOfStock ? (
                 "نفذت الكمية"
-              ) : !selectedSize ? (
-                "برجاء اختيار المقاس"
+              ) : (!selectedVariant && !selectedSize) ? (
+                "برجاء اختيار اللون والمقاس"
               ) : (
                 <span className="flex items-center gap-2">
                   <ShoppingCart className="h-4 w-4" /> إضافة إلى العربة

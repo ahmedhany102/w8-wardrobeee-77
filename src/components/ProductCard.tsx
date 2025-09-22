@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Product } from '@/models/Product';
@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import CartDatabase from "@/models/CartDatabase";
+import { useProductVariants } from '@/hooks/useProductVariants';
 
 interface ProductCardProps {
   product: Product;
@@ -16,63 +17,93 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product, className = '' }: ProductCardProps) => {
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const { variants, fetchVariants } = useProductVariants(product.id);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (product.id) {
+      fetchVariants();
+    }
+  }, [product.id]);
+
+  useEffect(() => {
+    if (variants.length > 0) {
+      const defaultVariant = variants.find(v => v.is_default) || variants[0];
+      setSelectedVariant(defaultVariant);
+    }
+  }, [variants]);
+
   if (!product || typeof product !== "object") {
     console.warn('⚠️ Invalid product passed to ProductCard:', product);
     return null;
   }
 
-  const navigate = useNavigate();
-  
-  // Get the default image - handle both arrays and strings
-  const mainImage =
+  // Use variant image if available, otherwise fallback to product main image
+  const mainImage = selectedVariant?.image_url || 
     (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
     (product.images && Array.isArray(product.images) && product.images.length > 0 && product.images[0]) ||
     "/placeholder.svg";
   
-  // Safe calculation for out of stock - ensure sizes is an array
-  const productSizes = Array.isArray(product.sizes) ? product.sizes : [];
-  const isOutOfStock = productSizes.length === 0 || productSizes.every(s => !s || s.stock <= 0);
+  // Check if product is out of stock
+  const isOutOfStock = variants.length > 0 
+    ? variants.every(v => v.stock <= 0)
+    : (Array.isArray(product.sizes) ? product.sizes.every(s => !s || s.stock <= 0) : (product.inventory === 0 || product.stock === 0));
   
-  // Safe calculation for minimum price
-  const minPrice = productSizes.length > 0 
-    ? Math.min(...productSizes.filter(s => s && s.stock > 0).map(s => s.price || product.price || 0)) 
-    : (product.price || 0);
+  // Calculate price (base price + variant adjustment)
+  const basePrice = product.price || 0;
+  const finalPrice = selectedVariant 
+    ? basePrice + (selectedVariant.price_adjustment || 0)
+    : (Array.isArray(product.sizes) && product.sizes.length > 0 
+        ? Math.min(...product.sizes.filter(s => s && s.stock > 0).map(s => s.price || basePrice)) 
+        : basePrice);
 
   // Calculate original price if there is a discount
   const originalPrice = product.hasDiscount && product.discount 
-    ? minPrice * (100 / (100 - product.discount)) 
-    : minPrice;
+    ? finalPrice * (100 / (100 - product.discount)) 
+    : finalPrice;
 
   // Quick add to cart handler with enhanced error handling
   const handleQuickAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     
-    // Don't allow adding if out of stock
     if (isOutOfStock) {
       toast.error("المنتج غير متوفر حالياً");
       return;
     }
 
     try {
-      // Get the first available size if product has sizes
-      let size = "";
-      let color = "";
-      
-      if (productSizes.length > 0) {
-        const availableSize = productSizes.find(s => s && s.stock > 0);
-        if (availableSize) {
-          size = availableSize.size;
+      // For products with variants
+      if (selectedVariant) {
+        const productForCart = {
+          ...product,
+          price: finalPrice,
+          mainImage: selectedVariant.image_url,
+          inventory: selectedVariant.stock
+        };
+        
+        const cartDb = CartDatabase.getInstance();
+        await cartDb.addToCart(productForCart, 'متاح', selectedVariant.label, 1);
+      } else {
+        // Legacy system for products without variants
+        let size = "";
+        let color = "";
+        
+        const productSizes = Array.isArray(product.sizes) ? product.sizes : [];
+        if (productSizes.length > 0) {
+          const availableSize = productSizes.find(s => s && s.stock > 0);
+          if (availableSize) {
+            size = availableSize.size;
+          }
         }
-      }
 
-      // Get default color if available
-      if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
-        color = product.colors[0];
-      }
+        if (product.colors && Array.isArray(product.colors) && product.colors.length > 0) {
+          color = product.colors[0];
+        }
 
-      // Add to cart using CartDatabase singleton instance
-      const cartDb = CartDatabase.getInstance();
-      await cartDb.addToCart(product, size, color, 1);
+        const cartDb = CartDatabase.getInstance();
+        await cartDb.addToCart(product, size, color, 1);
+      }
 
       toast.success("تم إضافة المنتج إلى السلة");
     } catch (error) {
@@ -126,17 +157,49 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         {/* Price section */}
         <div className="flex items-center gap-2 mb-2">
           <span className="text-lg font-bold text-green-700">
-            {minPrice.toFixed(0)} جنيه
+            {finalPrice.toFixed(0)} جنيه
           </span>
-          {product.hasDiscount && product.discount && originalPrice > minPrice && (
+          {product.hasDiscount && product.discount && originalPrice > finalPrice && (
             <span className="text-sm text-gray-500 line-through">
               {originalPrice.toFixed(0)} جنيه
             </span>
           )}
         </div>
 
-        {/* Available colors */}
-        {product.colors && Array.isArray(product.colors) && product.colors.length > 1 && (
+        {/* Color Variants */}
+        {variants.length > 0 && (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs text-gray-600">الألوان:</span>
+            <div className="flex gap-1">
+              {variants.slice(0, 4).map((variant) => (
+                <button
+                  key={variant.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedVariant(variant);
+                  }}
+                  className={`w-4 h-4 rounded-full border-2 ${
+                    selectedVariant?.id === variant.id 
+                      ? 'border-primary shadow-md' 
+                      : 'border-gray-300'
+                  }`}
+                  style={{
+                    backgroundImage: `url(${variant.image_url})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
+                  title={variant.label}
+                />
+              ))}
+              {variants.length > 4 && (
+                <span className="text-xs text-gray-500">+{variants.length - 4}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Legacy Available colors (for backward compatibility) */}
+        {variants.length === 0 && product.colors && Array.isArray(product.colors) && product.colors.length > 1 && (
           <div className="flex items-center gap-1 mb-2">
             <span className="text-xs text-gray-600">الألوان:</span>
             <div className="flex gap-1">
@@ -155,12 +218,12 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
           </div>
         )}
 
-        {/* Available sizes */}
-        {productSizes.length > 0 && (
+        {/* Available sizes (only show for legacy products without variants) */}
+        {variants.length === 0 && Array.isArray(product.sizes) && product.sizes.length > 0 && (
           <div className="flex items-center gap-1 mb-2">
             <span className="text-xs text-gray-600">المقاسات:</span>
             <div className="flex gap-1 flex-wrap">
-              {productSizes.slice(0, 4).map((sizeInfo, index) => (
+              {product.sizes.slice(0, 4).map((sizeInfo, index) => (
                 <span
                   key={index}
                   className={`text-xs px-1 py-0.5 rounded border ${
@@ -172,8 +235,8 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
                   {sizeInfo.size}
                 </span>
               ))}
-              {productSizes.length > 4 && (
-                <span className="text-xs text-gray-500">+{productSizes.length - 4}</span>
+              {product.sizes.length > 4 && (
+                <span className="text-xs text-gray-500">+{product.sizes.length - 4}</span>
               )}
             </div>
           </div>
