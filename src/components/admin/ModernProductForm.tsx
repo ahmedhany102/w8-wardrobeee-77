@@ -41,22 +41,22 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { variants: existingVariants, fetchVariants } = useProductVariants(initialData.id || "");
+  const { variants: existingVariants, fetchVariants, addVariant: addVariantToDb, updateVariant: updateVariantInDb, deleteVariant } = useProductVariants(initialData.id || "");
 
   useEffect(() => {
     if (initialData.id) {
       fetchVariants();
     }
-  }, [initialData.id]);
+  }, [initialData.id, fetchVariants]);
 
   useEffect(() => {
     if (existingVariants.length > 0) {
       setVariants(existingVariants.map(v => ({
-        label: v.label,
-        image_url: v.image_url,
-        price_adjustment: v.price_adjustment,
-        stock: v.stock,
-        is_default: v.is_default
+        label: v.label || '',
+        image_url: v.image_url || '',
+        price_adjustment: v.price_adjustment || 0,
+        stock: v.stock || 0,
+        is_default: v.is_default || false
       })));
     }
   }, [existingVariants]);
@@ -85,7 +85,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
     }
   };
 
-  const addVariant = () => {
+  const addLocalVariant = () => {
     setVariants([...variants, {
       label: "",
       image_url: "",
@@ -104,7 +104,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
     setVariants(newVariants);
   };
 
-  const updateVariant = (index: number, field: keyof ProductVariantInput, value: any) => {
+  const updateLocalVariant = (index: number, field: keyof ProductVariantInput, value: any) => {
     const newVariants = [...variants];
     if (field === 'is_default' && value) {
       // Only one variant can be default
@@ -117,10 +117,16 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
 
   const saveVariantsToDatabase = async (productId: string): Promise<boolean> => {
     try {
-      const { addVariant } = useProductVariants(productId);
+      // If editing existing product, clear old variants first
+      if (initialData.id && existingVariants.length > 0) {
+        for (const existingVariant of existingVariants) {
+          await deleteVariant(existingVariant.id);
+        }
+      }
       
+      // Add new variants
       for (const variant of variants) {
-        const success = await addVariant({
+        const success = await addVariantToDb({
           label: variant.label,
           image_url: variant.image_url,
           price_adjustment: variant.price_adjustment,
@@ -206,10 +212,10 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
         category: category.trim(),
         discount: hasDiscount ? discount : 0,
         main_image: mainImage,
-        stock: variants.reduce((sum, v) => sum + v.stock, 0),
-        inventory: variants.reduce((sum, v) => sum + v.stock, 0),
-        featured: false,
-        created_at: new Date().toISOString(),
+        stock: Math.max(...variants.map(v => v.stock), 0), // Max stock of any variant
+        inventory: Math.max(...variants.map(v => v.stock), 0), // Max stock of any variant
+        featured: initialData.featured || false,
+        created_at: initialData.created_at || new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
       
@@ -340,7 +346,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
           <div>
             <div className="flex items-center justify-between mb-4">
               <Label className="text-lg font-semibold">متغيرات المنتج (الألوان)</Label>
-              <Button type="button" onClick={addVariant} size="sm">
+              <Button type="button" onClick={addLocalVariant} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
                 إضافة متغير
               </Button>
@@ -354,7 +360,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                       <Label>اسم اللون *</Label>
                       <Input
                         value={variant.label}
-                        onChange={(e) => updateVariant(index, 'label', e.target.value)}
+                        onChange={(e) => updateLocalVariant(index, 'label', e.target.value)}
                         placeholder="مثل: أحمر، أزرق"
                         required
                       />
@@ -366,7 +372,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                         type="number"
                         step="0.01"
                         value={variant.price_adjustment}
-                        onChange={(e) => updateVariant(index, 'price_adjustment', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => updateLocalVariant(index, 'price_adjustment', parseFloat(e.target.value) || 0)}
                         placeholder="0.00"
                       />
                     </div>
@@ -377,7 +383,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                         type="number"
                         min="0"
                         value={variant.stock}
-                        onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value) || 0)}
+                        onChange={(e) => updateLocalVariant(index, 'stock', parseInt(e.target.value) || 0)}
                         placeholder="0"
                       />
                     </div>
@@ -386,7 +392,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                       <input
                         type="checkbox"
                         checked={variant.is_default}
-                        onChange={(e) => updateVariant(index, 'is_default', e.target.checked)}
+                        onChange={(e) => updateLocalVariant(index, 'is_default', e.target.checked)}
                       />
                       <Label>افتراضي</Label>
                     </div>
