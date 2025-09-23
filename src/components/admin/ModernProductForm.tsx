@@ -21,12 +21,14 @@ interface ModernProductFormProps {
   initialData?: Partial<Product>;
   onSubmit: (product: Omit<Product, "id">, saveVariants?: (productId: string) => Promise<boolean>) => void;
   submitLabel?: string;
+  onCancel?: () => void;
 }
 
 export const ModernProductForm: React.FC<ModernProductFormProps> = ({ 
   initialData = {}, 
   onSubmit, 
-  submitLabel = "حفظ المنتج" 
+  submitLabel = "حفظ المنتج",
+  onCancel
 }) => {
   const [name, setName] = useState(initialData.name || "");
   const [description, setDescription] = useState(initialData.description || "");
@@ -439,9 +441,22 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
             </div>
           )}
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "جاري الحفظ..." : submitLabel}
-          </Button>
+          <div className="flex gap-2">
+            {onCancel && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                className="flex-1" 
+                onClick={onCancel}
+                disabled={loading}
+              >
+                إلغاء
+              </Button>
+            )}
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading ? "جاري الحفظ..." : submitLabel}
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

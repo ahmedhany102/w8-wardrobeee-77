@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import ImprovedProductForm from "./ImprovedProductForm";
+import { ModernProductForm } from "./ModernProductForm";
 
 interface Product {
   id: string;
@@ -43,13 +43,10 @@ const ProductManagementDialogs = ({
           <DialogHeader>
             <DialogTitle>Add New Product</DialogTitle>
           </DialogHeader>
-          <ImprovedProductForm
+          <ModernProductForm
             onSubmit={onAddProduct}
             submitLabel="Add Product"
             onCancel={() => setShowAddDialog(false)}
-            predefinedCategories={['Men']} 
-            predefinedTypes={['T-Shirts', 'Trousers', 'Shoes', 'Jackets']}
-            allowSizesWithoutColors={true}
           />
         </DialogContent>
       </Dialog>
@@ -61,14 +58,11 @@ const ProductManagementDialogs = ({
             <DialogTitle>Edit Product</DialogTitle>
           </DialogHeader>
           {editProduct && (
-            <ImprovedProductForm
+            <ModernProductForm
               initialData={editProduct}
               onSubmit={onEditProduct}
               submitLabel="Save Changes"
               onCancel={() => setShowEditDialog(false)}
-              predefinedCategories={['Men']} 
-              predefinedTypes={['T-Shirts', 'Trousers', 'Shoes', 'Jackets']}
-              allowSizesWithoutColors={true}
             />
           )}
         </DialogContent>
