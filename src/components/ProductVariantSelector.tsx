@@ -20,22 +20,55 @@ export const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
   }, [product.id]);
 
   useEffect(() => {
-    // Auto-select default variant or first variant
-    if (variants.length > 0 && !selectedVariantId) {
-      const defaultVariant = variants.find(v => v.is_default) || variants[0];
+    // Auto-select default variant or first variant from both new variants and legacy data
+    const allVariants = variants.length > 0 ? variants : (
+      product.colors && product.images && product.colors.length > 0 && product.images.length > 0
+        ? product.colors.map((color, index) => ({
+            id: `legacy-${color}-${index}`,
+            product_id: product.id,
+            label: color,
+            image_url: product.images![index] || product.images![0],
+            hex_code: undefined,
+            price_adjustment: 0,
+            stock: product.stock || 0,
+            is_default: index === 0,
+            position: index,
+          }))
+        : []
+    );
+    
+    if (allVariants.length > 0 && !selectedVariantId) {
+      const defaultVariant = allVariants.find(v => v.is_default) || allVariants[0];
       setSelectedVariantId(defaultVariant.id);
     }
-  }, [variants, selectedVariantId]);
+  }, [variants, selectedVariantId, product.colors, product.images, product.id, product.stock]);
 
   useEffect(() => {
-    const selectedVariant = variants.find(v => v.id === selectedVariantId);
+    // Create combined variant list for selection logic
+    const allVariants = variants.length > 0 ? variants : (
+      product.colors && product.images && product.colors.length > 0 && product.images.length > 0
+        ? product.colors.map((color, index) => ({
+            id: `legacy-${color}-${index}`,
+            product_id: product.id,
+            label: color,
+            image_url: product.images![index] || product.images![0],
+            hex_code: undefined,
+            price_adjustment: 0,
+            stock: product.stock || 0,
+            is_default: index === 0,
+            position: index,
+          }))
+        : []
+    );
+    
+    const selectedVariant = allVariants.find(v => v.id === selectedVariantId);
     if (selectedVariant && onVariantChange) {
       const finalPrice = (product.price || 0) + selectedVariant.price_adjustment;
       onVariantChange(selectedVariant, finalPrice, selectedVariant.stock);
     } else if (!selectedVariant && onVariantChange) {
       onVariantChange(null, product.price || 0, product.stock || 0);
     }
-  }, [selectedVariantId, variants, product.price, product.stock, onVariantChange]);
+  }, [selectedVariantId, variants, product.price, product.stock, product.colors, product.images, product.id, onVariantChange]);
 
   if (loading) {
     return (
@@ -49,11 +82,29 @@ export const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
     );
   }
 
-  if (variants.length === 0) {
+  // Check if we have new variants or legacy color data
+  if (variants.length === 0 && (!product.colors || product.colors.length === 0 || !product.images || product.images.length === 0)) {
     return null; // No variants available
   }
 
-  const selectedVariant = variants.find(v => v.id === selectedVariantId);
+  // If no new variants but has legacy colors/images, create mock variants from legacy data
+  const displayVariants = variants.length > 0 ? variants : (
+    product.colors && product.images && product.colors.length > 0 && product.images.length > 0
+      ? product.colors.map((color, index) => ({
+          id: `legacy-${color}-${index}`,
+          product_id: product.id,
+          label: color,
+          image_url: product.images![index] || product.images![0],
+          hex_code: undefined,
+          price_adjustment: 0,
+          stock: product.stock || 0,
+          is_default: index === 0,
+          position: index,
+        }))
+      : []
+  );
+
+  const selectedVariant = displayVariants.find(v => v.id === selectedVariantId);
   const finalPrice = selectedVariant 
     ? (product.price || 0) + selectedVariant.price_adjustment 
     : (product.price || 0);
@@ -64,7 +115,7 @@ export const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
       <div>
         <h3 className="text-sm font-medium mb-2">اللون</h3>
         <div className="flex flex-wrap gap-2">
-          {variants.map((variant) => (
+          {displayVariants.map((variant) => (
             <button
               key={variant.id}
               onClick={() => setSelectedVariantId(variant.id)}
