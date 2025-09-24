@@ -116,19 +116,28 @@ const Profile = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Security Settings</CardTitle>
-            <CardDescription>Manage your account security</CardDescription>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Manage your account and orders</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsPasswordModalOpen(true)}
-              className="hover:bg-green-100"
-            >
-              Change Password
-            </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsPasswordModalOpen(true)}
+                className="hover:bg-green-100"
+              >
+                Change Password
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = '/orders'}
+                className="hover:bg-green-100"
+              >
+                View My Orders
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
