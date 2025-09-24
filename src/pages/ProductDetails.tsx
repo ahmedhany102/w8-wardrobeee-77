@@ -270,10 +270,29 @@ const ProductDetails = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4" />
-            <p>جاري تحميل المنتج...</p>
+        <div className="container mx-auto px-4 py-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <div className="mb-4 border rounded overflow-hidden">
+                <AspectRatio ratio={1}>
+                  <div className="w-full h-full bg-muted animate-pulse" />
+                </AspectRatio>
+              </div>
+              <div className="flex overflow-x-auto gap-2 pb-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="border rounded flex-shrink-0 w-16 h-16 bg-muted animate-pulse" />
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="h-8 w-2/3 bg-muted animate-pulse rounded" />
+              <div className="h-6 w-1/3 bg-muted animate-pulse rounded" />
+              <div className="h-24 bg-muted animate-pulse rounded" />
+              <div className="h-16 bg-muted animate-pulse rounded" />
+              <div className="h-10 bg-muted animate-pulse rounded" />
+              <div className="h-12 bg-muted animate-pulse rounded" />
+              <div className="h-24 bg-muted animate-pulse rounded" />
+            </div>
           </div>
         </div>
       </Layout>
@@ -331,6 +350,8 @@ const ProductDetails = () => {
                     <img
                       src={image}
                       alt={`Thumbnail ${index + 1}`}
+                      width={64}
+                      height={64}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/placeholder.svg';

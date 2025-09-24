@@ -130,6 +130,8 @@ export const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                 <img
                   src={variant.image_url}
                   alt={variant.label}
+                  width={64}
+                  height={64}
                   className={`w-full h-full object-cover ${
                     variant.stock === 0 ? 'grayscale opacity-50' : ''
                   }`}
