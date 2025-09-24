@@ -9,14 +9,25 @@ import { Loader } from '@/components/ui/loader';
 const Index = () => {
   const { user, loading } = useAuth();
 
-  // Show loading spinner while auth is being determined
+  // Show loading state while maintaining layout to prevent CLS
   if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="text-center">
+        <div className="container mx-auto px-4 py-6">
+          {/* Reserve space for AdCarousel */}
+          <div className="h-48 mb-6 flex items-center justify-center">
             <Loader size="lg" color="primary" className="mb-4" />
-            <p className="text-green-800 font-medium">Loading...</p>
+          </div>
+          
+          {/* Reserve space for greeting section */}
+          <div className="mb-6 h-16"></div>
+
+          {/* Reserve space for product catalog header */}
+          <div className="h-8 mb-6"></div>
+          
+          {/* Loading content */}
+          <div className="text-center py-8">
+            <p className="text-green-800 font-medium">Loading products...</p>
           </div>
         </div>
       </Layout>
