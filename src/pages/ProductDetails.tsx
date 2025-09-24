@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -138,8 +138,8 @@ const ProductDetails = () => {
     fetchProduct();
   }, [id, navigate]);
 
-  // Handle variant selection
-  const handleVariantChange = (variant: ProductVariant | null, price: number, stock: number) => {
+  // Handle variant selection - memoized to prevent infinite loops
+  const handleVariantChange = useCallback((variant: ProductVariant | null, price: number, stock: number) => {
     setSelectedVariant(variant);
     setVariantPrice(price);
     setVariantStock(stock);
@@ -149,7 +149,7 @@ const ProductDetails = () => {
       setActiveImage(variant.image_url);
       setSelectedColor(variant.label);
     }
-  };
+  }, []);
   
   // Set the active image
   const handleImageClick = (imageUrl: string) => {
