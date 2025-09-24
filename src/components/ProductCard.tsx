@@ -156,11 +156,11 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         
         {/* Price section */}
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg font-bold text-green-700">
+          <span className="text-lg font-bold text-primary">
             {finalPrice.toFixed(0)} جنيه
           </span>
           {product.hasDiscount && product.discount && originalPrice > finalPrice && (
-            <span className="text-sm text-gray-500 line-through">
+            <span className="text-sm text-muted-foreground line-through">
               {originalPrice.toFixed(0)} جنيه
             </span>
           )}
@@ -169,7 +169,7 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         {/* Color Variants */}
         {variants.length > 0 && (
           <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs text-gray-600">الألوان:</span>
+            <span className="text-xs text-muted-foreground">الألوان:</span>
             <div className="flex gap-1">
               {variants.slice(0, 4).map((variant) => (
                 <button
@@ -192,7 +192,7 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
                 />
               ))}
               {variants.length > 4 && (
-                <span className="text-xs text-gray-500">+{variants.length - 4}</span>
+                <span className="text-xs text-muted-foreground">+{variants.length - 4}</span>
               )}
             </div>
           </div>
@@ -201,18 +201,18 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         {/* Legacy Available colors (for backward compatibility) */}
         {variants.length === 0 && product.colors && Array.isArray(product.colors) && product.colors.length > 1 && (
           <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs text-gray-600">الألوان:</span>
+            <span className="text-xs text-muted-foreground">الألوان:</span>
             <div className="flex gap-1">
               {product.colors.slice(0, 3).map((color, index) => (
                 <div
                   key={index}
-                  className="w-3 h-3 rounded-full border border-gray-300"
+                  className="w-3 h-3 rounded-full border border-border"
                   style={{ backgroundColor: color.toLowerCase() }}
                   title={color}
                 />
               ))}
               {product.colors.length > 3 && (
-                <span className="text-xs text-gray-500">+{product.colors.length - 3}</span>
+                <span className="text-xs text-muted-foreground">+{product.colors.length - 3}</span>
               )}
             </div>
           </div>
@@ -221,22 +221,22 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
         {/* Available sizes (only show for legacy products without variants) */}
         {variants.length === 0 && Array.isArray(product.sizes) && product.sizes.length > 0 && (
           <div className="flex items-center gap-1 mb-2">
-            <span className="text-xs text-gray-600">المقاسات:</span>
+            <span className="text-xs text-muted-foreground">المقاسات:</span>
             <div className="flex gap-1 flex-wrap">
               {product.sizes.slice(0, 4).map((sizeInfo, index) => (
                 <span
                   key={index}
                   className={`text-xs px-1 py-0.5 rounded border ${
                     sizeInfo.stock > 0 
-                      ? 'bg-green-50 border-green-200 text-green-700' 
-                      : 'bg-gray-50 border-gray-200 text-gray-400'
+                      ? 'bg-primary/10 border-primary/20 text-primary' 
+                      : 'bg-muted border-border text-muted-foreground'
                   }`}
                 >
                   {sizeInfo.size}
                 </span>
               ))}
               {product.sizes.length > 4 && (
-                <span className="text-xs text-gray-500">+{product.sizes.length - 4}</span>
+                <span className="text-xs text-muted-foreground">+{product.sizes.length - 4}</span>
               )}
             </div>
           </div>
@@ -249,8 +249,8 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
           disabled={isOutOfStock}
           className={`w-full text-sm ${
             isOutOfStock 
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-              : 'bg-green-600 hover:bg-green-700 text-white'
+              ? 'bg-muted text-muted-foreground cursor-not-allowed' 
+              : 'bg-primary hover:bg-primary/90 text-primary-foreground'
           }`}
         >
           <ShoppingCart className="w-4 h-4 mr-2" />
