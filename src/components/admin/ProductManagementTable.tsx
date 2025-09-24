@@ -71,7 +71,15 @@ const ProductManagementTable = ({
               <TableRow key={product.id} className="hover:bg-green-50 transition-colors">
                 <TableCell>
                   {product.main_image ? (
-                    <img src={product.main_image} alt={product.name} className="h-10 w-10 object-cover rounded-md" />
+                    <img 
+                      src={product.main_image} 
+                      alt={product.name} 
+                      width={40}
+                      height={40}
+                      decoding="async"
+                      loading="lazy"
+                      className="h-10 w-10 object-cover rounded-md" 
+                    />
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}
