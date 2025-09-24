@@ -93,12 +93,16 @@ const AdCarousel: React.FC = () => {
                     setCurrentAdIndex(index);
                   }}
                   aria-label={`Go to advertisement ${index + 1}`}
-                  className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
-                    index === currentAdIndex 
-                      ? 'bg-white scale-125' 
-                      : 'bg-white/50 hover:bg-white/75'
+                  className={`p-2 rounded-full transition-all duration-300 ${
+                    index === currentAdIndex ? 'scale-125' : 'hover:scale-110'
                   }`}
-                />
+                >
+                  <div className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
+                    index === currentAdIndex 
+                      ? 'bg-white' 
+                      : 'bg-white/50 hover:bg-white/75'
+                  }`} />
+                </button>
               ))}
             </div>
           )}
