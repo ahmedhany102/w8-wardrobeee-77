@@ -92,6 +92,7 @@ const AdCarousel: React.FC = () => {
                     console.log('🎯 Manual ad selection:', index);
                     setCurrentAdIndex(index);
                   }}
+                  aria-label={`Go to advertisement ${index + 1}`}
                   className={`w-2 h-2 md:w-3 md:h-3 rounded-full transition-all duration-300 ${
                     index === currentAdIndex 
                       ? 'bg-white scale-125' 
