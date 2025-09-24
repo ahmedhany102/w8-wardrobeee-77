@@ -2,11 +2,14 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useUserOrders } from '@/hooks/useUserOrders';
 import { format } from 'date-fns';
+import { X } from 'lucide-react';
 
 const UserOrders = () => {
-  const { orders, loading } = useUserOrders();
+  const { orders, loading, cancelling, cancelOrder } = useUserOrders();
 
   if (loading) {
     return (
@@ -35,6 +38,14 @@ const UserOrders = () => {
     }
   };
 
+  const canCancelOrder = (order: any) => {
+    return ['PENDING', 'PROCESSING'].includes(order.status?.toUpperCase());
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    await cancelOrder(orderId);
+  };
+
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold text-gray-900">My Orders</h2>
@@ -50,10 +61,41 @@ const UserOrders = () => {
                 </p>
               </div>
               <div className="text-right">
-                <Badge className={getStatusColor(order.status)}>
-                  {order.status}
-                </Badge>
-                <p className="text-lg font-semibold mt-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className={getStatusColor(order.status)}>
+                    {order.status}
+                  </Badge>
+                  {canCancelOrder(order) && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          disabled={cancelling === order.id}
+                          className="h-6 px-2 text-xs"
+                        >
+                          <X className="h-3 w-3 mr-1" />
+                          {cancelling === order.id ? 'Cancelling...' : 'Cancel'}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cancel Order</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to cancel order #{order.order_number}? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep Order</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleCancelOrder(order.id)}>
+                            Yes, Cancel Order
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+                <p className="text-lg font-semibold">
                   ${order.total_amount.toFixed(2)}
                 </p>
               </div>

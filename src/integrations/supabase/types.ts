@@ -592,6 +592,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_user_order: {
+        Args: { order_id: string }
+        Returns: boolean
+      }
       delete_promotional_banner: {
         Args: { banner_id: string }
         Returns: boolean

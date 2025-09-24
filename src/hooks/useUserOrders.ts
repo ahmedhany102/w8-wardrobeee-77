@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 export const useUserOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState<string | null>(null);
   const { user, session } = useAuth();
 
   const fetchUserOrders = async () => {
@@ -75,9 +76,48 @@ export const useUserOrders = () => {
     }
   }, [user?.id, user?.email, session]);
 
+  const cancelOrder = async (orderId: string) => {
+    if (!user?.id || !session) {
+      toast.error('Please log in to cancel orders');
+      return false;
+    }
+
+    try {
+      setCancelling(orderId);
+      console.log('🚫 Cancelling order:', orderId);
+
+      const { data, error } = await supabase.rpc('cancel_user_order', {
+        order_id: orderId
+      });
+
+      if (error) {
+        console.error('❌ Error cancelling order:', error);
+        toast.error('Failed to cancel order');
+        return false;
+      }
+
+      if (data) {
+        toast.success('Order cancelled successfully');
+        await fetchUserOrders(); // Refresh orders
+        return true;
+      } else {
+        toast.error('Cannot cancel this order - it may already be shipped');
+        return false;
+      }
+    } catch (error) {
+      console.error('💥 Exception cancelling order:', error);
+      toast.error('Failed to cancel order');
+      return false;
+    } finally {
+      setCancelling(null);
+    }
+  };
+
   return { 
     orders, 
     loading, 
-    refetch: fetchUserOrders 
+    cancelling,
+    refetch: fetchUserOrders,
+    cancelOrder
   };
 };
