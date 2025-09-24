@@ -22,12 +22,24 @@ const Index = () => {
           {/* Reserve space for greeting section */}
           <div className="mb-6 h-16"></div>
 
-          {/* Reserve space for product catalog header */}
+          {/* Reserve space for product catalog title */}
           <div className="h-8 mb-6"></div>
           
-          {/* Loading content */}
-          <div className="text-center py-8">
-            <p className="text-green-800 font-medium">Loading products...</p>
+          {/* Reserve space for ProductCatalog content */}
+          <div className="container mx-auto px-4 py-4">
+            {/* ProductCatalogHeader space */}
+            <div className="flex justify-between items-center mb-6 h-12"></div>
+            
+            {/* SearchBar space */}
+            <div className="mb-6 h-12"></div>
+            
+            {/* ProductGrid loading space - reserve space for typical product grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+              {/* Reserve space for 8 product cards to prevent shift */}
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-64 bg-muted animate-pulse rounded-lg"></div>
+              ))}
+            </div>
           </div>
         </div>
       </Layout>
