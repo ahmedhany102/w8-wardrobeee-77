@@ -20,8 +20,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 }) => {
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-green-800"></div>
+      <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="rounded-lg bg-muted h-64 animate-pulse" />
+        ))}
       </div>
     );
   }

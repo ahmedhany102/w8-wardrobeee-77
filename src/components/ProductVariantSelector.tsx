@@ -96,7 +96,7 @@ export const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
             <button
               key={variant.id}
               onClick={() => setSelectedVariantId(variant.id)}
-              className={`relative group ${
+              className={`relative group pb-6 ${
                 selectedVariantId === variant.id
                   ? 'ring-2 ring-primary ring-offset-2'
                   : 'ring-1 ring-border hover:ring-2 hover:ring-primary/50'
@@ -109,6 +109,8 @@ export const ProductVariantSelector: React.FC<ProductVariantSelectorProps> = ({
                   alt={variant.label}
                   width={64}
                   height={64}
+                  decoding="async"
+                  loading="lazy"
                   className={`w-full h-full object-cover ${
                     variant.stock === 0 ? 'grayscale opacity-50' : ''
                   }`}

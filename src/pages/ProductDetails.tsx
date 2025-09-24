@@ -328,6 +328,10 @@ const ProductDetails = () => {
                 <img
                   src={activeImage}
                   alt={product?.name || "Product"}
+                  width={800}
+                  height={800}
+                  decoding="async"
+                  loading="eager"
                   className="w-full h-full object-contain"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/placeholder.svg';
@@ -352,6 +356,8 @@ const ProductDetails = () => {
                       alt={`Thumbnail ${index + 1}`}
                       width={64}
                       height={64}
+                      decoding="async"
+                      loading="lazy"
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/placeholder.svg';
