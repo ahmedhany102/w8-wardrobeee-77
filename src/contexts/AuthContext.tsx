@@ -83,10 +83,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
+    // Set up periodic session refresh for admin users to prevent idle timeouts
+    let refreshInterval: NodeJS.Timeout;
+    
+    const setupSessionRefresh = () => {
+      clearInterval(refreshInterval);
+      
+      if (session?.user) {
+        console.log('🔄 Setting up session refresh for user:', session.user.email);
+        
+        // Refresh session every 30 minutes for active users
+        refreshInterval = setInterval(async () => {
+          try {
+            console.log('🔄 Attempting periodic session refresh...');
+            const { data, error } = await supabase.auth.refreshSession();
+            
+            if (error) {
+              console.error('❌ Session refresh failed:', error);
+              // If refresh fails, try to get session again
+              const { data: sessionData } = await supabase.auth.getSession();
+              if (!sessionData.session) {
+                console.log('📤 Session expired, user needs to re-login');
+                setUser(null);
+                setSession(null);
+                toast.error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+              }
+            } else if (data.session) {
+              console.log('✅ Session refreshed successfully');
+              setSession(data.session);
+            }
+          } catch (error) {
+            console.error('💥 Session refresh error:', error);
+          }
+        }, 30 * 60 * 1000); // 30 minutes
+      }
+    };
+
+    // Set up refresh whenever session changes
+    setupSessionRefresh();
+
     return () => {
       subscription.unsubscribe();
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
     };
-  }, []);
+  }, [session?.user?.id]); // Re-run when session user changes
 
   const contextValue = {
     user,

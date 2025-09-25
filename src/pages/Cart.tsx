@@ -22,7 +22,7 @@ const Cart = () => {
   const [activeTab, setActiveTab] = useState('cart');
   const [orderNotes, setOrderNotes] = useState('');
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; couponId?: string } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; couponId?: string; redemptionId?: string } | null>(null);
   const [couponError, setCouponError] = useState('');
   
   useEffect(() => {
@@ -152,11 +152,18 @@ const Cart = () => {
       );
       
       if (result.ok && result.coupon && result.discount !== undefined) {
-        setAppliedCoupon({ 
+        // Store redemption ID for order tracking (if needed)
+        const couponData: { code: string; discount: number; couponId: string; redemptionId?: string } = { 
           code: result.coupon.code, 
           discount: result.discount,
           couponId: result.coupon.id
-        });
+        };
+        
+        if ((result.coupon as any).redemption_id) {
+          couponData.redemptionId = (result.coupon as any).redemption_id;
+        }
+        
+        setAppliedCoupon(couponData);
         setCouponError('');
         toast.success('تم تطبيق كود الخصم بنجاح');
       } else {
