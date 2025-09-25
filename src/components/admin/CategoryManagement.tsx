@@ -29,7 +29,7 @@ const CategoryManagement = () => {
   const resetForm = () => {
     setName("");
     setSlug("");
-    setParentId("");
+    setParentId("none");
     setIsActive(true);
     setSortOrder(0);
   };
@@ -48,7 +48,7 @@ const CategoryManagement = () => {
       .insert([{
         name: name.trim(),
         slug: categorySlug,
-        parent_id: parentId || null,
+        parent_id: parentId === "none" ? null : parentId || null,
         is_active: isActive,
         sort_order: sortOrder,
       }]);
@@ -73,7 +73,7 @@ const CategoryManagement = () => {
       .update({
         name: name.trim(),
         slug: categorySlug,
-        parent_id: parentId || null,
+        parent_id: parentId === "none" ? null : parentId || null,
         is_active: isActive,
         sort_order: sortOrder
       })
@@ -107,7 +107,7 @@ const CategoryManagement = () => {
     setEditingCategory(category);
     setName(category.name || "");
     setSlug(category.slug || "");
-    setParentId(category.parent_id || "");
+    setParentId(category.parent_id || "none");
     setIsActive(category.is_active);
     setSortOrder(category.sort_order || 0);
     setShowEditDialog(true);
@@ -159,7 +159,7 @@ const CategoryManagement = () => {
                 <Select value={parentId} onValueChange={setParentId}>
                   <SelectTrigger><SelectValue placeholder="Select parent category" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">None (Main Category)</SelectItem>
+                    <SelectItem value="none">None (Main Category)</SelectItem>
                     {mainCategories.map(c => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
@@ -251,7 +251,7 @@ const CategoryManagement = () => {
               <Select value={parentId} onValueChange={setParentId}>
                 <SelectTrigger><SelectValue placeholder="Select parent category" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None (Main Category)</SelectItem>
+                  <SelectItem value="none">None (Main Category)</SelectItem>
                   {mainCategories.filter(c => c.id !== editingCategory?.id).map(category => (
                     <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
                   ))}
