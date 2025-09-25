@@ -592,15 +592,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_coupon_atomic: {
-        Args: {
-          p_coupon_id: string
-          p_usage_limit_global?: number
-          p_usage_limit_per_user?: number
-          p_user_id?: string
-        }
-        Returns: string
-      }
       cancel_user_order: {
         Args: { order_id: string }
         Returns: boolean

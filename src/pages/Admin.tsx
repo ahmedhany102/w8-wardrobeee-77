@@ -5,7 +5,6 @@ import Layout from "@/components/Layout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAdminSessionMonitor } from "@/hooks/useAdminSessionMonitor";
 import ProductManagement from "@/components/admin/ProductManagement";
 import OrdersPanel from "@/components/admin/OrdersPanel";
 import CouponManagement from "@/components/admin/CouponManagement";
@@ -21,9 +20,6 @@ const Admin = ({ activeTab = "dashboard" }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState(activeTab);
-  
-  // Monitor admin session for idle timeouts
-  useAdminSessionMonitor();
   
   const { products, loading: productsLoading } = useSupabaseProducts();
   const { users, loading: usersLoading } = useSupabaseUsers();

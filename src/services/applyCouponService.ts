@@ -53,6 +53,25 @@ export class ApplyCouponService {
     }
   }
 
-    // Remove the separate applyCoupon.recordRedemption call since it's now handled atomically
-    // The redemption is already recorded in the database transaction
+  static async recordRedemption(couponId: string, orderId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('coupon_redemptions')
+        .insert({
+          coupon_id: couponId,
+          order_id: orderId,
+          user_id: (await supabase.auth.getUser()).data.user?.id
+        });
+
+      if (error) {
+        console.error('❌ Error recording coupon redemption:', error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('💥 Exception recording redemption:', error);
+      return false;
+    }
+  }
 }
