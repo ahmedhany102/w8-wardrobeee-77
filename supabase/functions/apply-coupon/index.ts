@@ -102,38 +102,31 @@ serve(async (req) => {
       );
     }
 
-    // Check global usage limit
-    if (coupon.usage_limit_global) {
-      const { count: globalUsage } = await supabaseClient
-        .from('coupon_redemptions')
-        .select('*', { count: 'exact', head: true })
-        .eq('coupon_id', coupon.id);
+    // Use atomic transaction to check and increment usage limits
+    const { data: transactionResult, error: transactionError } = await supabaseClient.rpc('apply_coupon_atomic', {
+      p_coupon_id: coupon.id,
+      p_user_id: userId,
+      p_usage_limit_global: coupon.usage_limit_global,
+      p_usage_limit_per_user: coupon.usage_limit_per_user
+    });
 
-      if (globalUsage >= coupon.usage_limit_global) {
-        console.log('❌ Global usage limit exceeded:', globalUsage, 'limit:', coupon.usage_limit_global);
-        return new Response(
-          JSON.stringify({ ok: false, message: 'تم استخدام كوبون الخصم بالكامل' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
+    if (transactionError) {
+      console.error('❌ Transaction error:', transactionError);
+      return new Response(
+        JSON.stringify({ ok: false, message: 'حدث خطأ أثناء التحقق من كوبون الخصم' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
     }
 
-    // Check per-user usage limit (if user is authenticated)
-    if (userId && coupon.usage_limit_per_user) {
-      const { count: userUsage } = await supabaseClient
-        .from('coupon_redemptions')
-        .select('*', { count: 'exact', head: true })
-        .eq('coupon_id', coupon.id)
-        .eq('user_id', userId);
-
-      if (userUsage >= coupon.usage_limit_per_user) {
-        console.log('❌ User usage limit exceeded:', userUsage, 'limit:', coupon.usage_limit_per_user);
-        return new Response(
-          JSON.stringify({ ok: false, message: 'لقد استخدمت هذا الكوبون بالفعل' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
-        );
-      }
+    if (!transactionResult) {
+      console.log('❌ Coupon usage limit exceeded');
+      return new Response(
+        JSON.stringify({ ok: false, message: 'تم استخدام كوبون الخصم بالكامل أو لقد استخدمت هذا الكوبون بالفعل' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
+
+    const redemptionId = transactionResult;
 
     // Calculate eligible subtotal (for now, assume all items are eligible)
     const eligibleSubtotal = subtotal;
@@ -171,7 +164,8 @@ serve(async (req) => {
           id: coupon.id,
           code: coupon.code,
           discount_kind: coupon.discount_kind,
-          discount_value: coupon.discount_value
+          discount_value: coupon.discount_value,
+          redemption_id: redemptionId
         },
         discount,
         finalTotal
