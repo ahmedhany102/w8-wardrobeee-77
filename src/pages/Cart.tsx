@@ -12,7 +12,7 @@ import CartDatabase, { CartItem } from '@/models/CartDatabase';
 import OrderDatabase from '@/models/OrderDatabase';
 import OrderForm from '@/components/OrderForm';
 import { Trash2, ShoppingCart, CircleDollarSign, ArrowLeft, ShieldCheck } from 'lucide-react';
-import { CouponDatabase } from '@/models/Coupon';
+import { ApplyCouponService } from '@/services/applyCouponService';
 
 const Cart = () => {
   const { user } = useAuth();
@@ -22,7 +22,7 @@ const Cart = () => {
   const [activeTab, setActiveTab] = useState('cart');
   const [orderNotes, setOrderNotes] = useState('');
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; couponId?: string } | null>(null);
   const [couponError, setCouponError] = useState('');
   
   useEffect(() => {
@@ -137,11 +137,26 @@ const Cart = () => {
     }
 
     try {
-      const couponDb = CouponDatabase.getInstance();
-      const result = await couponDb.isCouponValid(couponCode.trim());
+      // Convert cart items to the expected format
+      const formattedCartItems = cartItems.map(item => ({
+        product_id: item.productId,
+        variant_id: null, // CartItem doesn't have variant_id
+        quantity: item.quantity,
+        unit_price: item.price
+      }));
+
+      const result = await ApplyCouponService.applyCoupon(
+        couponCode.trim(),
+        formattedCartItems,
+        subtotal
+      );
       
-      if (result.valid && result.discount) {
-        setAppliedCoupon({ code: couponCode.trim(), discount: result.discount });
+      if (result.ok && result.coupon && result.discount !== undefined) {
+        setAppliedCoupon({ 
+          code: result.coupon.code, 
+          discount: result.discount,
+          couponId: result.coupon.id
+        });
         setCouponError('');
         toast.success('تم تطبيق كود الخصم بنجاح');
       } else {
@@ -164,7 +179,7 @@ const Cart = () => {
   // Calculate cart totals with coupon discount
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingFee = subtotal > 0 ? 25 : 0;
-  const discountAmount = appliedCoupon ? (subtotal * appliedCoupon.discount) / 100 : 0;
+  const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
   const total = subtotal + shippingFee - discountAmount;
   
   return (
