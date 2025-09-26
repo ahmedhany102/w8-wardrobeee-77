@@ -51,6 +51,8 @@ const CategoryManagement = () => {
         parent_id: parentId === "none" ? null : parentId || null,
         is_active: isActive,
         sort_order: sortOrder,
+        description: "",
+        image_url: null
       }]);
     if (error) {
       toast.error('Failed to add category: ' + error.message);
@@ -75,7 +77,9 @@ const CategoryManagement = () => {
         slug: categorySlug,
         parent_id: parentId === "none" ? null : parentId || null,
         is_active: isActive,
-        sort_order: sortOrder
+        sort_order: sortOrder,
+        description: "",
+        image_url: null
       })
       .eq('id', editingCategory.id);
 

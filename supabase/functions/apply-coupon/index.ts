@@ -109,7 +109,7 @@ serve(async (req) => {
         .select('*', { count: 'exact', head: true })
         .eq('coupon_id', coupon.id);
 
-      if (globalUsage >= coupon.usage_limit_global) {
+      if (globalUsage !== null && globalUsage >= coupon.usage_limit_global) {
         console.log('❌ Global usage limit exceeded:', globalUsage, 'limit:', coupon.usage_limit_global);
         return new Response(
           JSON.stringify({ ok: false, message: 'تم استخدام كوبون الخصم بالكامل' }),
@@ -126,7 +126,7 @@ serve(async (req) => {
         .eq('coupon_id', coupon.id)
         .eq('user_id', userId);
 
-      if (userUsage >= coupon.usage_limit_per_user) {
+      if (userUsage !== null && userUsage >= coupon.usage_limit_per_user) {
         console.log('❌ User usage limit exceeded:', userUsage, 'limit:', coupon.usage_limit_per_user);
         return new Response(
           JSON.stringify({ ok: false, message: 'لقد استخدمت هذا الكوبون بالفعل' }),

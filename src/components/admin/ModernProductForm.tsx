@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useProductVariants, ProductVariant } from "@/hooks/useProductVariants";
 import { Plus, X, Upload } from "lucide-react";
+import CategorySelector from "./CategorySelector";
 
 interface ProductVariantInput {
   label: string;
@@ -33,7 +34,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
   const [name, setName] = useState(initialData.name || "");
   const [description, setDescription] = useState(initialData.description || "");
   const [basePrice, setBasePrice] = useState(initialData.price || 0);
-  const [category, setCategory] = useState(initialData.category || "");
+  const [category, setCategory] = useState(initialData.category_id || "");
   const [discount, setDiscount] = useState(initialData.discount || 0);
   const [hasDiscount, setHasDiscount] = useState(!!initialData.discount);
   const [mainImage, setMainImage] = useState(initialData.main_image || "");
@@ -203,7 +204,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
         name: name.trim(),
         description: description.trim(),
         price: basePrice,
-        category: category.trim(),
+        category_id: category,
         discount: hasDiscount ? discount : 0,
         main_image: mainImage,
         stock: variants.reduce((sum, v) => sum + v.stock, 0),
@@ -243,13 +244,9 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
             </div>
             
             <div>
-              <Label htmlFor="category">التصنيف *</Label>
-              <Input
-                id="category"
+              <CategorySelector 
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="أدخل تصنيف المنتج"
-                required
+                onChange={(categoryId) => setCategory(categoryId)}
               />
             </div>
           </div>

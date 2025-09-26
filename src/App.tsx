@@ -14,6 +14,7 @@ import Cart from './pages/Cart';
 import NotFound from './pages/NotFound';
 import OrderTracking from './pages/OrderTracking';
 import ProductDetails from './pages/ProductDetails';
+import CategoryPage from './pages/CategoryPage';
 import Terms from './pages/Terms';
 
 import { ThemeProvider } from 'next-themes';
@@ -50,6 +51,7 @@ function App() {
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/category/:slug" element={<CategoryPage />} />
                 <Route path="/product/:id" element={<ProductDetails />} />
 
                 {/* Protected routes */}

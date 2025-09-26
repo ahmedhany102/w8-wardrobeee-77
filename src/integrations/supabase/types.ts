@@ -110,30 +110,39 @@ export type Database = {
       categories: {
         Row: {
           created_at: string | null
+          description: string | null
           id: string
+          image_url: string | null
           is_active: boolean | null
           name: string
           parent_id: string | null
+          product_count: number | null
           slug: string
           sort_order: number | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
+          description?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           name: string
           parent_id?: string | null
+          product_count?: number | null
           slug: string
           sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
+          description?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           name?: string
           parent_id?: string | null
+          product_count?: number | null
           slug?: string
           sort_order?: number | null
           updated_at?: string | null
@@ -592,6 +601,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_coupon_atomic: {
+        Args: {
+          p_coupon_id: string
+          p_usage_limit_global?: number
+          p_usage_limit_per_user?: number
+          p_user_id?: string
+        }
+        Returns: string
+      }
       cancel_user_order: {
         Args: { order_id: string }
         Returns: boolean

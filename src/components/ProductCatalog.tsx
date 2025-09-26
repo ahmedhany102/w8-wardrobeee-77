@@ -1,5 +1,6 @@
 import React from 'react';
 import SearchBar from './SearchBar';
+import CategoryNavigation from './CategoryNavigation';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
 import { useProductFiltering } from '@/hooks/useProductFiltering';
 import ProductCatalogHeader from './ProductCatalogHeader';
@@ -13,7 +14,9 @@ const ProductCatalog: React.FC = () => {
   const {
     filteredProducts,
     searchQuery,
+    selectedCategoryId,
     handleSearch,
+    handleCategoryFilter,
     clearFilters
   } = useProductFiltering(products);
   const [showCartDialog, setShowCartDialog] = React.useState(false);
@@ -60,6 +63,11 @@ const ProductCatalog: React.FC = () => {
       <ProductCatalogHeader 
         cart={cartForDialog}
         onCartClick={() => setShowCartDialog(true)}
+      />
+      
+      <CategoryNavigation 
+        onCategorySelect={handleCategoryFilter}
+        selectedCategory={selectedCategoryId}
       />
       
       <SearchBar onSearch={handleSearch} placeholder="ابحث عن المنتجات..." />
