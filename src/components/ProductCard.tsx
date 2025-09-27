@@ -45,10 +45,12 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
     (product.images && Array.isArray(product.images) && product.images.length > 0 && product.images[0]) ||
     "/placeholder.svg";
   
-  // Check if product is out of stock
+  // Check if product is out of stock - Fix availability logic
   const isOutOfStock = variants.length > 0 
     ? variants.every(v => v.stock <= 0)
-    : (Array.isArray(product.sizes) ? product.sizes.every(s => !s || s.stock <= 0) : (product.inventory === 0 || product.stock === 0));
+    : (Array.isArray(product.sizes) && product.sizes.length > 0
+        ? product.sizes.every(s => !s || s.stock <= 0) 
+        : ((product.inventory || 0) === 0 && (product.stock || 0) === 0));
   
   // Calculate price (base price + variant adjustment)
   const basePrice = product.price || 0;

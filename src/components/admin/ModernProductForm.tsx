@@ -207,12 +207,15 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
         category_id: category,
         discount: hasDiscount ? discount : 0,
         main_image: mainImage,
+        image_url: mainImage, // Ensure image_url is also set
         stock: variants.reduce((sum, v) => sum + v.stock, 0),
         inventory: variants.reduce((sum, v) => sum + v.stock, 0),
         featured: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
+      
+      console.log('🎯 Product data before submission:', productData);
       
       onSubmit(productData, saveVariantsToDatabase);
     } catch (error) {

@@ -46,19 +46,19 @@ const CategoryNavigation: React.FC<CategoryNavigationProps> = ({
   return (
     <div className="mb-8">
       <h3 className="text-lg font-semibold mb-4">تصفح حسب الفئة</h3>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3">
         {/* All Products Option */}
         <Card 
-          className={`cursor-pointer transition-all hover:shadow-md hover:scale-105 ${
-            !selectedCategory ? 'ring-2 ring-primary' : ''
+          className={`cursor-pointer transition-all hover:shadow-sm hover:scale-[1.02] ${
+            !selectedCategory ? 'ring-1 ring-primary' : ''
           }`}
           onClick={() => handleCategoryClick({ id: null, slug: 'all', name: 'جميع المنتجات' })}
         >
-          <CardContent className="p-4 text-center">
-            <div className="w-12 h-12 mx-auto mb-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg flex items-center justify-center">
-              <Package className="h-6 w-6 text-primary" />
+          <CardContent className="p-2 text-center">
+            <div className="w-8 h-8 mx-auto mb-1 bg-gradient-to-br from-primary/20 to-primary/10 rounded-md flex items-center justify-center">
+              <Package className="h-4 w-4 text-primary" />
             </div>
-            <h4 className="font-medium text-sm truncate">جميع المنتجات</h4>
+            <h4 className="font-medium text-xs truncate">جميع المنتجات</h4>
           </CardContent>
         </Card>
 
@@ -66,27 +66,27 @@ const CategoryNavigation: React.FC<CategoryNavigationProps> = ({
         {mainCategories.map((category) => (
           <Card 
             key={category.id}
-            className={`cursor-pointer transition-all hover:shadow-md hover:scale-105 ${
-              selectedCategory === category.id ? 'ring-2 ring-primary' : ''
+            className={`cursor-pointer transition-all hover:shadow-sm hover:scale-[1.02] ${
+              selectedCategory === category.id ? 'ring-1 ring-primary' : ''
             }`}
             onClick={() => handleCategoryClick(category)}
           >
-            <CardContent className="p-4 text-center">
-              <div className="w-12 h-12 mx-auto mb-2 bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg flex items-center justify-center overflow-hidden">
+            <CardContent className="p-2 text-center">
+              <div className="w-8 h-8 mx-auto mb-1 bg-gradient-to-br from-primary/20 to-primary/10 rounded-md flex items-center justify-center overflow-hidden">
                 {category.image_url ? (
                   <img 
                     src={category.image_url} 
                     alt={category.name}
-                    className="w-full h-full object-cover rounded-lg"
+                    className="w-full h-full object-cover rounded-md"
                   />
                 ) : (
-                  <Package className="h-6 w-6 text-primary" />
+                  <Package className="h-4 w-4 text-primary" />
                 )}
               </div>
-              <h4 className="font-medium text-sm truncate mb-1">{category.name}</h4>
+              <h4 className="font-medium text-xs truncate mb-1">{category.name}</h4>
               {category.product_count > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {category.product_count} منتج
+                <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                  {category.product_count}
                 </Badge>
               )}
             </CardContent>
