@@ -161,7 +161,7 @@ export const useSupabaseProducts = () => {
         return false;
       }
       
-      // FIXED: Ensure category_id is properly set and remove problematic fields
+      // FIXED: Ensure category_id is properly set and all required fields are included
       const cleanProductData = {
         name: productData.name?.trim() || '',
         description: productData.description?.trim() || '',

@@ -30,9 +30,9 @@ const CategoryNavigation: React.FC<CategoryNavigationProps> = ({
     return (
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4">تصفح حسب الفئة</h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-lg" />
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-md" />
           ))}
         </div>
       </div>
