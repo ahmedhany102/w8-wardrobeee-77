@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import CategorySelector from "./CategorySelector";
 import { ProductVariantService } from "@/services/productVariantService";
 
-// فقط متغير افتراضي واحد (لون+مقاس Default)
+// هنا يمكنك إضافة وإدارة متغيرات المنتج (لون واحد افتراضي فقط)
 export const ModernProductForm: React.FC<{ initialData?: Partial<Product>; onSubmit: (product: Omit<Product, "id">, productIdHandler?: (productId: string) => Promise<boolean>) => void; submitLabel?: string; onCancel?: () => void; }> = ({
   initialData = {},
   onSubmit,
@@ -36,7 +36,7 @@ export const ModernProductForm: React.FC<{ initialData?: Partial<Product>; onSub
     }
   };
 
-  // === الحفظ الفعلي: إدخال متغير افتراضي واحد مع صورة وسعر ومخزون خاصة بهذا المنتج ===
+  // الكود الأصلي الذي يضمن إدخال متغير واحد افتراضي دائماً ليحفظ في قاعدة البيانات
   const saveVariantsToDatabase = async (productId: string): Promise<boolean> => {
     const formattedVariants = [
       {
@@ -69,7 +69,7 @@ export const ModernProductForm: React.FC<{ initialData?: Partial<Product>; onSub
         category_id: category,
         discount: hasDiscount ? discount : 0,
         main_image: mainImage,
-        image_url: mainImage,
+        image_url: mainImage, // Ensure image_url is also set
         stock: Number(stock) || 0,
         inventory: Number(stock) || 0,
         featured: false,
