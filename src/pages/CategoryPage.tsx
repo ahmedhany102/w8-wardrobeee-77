@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import ProductGrid from '@/components/ProductGrid';
@@ -24,13 +24,12 @@ const CategoryPage = () => {
 
   // Find the current category
   const category = categories.find(cat => cat.slug === slug);
-
+  
   // Filter products by category
-  const categoryProducts = category
+  const categoryProducts = category 
     ? products.filter(product => product.category_id === category.id)
     : products;
 
-  // Product filtering (search)
   const {
     filteredProducts,
     searchQuery,
@@ -50,11 +49,7 @@ const CategoryPage = () => {
   }));
 
   const handleAddToCart = async (product: any, size: string, quantity?: number) => {
-    // لو المنتج فيه ألوان ومتغيرات، اختار أول لون تلقائيًا للتجربة
-    const defaultColor =
-      product.variants && product.variants.length > 0
-        ? product.variants[0].color
-        : '';
+    const defaultColor = product.colors && product.colors.length > 0 ? product.colors[0] : '';
     await addToCartDB(product, size, defaultColor, quantity || 1);
   };
 
@@ -105,9 +100,9 @@ const CategoryPage = () => {
         <Breadcrumb className="mb-6">
           <BreadcrumbList>
             <BreadcrumbItem>
-              <Button
-                variant="ghost"
-                size="sm"
+              <Button 
+                variant="ghost" 
+                size="sm" 
                 onClick={() => navigate('/')}
                 className="p-0 h-auto font-normal text-primary hover:text-primary/80"
               >
@@ -126,8 +121,8 @@ const CategoryPage = () => {
           <div className="flex items-center gap-4 mb-4">
             {category?.image_url && (
               <div className="w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                <img
-                  src={category.image_url}
+                <img 
+                  src={category.image_url} 
                   alt={category.name}
                   className="w-full h-full object-cover"
                 />
@@ -146,16 +141,16 @@ const CategoryPage = () => {
         </div>
 
         {/* Product Catalog Header */}
-        <ProductCatalogHeader
+        <ProductCatalogHeader 
           cart={cartForDialog}
           onCartClick={() => setShowCartDialog(true)}
         />
-
+        
         {/* Search Bar */}
         <SearchBar onSearch={handleSearch} placeholder="ابحث في المنتجات..." />
-
+        
         {/* Products Grid */}
-        <ProductGrid
+        <ProductGrid 
           products={filteredProducts}
           loading={isLoading}
           searchQuery={searchQuery}
