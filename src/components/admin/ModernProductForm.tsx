@@ -6,9 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { useProductVariants, ProductVariant } from "@/hooks/useProductVariants";
-import { Plus, X, Upload } from "lucide-react";
 import CategorySelector from "./CategorySelector";
+import { ProductVariantService } from "@/services/productVariantService";
 
 interface ProductVariantInput {
   label: string;
@@ -20,14 +19,14 @@ interface ProductVariantInput {
 
 interface ModernProductFormProps {
   initialData?: Partial<Product>;
-  onSubmit: (product: Omit<Product, "id">, saveVariants?: (productId: string) => Promise<boolean>) => void;
+  onSubmit: (product: Omit<Product, "id">, productIdHandler?: (productId: string) => Promise<boolean>) => void;
   submitLabel?: string;
   onCancel?: () => void;
 }
 
-export const ModernProductForm: React.FC<ModernProductFormProps> = ({ 
-  initialData = {}, 
-  onSubmit, 
+export const ModernProductForm: React.FC<ModernProductFormProps> = ({
+  initialData = {},
+  onSubmit,
   submitLabel = "حفظ المنتج",
   onCancel
 }) => {
@@ -42,26 +41,39 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { variants: existingVariants, fetchVariants } = useProductVariants(initialData.id || "");
-
-  useEffect(() => {
-    if (initialData.id) {
-      fetchVariants();
+  // Variant CRUD
+  const addVariant = () => {
+    setVariants([
+      ...variants,
+      {
+        label: "",
+        image_url: "",
+        price_adjustment: 0,
+        stock: 0,
+        is_default: variants.length === 0 // First variant is default
+      }
+    ]);
+  };
+  const removeVariant = (index: number) => {
+    const newVariants = variants.filter((_, i) => i !== index);
+    // If we removed the default variant, make the first one default
+    if (variants[index].is_default && newVariants.length > 0) {
+      newVariants[0].is_default = true;
     }
-  }, [initialData.id]);
-
-  useEffect(() => {
-    if (existingVariants.length > 0) {
-      setVariants(existingVariants.map(v => ({
-        label: v.label,
-        image_url: v.image_url,
-        price_adjustment: v.price_adjustment,
-        stock: v.stock,
-        is_default: v.is_default
-      })));
+    setVariants(newVariants);
+  };
+  const updateVariant = (index: number, field: keyof ProductVariantInput, value: any) => {
+    const newVariants = [...variants];
+    if (field === 'is_default' && value) {
+      // Only one variant can be default
+      newVariants.forEach((v, i) => v.is_default = i === index);
+    } else {
+      newVariants[index] = { ...newVariants[index], [field]: value };
     }
-  }, [existingVariants]);
+    setVariants(newVariants);
+  };
 
+  // Image uploaders
   const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -72,7 +84,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
       reader.readAsDataURL(file);
     }
   };
-
   const handleVariantImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -86,119 +97,67 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
     }
   };
 
-  const addVariant = () => {
-    setVariants([...variants, {
-      label: "",
-      image_url: "",
-      price_adjustment: 0,
-      stock: 0,
-      is_default: variants.length === 0 // First variant is default
-    }]);
-  };
-
-  const removeVariant = (index: number) => {
-    const newVariants = variants.filter((_, i) => i !== index);
-    // If we removed the default variant, make the first one default
-    if (variants[index].is_default && newVariants.length > 0) {
-      newVariants[0].is_default = true;
-    }
-    setVariants(newVariants);
-  };
-
-  const updateVariant = (index: number, field: keyof ProductVariantInput, value: any) => {
-    const newVariants = [...variants];
-    if (field === 'is_default' && value) {
-      // Only one variant can be default
-      newVariants.forEach((v, i) => v.is_default = i === index);
-    } else {
-      newVariants[index] = { ...newVariants[index], [field]: value };
-    }
-    setVariants(newVariants);
-  };
-
-  const saveVariantsToDatabase = async (productId: string): Promise<boolean> => {
-    try {
-      const { addVariant } = useProductVariants(productId);
-      
-      for (const variant of variants) {
-        const success = await addVariant({
-          label: variant.label,
-          image_url: variant.image_url,
-          price_adjustment: variant.price_adjustment,
-          stock: variant.stock,
-          is_default: variant.is_default,
-          position: variants.indexOf(variant)
-        });
-        
-        if (!success) {
-          throw new Error(`Failed to save variant: ${variant.label}`);
-        }
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error saving variants:', error);
-      toast.error('فشل في حفظ المتغيرات');
-      return false;
-    }
-  };
-
+  // Validation
   const validateForm = () => {
     if (!name.trim()) {
       setError("اسم المنتج مطلوب");
       return false;
     }
-    
     if (!description.trim()) {
       setError("وصف المنتج مطلوب");
       return false;
     }
-    
     if (basePrice <= 0) {
       setError("السعر الأساسي مطلوب ويجب أن يكون أكبر من صفر");
       return false;
     }
-    
     if (!category.trim()) {
       setError("التصنيف مطلوب");
       return false;
     }
-    
     if (!mainImage) {
       setError("الصورة الرئيسية مطلوبة");
       return false;
     }
-    
     if (variants.length === 0) {
       setError("يجب إضافة متغير واحد على الأقل (لون مع صورة)");
       return false;
     }
-    
     for (const variant of variants) {
       if (!variant.label.trim()) {
         setError("جميع المتغيرات يجب أن تحتوي على اسم");
         return false;
       }
-      
       if (!variant.image_url) {
         setError(`يجب تحميل صورة للمتغير: ${variant.label}`);
         return false;
       }
     }
-    
     return true;
   };
 
+  // The NEW CORRECT function for saving variants using productVariantService 
+  const saveVariantsToDatabase = async (productId: string): Promise<boolean> => {
+    // Map from admin state to the structure productVariantService expects
+    // Here, we use only 1 size per variant, called "Default"
+    const formattedVariants = variants.map(variant => ({
+      color: variant.label,
+      image: variant.image_url,
+      options: [{
+        size: "Default",
+        price: variant.price_adjustment,
+        stock: variant.stock
+      }]
+    }));
+    return await ProductVariantService.saveProductVariants(productId, formattedVariants);
+  };
+
+  // Form submit handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
+    if (!validateForm()) return;
     setLoading(true);
     setError("");
-    
     try {
       const productData: Omit<Product, "id"> = {
         name: name.trim(),
@@ -214,13 +173,10 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      
-      console.log('🎯 Product data before submission:', productData);
-      
+      // SUBMIT: pass productData and the variant save handler
       onSubmit(productData, saveVariantsToDatabase);
     } catch (error) {
-      console.error('Form submission error:', error);
-      setError('حدث خطأ أثناء حفظ المنتج');
+      setError("حدث خطأ أثناء حفظ المنتج");
     } finally {
       setLoading(false);
     }
@@ -245,15 +201,13 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                 required
               />
             </div>
-            
             <div>
-              <CategorySelector 
+              <CategorySelector
                 value={category}
                 onChange={(categoryId) => setCategory(categoryId)}
               />
             </div>
           </div>
-
           <div>
             <Label htmlFor="description">وصف المنتج *</Label>
             <Textarea
@@ -265,7 +219,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
               required
             />
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="basePrice">السعر الأساسي *</Label>
@@ -280,7 +233,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                 required
               />
             </div>
-            
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
@@ -290,7 +242,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
               />
               <Label htmlFor="hasDiscount">يوجد خصم</Label>
             </div>
-            
             {hasDiscount && (
               <div>
                 <Label htmlFor="discount">نسبة الخصم (%)</Label>
@@ -306,7 +257,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
               </div>
             )}
           </div>
-
           {/* Main Image */}
           <div>
             <Label>الصورة الرئيسية *</Label>
@@ -326,26 +276,20 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                   <img src={mainImage} alt="Main product" className="h-full w-full object-cover rounded-lg" />
                 ) : (
                   <div className="text-center">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <span className="mt-2 block text-sm font-medium text-gray-900">
-                      اضغط لتحميل الصورة الرئيسية
-                    </span>
+                    اضغط لتحميل الصورة الرئيسية
                   </div>
                 )}
               </label>
             </div>
           </div>
-
           {/* Color Variants */}
           <div>
             <div className="flex items-center justify-between mb-4">
               <Label className="text-lg font-semibold">متغيرات المنتج (الألوان)</Label>
               <Button type="button" onClick={addVariant} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
                 إضافة متغير
               </Button>
             </div>
-            
             <div className="space-y-4">
               {variants.map((variant, index) => (
                 <Card key={index} className="p-4">
@@ -359,7 +303,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                         required
                       />
                     </div>
-                    
                     <div>
                       <Label>تعديل السعر</Label>
                       <Input
@@ -370,7 +313,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                         placeholder="0.00"
                       />
                     </div>
-                    
                     <div>
                       <Label>المخزون</Label>
                       <Input
@@ -381,7 +323,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                         placeholder="0"
                       />
                     </div>
-                    
                     <div className="flex items-center space-x-2">
                       <input
                         type="checkbox"
@@ -390,7 +331,6 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                       />
                       <Label>افتراضي</Label>
                     </div>
-                    
                     <div className="flex items-center space-x-2">
                       <Button
                         type="button"
@@ -398,11 +338,10 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                         size="sm"
                         onClick={() => removeVariant(index)}
                       >
-                        <X className="h-4 w-4" />
+                        إزالة
                       </Button>
                     </div>
                   </div>
-                  
                   <div className="mt-4">
                     <Label>صورة المتغير *</Label>
                     <div className="mt-2">
@@ -421,10 +360,7 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
                           <img src={variant.image_url} alt={variant.label} className="h-full w-full object-cover rounded-lg" />
                         ) : (
                           <div className="text-center">
-                            <Upload className="mx-auto h-8 w-8 text-gray-400" />
-                            <span className="mt-1 block text-xs text-gray-600">
-                              اضغط لتحميل صورة {variant.label || 'المتغير'}
-                            </span>
+                            اضغط لتحميل صورة {variant.label || 'المتغير'}
                           </div>
                         )}
                       </label>
@@ -434,19 +370,17 @@ export const ModernProductForm: React.FC<ModernProductFormProps> = ({
               ))}
             </div>
           </div>
-
           {error && (
             <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md border border-red-200">
               {error}
             </div>
           )}
-
           <div className="flex gap-2">
             {onCancel && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="flex-1" 
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
                 onClick={onCancel}
                 disabled={loading}
               >
