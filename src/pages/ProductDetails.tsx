@@ -254,7 +254,7 @@ const ProductDetails = () => {
       
       const cartSize = selectedSize || 'متاح';
       const cartColor = selectedVariant ? selectedVariant.label : (selectedColor || '');
-      const success = await addToCart(productForCart, cartSize, cartColor, quantity);
+      const success = await addToCart(productForCart, cartSize, cartColor, quantity, currentPrice);
       
       if (success) {
         // Optional: Navigate to cart or stay on page

@@ -25,7 +25,7 @@ export const useCartIntegration = () => {
     loadCartItems();
   }, []);
 
-  const addToCart = async (product: Product, selectedSize: string, selectedColor: string, quantity: number = 1): Promise<boolean> => {
+  const addToCart = async (product: Product, selectedSize: string, selectedColor: string, quantity: number = 1, price?: number): Promise<boolean> => {
     try {
       if (!selectedSize) {
         toast.error('يرجى اختيار المقاس');
@@ -38,7 +38,7 @@ export const useCartIntegration = () => {
       }
 
       const cartDb = CartDatabase.getInstance();
-      const success = await cartDb.addToCart(product, selectedSize, selectedColor, quantity);
+      const success = await cartDb.addToCart(product, selectedSize, selectedColor, quantity, price);
       
       if (success) {
         toast.success('تم إضافة المنتج إلى العربة بنجاح!');

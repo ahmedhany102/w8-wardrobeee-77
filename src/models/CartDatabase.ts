@@ -35,21 +35,22 @@ class CartDatabase {
     }
   }
 
-  async addToCart(product: Product, size: string, color: string, quantity: number = 1): Promise<boolean> {
+  async addToCart(product: Product, size: string, color: string, quantity: number = 1, price?: number): Promise<boolean> {
     try {
       const cartItems = await this.getCartItems();
-      const imageUrl = product.mainImage || (product.images && product.images[0]) || '';
+      const imageUrl = product.mainImage || product.main_image || product.image_url || (product.images && product.images[0]) || '';
       // كل منتج بمقاس ولون مختلف يعتبر عنصر منفصل
       const existingItemIndex = cartItems.findIndex(item => item.productId === product.id && item.size === size && item.color === color);
       if (existingItemIndex >= 0) {
         cartItems[existingItemIndex].quantity += quantity;
       } else {
-        const price = (product.sizes || []).find(s => s.size === size)?.price || 0;
+        // Use provided price, or find from sizes array, or use base product price
+        const itemPrice = price || (product.sizes || []).find(s => s.size === size)?.price || product.price || 0;
         const newItem: CartItem = {
           id: `cart-${Date.now()}`,
           productId: product.id,
           name: product.name,
-          price: price,
+          price: itemPrice,
           quantity: quantity,
           imageUrl: imageUrl,
           size: size,
@@ -58,7 +59,7 @@ class CartDatabase {
         cartItems.push(newItem);
       }
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(cartItems));
-      console.log("Product added to cart:", product.name, "size:", size, "color:", color, "qty:", quantity);
+      console.log("Product added to cart:", product.name, "size:", size, "color:", color, "price:", price, "qty:", quantity);
       return true;
     } catch (error) {
       console.error("Error adding to cart:", error);
