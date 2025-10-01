@@ -42,6 +42,8 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
   // Use variant image if available, otherwise fallback to product main image
   const mainImage = selectedVariant?.image_url || 
     (product.mainImage && product.mainImage !== "" ? product.mainImage : null) ||
+    (product.main_image && product.main_image !== "" ? product.main_image : null) ||
+    (product.image_url && product.image_url !== "" ? product.image_url : null) ||
     (product.images && Array.isArray(product.images) && product.images.length > 0 && product.images[0]) ||
     "/placeholder.svg";
   

@@ -23,20 +23,66 @@ export const useProductVariants = (productId: string) => {
   const fetchVariants = async () => {
     setLoading(true);
     try {
+      // First try the new color-variant schema (product_color_variants + options)
+      const { data: colorVariants, error: colorErr } = await supabase
+        .from('product_color_variants')
+        .select('*')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: true });
+
+      if (colorErr) {
+        console.warn('Failed loading color variants, will fallback:', colorErr.message);
+      }
+
+      if (colorVariants && colorVariants.length > 0) {
+        const variantIds = colorVariants.map(v => v.id);
+        const { data: options, error: optErr } = await supabase
+          .from('product_color_variant_options')
+          .select('color_variant_id, price, stock')
+          .in('color_variant_id', variantIds)
+          .order('created_at', { ascending: true });
+
+        if (optErr) {
+          console.warn('Failed loading color variant options:', optErr.message);
+        }
+
+        const mapped: ProductVariant[] = colorVariants.map((cv: any, idx: number) => {
+          const myOpts = (options || []).filter(o => o.color_variant_id === cv.id);
+          const totalStock = myOpts.reduce((s, o: any) => s + (Number(o.stock) || 0), 0);
+          return {
+            id: cv.id,
+            product_id: productId,
+            label: cv.color,
+            image_url: cv.image || '',
+            hex_code: undefined,
+            price_adjustment: 0, // base price handled in UI; per-size pricing not adjusted here
+            stock: totalStock,
+            is_default: idx === 0,
+            position: idx,
+            created_at: cv.created_at,
+            updated_at: cv.updated_at,
+          } as ProductVariant;
+        });
+
+        setVariants(mapped);
+        return; // Do not fallback if we have new schema data
+      }
+
+      // Fallback to legacy product_variants table
       const { data, error } = await supabase
-        .from("product_variants")
-        .select("*")
-        .eq("product_id", productId)
-        .order("position", { ascending: true });
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', productId)
+        .order('position', { ascending: true });
 
       if (error) {
-        toast.error("Failed to load product variants: " + error.message);
+        toast.error('Failed to load product variants: ' + error.message);
         setVariants([]);
       } else {
         setVariants(data || []);
       }
     } catch (err) {
-      console.error("Error fetching variants:", err);
+      console.error('Error fetching variants:', err);
       setVariants([]);
     } finally {
       setLoading(false);

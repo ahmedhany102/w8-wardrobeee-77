@@ -118,6 +118,7 @@ const ProductDetails = () => {
         
         // Set main image
         const mainImg = formattedProduct.main_image || 
+                       formattedProduct.image_url ||
                        (formattedProduct.images && formattedProduct.images[0]) || 
                        '/placeholder.svg';
         setActiveImage(mainImg);
