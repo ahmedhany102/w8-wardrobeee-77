@@ -64,8 +64,8 @@ const ProductCatalog: React.FC = () => {
 
 
   return (
-    <div className="container mx-auto px-4 py-4">
-      <ProductCatalogHeader 
+    <div className="container mx-auto px-4 py-4 min-h-[1000px]">
+      <ProductCatalogHeader
         cart={cartForDialog}
         onCartClick={() => setShowCartDialog(true)}
       />
