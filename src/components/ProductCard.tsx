@@ -125,13 +125,17 @@ const ProductCard = ({ product, className = '' }: ProductCardProps) => {
     <Card 
       className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 border-gray-200 ${className}`}
       onClick={handleProductClick}
+      style={{ minHeight: '380px' }}
     >
       <CardHeader className="p-0 pb-2">
         <AspectRatio ratio={1} className="bg-gray-100 rounded-t-lg overflow-hidden">
           <img
             src={mainImage}
             alt={product.name}
+            width="300"
+            height="300"
             className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            loading="lazy"
             onError={(e) => {
               (e.target as HTMLImageElement).src = "/placeholder.svg";
             }}
