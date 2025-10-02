@@ -25,11 +25,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     return (
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="rounded-lg bg-muted animate-pulse" style={{ minHeight: '380px' }}>
-            <div className="aspect-square bg-muted-foreground/10 rounded-t-lg mb-3" />
-            <div className="p-3 space-y-2">
-              <div className="h-4 bg-muted-foreground/20 rounded w-3/4" />
-              <div className="h-6 bg-muted-foreground/20 rounded w-1/2" />
+          <div key={i} className="rounded-lg bg-muted animate-pulse h-[380px] flex flex-col">
+            <div className="aspect-square bg-muted-foreground/10 rounded-t-lg" />
+            <div className="flex-1 p-3 space-y-2 flex flex-col justify-between">
+              <div>
+                <div className="h-4 bg-muted-foreground/20 rounded w-3/4 mb-2" />
+                <div className="h-6 bg-muted-foreground/20 rounded w-1/2" />
+              </div>
               <div className="h-10 bg-muted-foreground/20 rounded" />
             </div>
           </div>

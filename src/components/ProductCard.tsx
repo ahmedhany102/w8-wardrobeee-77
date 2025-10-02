@@ -117,9 +117,8 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
 
   return (
     <Card 
-      className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 border-gray-200 ${className}`}
+      className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 border-gray-200 flex flex-col h-[380px] ${className}`}
       onClick={handleProductClick}
-      style={{ minHeight: '380px' }}
     >
       <CardHeader className="p-0 pb-2">
         <AspectRatio ratio={1} className="bg-gray-100 rounded-t-lg overflow-hidden">
@@ -151,7 +150,7 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
         )}
       </CardHeader>
 
-      <CardContent className="p-3 pb-2">
+      <CardContent className="p-3 pb-2 flex-1 flex flex-col justify-between">
         <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-green-700 transition-colors">
           {product.name}
         </h3>
