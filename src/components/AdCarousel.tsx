@@ -75,6 +75,7 @@ const AdCarousel: React.FC = () => {
             className="w-full h-full object-cover"
             width="1200"
             height="400"
+            loading={currentAdIndex === 0 ? "eager" : "lazy"}
             fetchPriority={currentAdIndex === 0 ? "high" : "auto"}
             onError={(e) => {
               console.error('Failed to load ad image:', currentAd.image_url);
