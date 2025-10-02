@@ -56,12 +56,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log('✅ Profile loaded after auth change:', userData);
             } catch (error) {
               console.error('❌ Failed to load profile after auth change:', error);
-              // Fallback user data
+              // Fallback user data with default USER role
               const basicUserData: AuthUser = {
                 id: session.user.id,
                 email: session.user.email!,
                 name: session.user.email?.split('@')[0] || 'User',
-                role: session.user.email === 'ahmedhanyseifeldien@gmail.com' ? 'ADMIN' : 'USER'
+                role: 'USER'
               };
               setUser(basicUserData);
             }

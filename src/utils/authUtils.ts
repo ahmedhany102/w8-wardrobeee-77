@@ -52,6 +52,19 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
       throw error;
     }
 
+    // Fetch user role from secure user_roles table
+    const { data: roles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+
+    if (rolesError) {
+      console.error('❌ Error fetching user roles:', rolesError);
+    }
+
+    // Determine if user is admin based on their roles
+    const isAdmin = roles?.some(r => r.role === 'admin' || r.role === 'super_admin') || false;
+
     if (!profile) {
       console.log('👤 Creating new profile for user:', userEmail);
       
@@ -61,9 +74,9 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
           id: userId,
           email: userEmail,
           name: userEmail?.split('@')[0] || 'User',
-          role: 'USER', // Default to USER, admin status managed separately
-          is_admin: false,
-          is_super_admin: false,
+          role: isAdmin ? 'ADMIN' : 'USER',
+          is_admin: isAdmin,
+          is_super_admin: roles?.some(r => r.role === 'super_admin') || false,
           status: 'ACTIVE'
         })
         .select()
@@ -78,7 +91,7 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
         id: newProfile.id,
         email: newProfile.email,
         name: newProfile.name,
-        role: (newProfile.is_admin ? 'ADMIN' : 'USER') as 'ADMIN' | 'USER',
+        role: isAdmin ? 'ADMIN' : 'USER',
         displayName: newProfile.name
       };
     } else {
@@ -86,7 +99,7 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
         id: profile.id,
         email: profile.email,
         name: profile.name,
-        role: (profile.is_admin ? 'ADMIN' : 'USER') as 'ADMIN' | 'USER',
+        role: isAdmin ? 'ADMIN' : 'USER',
         displayName: profile.name
       };
     }
