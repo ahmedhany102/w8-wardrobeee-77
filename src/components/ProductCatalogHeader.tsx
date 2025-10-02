@@ -14,7 +14,7 @@ const ProductCatalogHeader: React.FC<ProductCatalogHeaderProps> = ({ cart, onCar
   const cartItemCount = cart.reduce((total, item) => total + (item.quantity || 0), 0);
 
   return (
-    <div className="flex justify-between items-center mb-6">
+    <div className="flex justify-between items-center mb-6 min-h-[48px]">
       <h2 className="text-3xl font-bold text-green-500">Our Products</h2>
       {user && !isAdmin && (
         <div className="relative">

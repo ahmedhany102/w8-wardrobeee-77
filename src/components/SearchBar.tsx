@@ -35,7 +35,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <form 
       onSubmit={handleSearch} 
-      className={`flex items-center space-x-2 ${className}`}
+      className={`flex items-center space-x-2 min-h-[44px] ${className}`}
     >
       <div className="relative flex-grow">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />

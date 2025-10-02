@@ -28,11 +28,11 @@ const CategoryNavigation: React.FC<CategoryNavigationProps> = ({
 
   if (loading) {
     return (
-      <div className="mb-8">
+      <div className="mb-8 min-h-[116px]">
         <h3 className="text-lg font-semibold mb-4">تصفح حسب الفئة</h3>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-md" />
+            <Skeleton key={i} className="h-[84px] rounded-md" />
           ))}
         </div>
       </div>
@@ -44,12 +44,12 @@ const CategoryNavigation: React.FC<CategoryNavigationProps> = ({
   }
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 min-h-[116px]">
       <h3 className="text-lg font-semibold mb-4">تصفح حسب الفئة</h3>
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3">
         {/* All Products Option */}
         <Card 
-          className={`cursor-pointer transition-all hover:shadow-sm hover:scale-[1.02] ${
+          className={`cursor-pointer transition-all hover:shadow-sm hover:scale-[1.02] min-h-[84px] ${
             !selectedCategory ? 'ring-1 ring-primary' : ''
           }`}
           onClick={() => handleCategoryClick({ id: null, slug: 'all', name: 'جميع المنتجات' })}
@@ -66,7 +66,7 @@ const CategoryNavigation: React.FC<CategoryNavigationProps> = ({
         {mainCategories.map((category) => (
           <Card 
             key={category.id}
-            className={`cursor-pointer transition-all hover:shadow-sm hover:scale-[1.02] ${
+            className={`cursor-pointer transition-all hover:shadow-sm hover:scale-[1.02] min-h-[84px] ${
               selectedCategory === category.id ? 'ring-1 ring-primary' : ''
             }`}
             onClick={() => handleCategoryClick(category)}
@@ -77,6 +77,8 @@ const CategoryNavigation: React.FC<CategoryNavigationProps> = ({
                   <img 
                     src={category.image_url} 
                     alt={category.name}
+                    width="32"
+                    height="32"
                     className="w-full h-full object-cover rounded-md"
                   />
                 ) : (
