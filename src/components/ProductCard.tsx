@@ -169,9 +169,9 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
 
         {/* Color Variants */}
         {variants.length > 0 && (
-          <div className="flex items-center gap-1 mb-2">
+          <div className="flex items-center gap-2 mb-2">
             <span className="text-xs text-muted-foreground">الألوان:</span>
-            <div className="flex gap-1">
+            <div className="flex gap-2">
               {variants.slice(0, 4).map((variant) => (
                 <button
                   key={variant.id}
@@ -179,7 +179,7 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
                     e.stopPropagation();
                     setSelectedVariant(variant);
                   }}
-                  className={`w-4 h-4 rounded-full border-2 ${
+                  className={`w-6 h-6 rounded-full border-2 ${
                     selectedVariant?.id === variant.id 
                       ? 'border-primary shadow-md' 
                       : 'border-gray-300'
