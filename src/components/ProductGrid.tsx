@@ -2,6 +2,7 @@
 import React from 'react';
 import ProductCard from './ProductCard';
 import { Button } from './ui/button';
+import { ProductVariant } from '@/hooks/useProductVariants';
 
 interface ProductGridProps {
   products: any[];
@@ -9,6 +10,7 @@ interface ProductGridProps {
   searchQuery: string;
   onAddToCart: (product: any, size: string, quantity?: number) => Promise<void>;
   onClearSearch: () => void;
+  variantsByProduct?: Record<string, ProductVariant[]>;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
@@ -16,7 +18,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   loading, 
   searchQuery, 
   onAddToCart, 
-  onClearSearch 
+  onClearSearch,
+  variantsByProduct = {}
 }) => {
   if (loading) {
     return (
@@ -55,7 +58,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         <ProductCard 
           key={product.id} 
           product={product} 
-          onAddToCart={onAddToCart} 
+          onAddToCart={onAddToCart}
+          variants={variantsByProduct[product.id] || []}
         />
       ))}
     </div>

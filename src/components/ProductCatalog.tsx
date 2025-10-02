@@ -7,6 +7,7 @@ import ProductCatalogHeader from './ProductCatalogHeader';
 import ProductGrid from './ProductGrid';
 import ShoppingCartDialog from './ShoppingCartDialog';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
+import { useBulkProductVariants } from '@/hooks/useBulkProductVariants';
 
 const ProductCatalog: React.FC = () => {
   const { products, loading } = useSupabaseProducts();
@@ -19,6 +20,10 @@ const ProductCatalog: React.FC = () => {
     handleCategoryFilter,
     clearFilters
   } = useProductFiltering(products);
+  
+  // Fetch all variants in bulk for all products
+  const productIds = React.useMemo(() => products.map(p => p.id), [products]);
+  const { variantsByProduct } = useBulkProductVariants(productIds);
   const [showCartDialog, setShowCartDialog] = React.useState(false);
 
   // Convert cart items to the format expected by ShoppingCartDialog
@@ -78,6 +83,7 @@ const ProductCatalog: React.FC = () => {
         searchQuery={searchQuery}
         onAddToCart={handleAddToCart}
         onClearSearch={clearFilters}
+        variantsByProduct={variantsByProduct}
       />
 
       <ShoppingCartDialog

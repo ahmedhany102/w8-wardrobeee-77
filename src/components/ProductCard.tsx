@@ -8,24 +8,18 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import CartDatabase from "@/models/CartDatabase";
-import { useProductVariants } from '@/hooks/useProductVariants';
+import { ProductVariant } from '@/hooks/useProductVariants';
 
 interface ProductCardProps {
   product: Product;
   onAddToCart?: (product: Product, size: string, quantity?: number) => void;
   className?: string;
+  variants?: ProductVariant[];
 }
 
-const ProductCard = ({ product, className = '' }: ProductCardProps) => {
+const ProductCard = ({ product, className = '', variants = [] }: ProductCardProps) => {
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
-  const { variants, fetchVariants } = useProductVariants(product.id);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (product.id) {
-      fetchVariants();
-    }
-  }, [product.id]);
 
   useEffect(() => {
     if (variants.length > 0) {
