@@ -52,6 +52,13 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
       throw error;
     }
 
+    // Check if user is banned
+    if (profile?.status === 'banned') {
+      console.warn('🚫 User is banned:', userEmail);
+      toast.error('Your account has been banned. Please contact support.');
+      throw new Error('Account banned');
+    }
+
     // Fetch user role from secure user_roles table
     const { data: roles, error: rolesError } = await supabase
       .from('user_roles')
