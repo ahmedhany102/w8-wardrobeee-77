@@ -42,9 +42,21 @@ const AdCarousel: React.FC = () => {
     }
   };
 
-  // Don't render anything if no ads or still loading
-  if (loading || activeAds.length === 0) {
-    console.log('🚫 Not showing ad carousel - loading:', loading, 'ads count:', activeAds.length);
+  // Reserve space during loading to prevent CLS
+  if (loading) {
+    console.log('⏳ Showing ad carousel placeholder while loading');
+    return (
+      <div className="w-full mb-6">
+        <Card className="relative overflow-hidden rounded-lg shadow-lg bg-gradient-to-r from-green-50 to-green-100">
+          <div className="relative h-48 md:h-64 lg:h-80 w-full" aria-hidden="true" />
+        </Card>
+      </div>
+    );
+  }
+
+  // Don't render anything if no active ads after loading
+  if (activeAds.length === 0) {
+    console.log('🚫 Not showing ad carousel - no active ads');
     return null;
   }
 
