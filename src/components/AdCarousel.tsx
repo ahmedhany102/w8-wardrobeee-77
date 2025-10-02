@@ -61,6 +61,9 @@ const AdCarousel: React.FC = () => {
             src={currentAd.image_url} 
             alt={currentAd.title || 'Advertisement'} 
             className="w-full h-full object-cover"
+            width="1200"
+            height="400"
+            fetchPriority={currentAdIndex === 0 ? "high" : "auto"}
             onError={(e) => {
               console.error('Failed to load ad image:', currentAd.image_url);
               (e.target as HTMLImageElement).style.display = 'none';
