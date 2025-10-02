@@ -32,12 +32,7 @@ export const useRealtimeCategories = () => {
           }
         }
       )
-      .subscribe((status, err) => {
-        if (err) {
-          // Silently handle connection errors to prevent console pollution
-          console.debug('Realtime connection status:', status);
-        }
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);

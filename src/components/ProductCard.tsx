@@ -117,8 +117,9 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
 
   return (
     <Card 
-      className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 border-gray-200 flex flex-col h-[380px] ${className}`}
+      className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 border-gray-200 ${className}`}
       onClick={handleProductClick}
+      style={{ minHeight: '380px' }}
     >
       <CardHeader className="p-0 pb-2">
         <AspectRatio ratio={1} className="bg-gray-100 rounded-t-lg overflow-hidden">
@@ -150,7 +151,7 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
         )}
       </CardHeader>
 
-      <CardContent className="p-3 pb-2 flex-1 flex flex-col justify-between">
+      <CardContent className="p-3 pb-2">
         <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-green-700 transition-colors">
           {product.name}
         </h3>
@@ -169,9 +170,9 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
 
         {/* Color Variants */}
         {variants.length > 0 && (
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-1 mb-2">
             <span className="text-xs text-muted-foreground">الألوان:</span>
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               {variants.slice(0, 4).map((variant) => (
                 <button
                   key={variant.id}
@@ -179,7 +180,7 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
                     e.stopPropagation();
                     setSelectedVariant(variant);
                   }}
-                  className={`w-6 h-6 rounded-full border-2 ${
+                  className={`w-4 h-4 rounded-full border-2 ${
                     selectedVariant?.id === variant.id 
                       ? 'border-primary shadow-md' 
                       : 'border-gray-300'
