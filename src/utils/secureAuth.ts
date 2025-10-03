@@ -84,19 +84,15 @@ export const secureSignup = async (email: string, password: string, name: string
 // Server-side admin check using secure user_roles table
 export const checkAdminStatus = async (userId: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .in('role', ['admin', 'super_admin']);
+    // Prefer secure RPC to avoid any RLS edge cases
+    const { data, error } = await supabase.rpc('is_admin', { _user_id: userId });
 
     if (error) {
-      console.error('❌ Error checking admin status:', error);
+      console.error('❌ Error checking admin status via RPC:', error);
       return false;
     }
 
-    // User is admin if they have any admin or super_admin role
-    return data && data.length > 0;
+    return Boolean(data);
   } catch (error) {
     console.error('💥 Exception checking admin status:', error);
     return false;
