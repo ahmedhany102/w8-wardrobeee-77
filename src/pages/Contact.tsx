@@ -7,8 +7,10 @@ import ContactInfo from '@/components/contact/ContactInfo';
 import WorkingHours from '@/components/contact/WorkingHours';
 import SocialLinks from '@/components/contact/SocialLinks';
 import MapSection from '@/components/contact/MapSection';
+import { useSupabaseContactSettings } from '@/hooks/useSupabaseContactSettings';
 
 const Contact = () => {
+  const { settings, loading: settingsLoading } = useSupabaseContactSettings();
   const [form, setForm] = React.useState({
     name: '',
     email: '',
@@ -67,26 +69,32 @@ const Contact = () => {
       <div className="py-8">
         <h1 className="text-3xl font-bold text-center mb-8">Contact Us</h1>
         
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Contact Form */}
-          <div>
-            <ContactForm
-              form={form}
-              isSubmitting={isSubmitting}
-              onFormChange={handleChange}
-              onSubmit={handleSubmit}
-            />
-          </div>
-          
-          {/* Contact Information */}
-          <div>
-            <ContactInfo />
-            <WorkingHours />
-            <SocialLinks />
-          </div>
-        </div>
-        
-        <MapSection />
+        {settingsLoading ? (
+          <div className="text-center py-8">Loading...</div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Contact Form */}
+              <div>
+                <ContactForm
+                  form={form}
+                  isSubmitting={isSubmitting}
+                  onFormChange={handleChange}
+                  onSubmit={handleSubmit}
+                />
+              </div>
+              
+              {/* Contact Information */}
+              <div>
+                <ContactInfo settings={settings} />
+                <WorkingHours settings={settings} />
+                <SocialLinks settings={settings} />
+              </div>
+            </div>
+            
+            <MapSection settings={settings} />
+          </>
+        )}
       </div>
     </Layout>
   );

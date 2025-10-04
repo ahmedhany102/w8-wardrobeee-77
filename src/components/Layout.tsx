@@ -2,7 +2,7 @@
 import React from 'react';
 import { useLocation } from 'react-router-dom';
 import AppHeader from './AppHeader';
-import CustomFooter from './CustomFooter';
+import Footer from './Footer';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -16,7 +16,7 @@ const Layout = ({ children, hideFooter = false }: LayoutProps) => {
     <div className="flex flex-col min-h-screen">
       <AppHeader />
       <main className="flex-grow pb-16 md:pb-0">{children}</main>
-      {!hideFooter && <CustomFooter />}
+      {!hideFooter && <Footer />}
     </div>
   );
 };
