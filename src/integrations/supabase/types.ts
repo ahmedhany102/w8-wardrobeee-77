@@ -649,6 +649,10 @@ export type Database = {
         Args: { order_id: string }
         Returns: boolean
       }
+      check_ban_status: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       delete_promotional_banner: {
         Args: { banner_id: string }
         Returns: boolean

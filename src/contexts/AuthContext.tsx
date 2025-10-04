@@ -48,6 +48,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user) {
             console.log('🔐 User signed in or token refreshed - processing...');
+            
+            // CRITICAL: Check if user is banned before allowing access
+            console.log('🔍 Checking ban status in auth state change...');
+            const { data: canAuth, error: authCheckError } = await supabase.rpc('can_user_authenticate', {
+              _user_id: session.user.id
+            });
+
+            if (authCheckError) {
+              console.error('❌ Auth check error:', authCheckError);
+            }
+
+            if (!canAuth) {
+              console.warn('🚫 BLOCKED: Banned user detected in auth state change, signing out:', session.user.email);
+              await supabase.auth.signOut();
+              setSession(null);
+              setUser(null);
+              setLoading(false);
+              toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
+              return;
+            }
+            
             setSession(session);
             
             try {

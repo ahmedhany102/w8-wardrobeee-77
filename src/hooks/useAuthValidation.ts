@@ -83,6 +83,26 @@ export const useAuthValidation = () => {
         return;
       }
 
+      // CRITICAL: Check if user is banned before proceeding
+      console.log('🔍 Checking ban status during session validation...');
+      const { data: canAuth, error: authCheckError } = await supabase.rpc('can_user_authenticate', {
+        _user_id: currentSession.user.id
+      });
+
+      if (authCheckError) {
+        console.error('❌ Auth check error:', authCheckError);
+      }
+
+      if (!canAuth) {
+        console.warn('🚫 BLOCKED: Banned user session detected, signing out:', currentSession.user.email);
+        await secureLogout();
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
+        return;
+      }
+
       console.log('✅ Valid session found, setting session and fetching user profile...');
       setSession(currentSession);
 

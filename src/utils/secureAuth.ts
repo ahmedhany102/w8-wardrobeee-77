@@ -30,7 +30,28 @@ export const secureLogin = async (email: string, password: string): Promise<bool
     }
 
     if (data.session && data.user) {
-      console.log('✅ Login successful');
+      // CRITICAL: Check if user is banned IMMEDIATELY after login
+      console.log('🔍 Checking ban status for user:', data.user.id);
+      
+      const { data: canAuth, error: authCheckError } = await supabase.rpc('can_user_authenticate', {
+        _user_id: data.user.id
+      });
+
+      if (authCheckError) {
+        console.error('❌ Auth check error:', authCheckError);
+        await supabase.auth.signOut();
+        toast.error('Authentication validation failed');
+        return false;
+      }
+
+      if (!canAuth) {
+        console.warn('🚫 BLOCKED: Banned user attempted login:', data.user.email);
+        await supabase.auth.signOut();
+        toast.error('تم حظر حسابك. يرجى الاتصال بالدعم');
+        return false;
+      }
+
+      console.log('✅ Login successful - user is active');
       toast.success('Login successful!');
       return true;
     }
