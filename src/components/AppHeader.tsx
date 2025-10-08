@@ -2,12 +2,14 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from './ui/button';
-import { LogOut, Shield } from 'lucide-react';
+import { LogOut, Shield, Moon, Sun } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AppHeader = () => {
   const { user, logout, isAdmin } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -41,6 +43,20 @@ const AppHeader = () => {
               </Link>
             )}
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="h-8 w-8 p-0 text-white hover:bg-gray-800"
+                aria-label="Toggle theme"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </Button>
+              
               {user ? (
                 <div className="flex items-center gap-3">
                   <div className="text-sm text-gray-300">

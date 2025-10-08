@@ -13,7 +13,8 @@ import AdManagement from "@/components/admin/AdManagement";
 import UsersPanel from "@/components/admin/UsersPanel";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import AdminDashboardStats from "@/components/AdminDashboardStats";
-import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree } from "lucide-react";
+import { ReviewsManagement } from "@/components/admin/ReviewsManagement";
+import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree, Star } from "lucide-react";
 import { useSupabaseProducts, useSupabaseUsers, useSupabaseOrders } from "@/hooks/useSupabaseData";
 
 const Admin = ({ activeTab = "dashboard" }) => {
@@ -107,6 +108,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <Settings className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الإعلانات</span>
             </TabsTrigger>
+            <TabsTrigger value="reviews" onClick={() => setCurrentTab("reviews")}>
+              <Star className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">التقييمات</span>
+            </TabsTrigger>
             <TabsTrigger value="users" onClick={() => navigate("/admin/users")}>
               <Users className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">المستخدمين</span>
@@ -151,6 +156,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
           <TabsContent value="ads">
             <AdManagement />
+          </TabsContent>
+
+          <TabsContent value="reviews">
+            <ReviewsManagement />
           </TabsContent>
           
           <TabsContent value="users">

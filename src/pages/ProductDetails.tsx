@@ -13,6 +13,8 @@ import { LoadingFallback } from '@/utils/loadingFallback';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
 import { ProductVariantSelector } from '@/components/ProductVariantSelector';
 import { ProductVariant } from '@/hooks/useProductVariants';
+import { ProductReviews } from '@/components/reviews/ProductReviews';
+import { Separator } from '@/components/ui/separator';
 
 // Common color names to hex colors mapping
 const colorMap: Record<string, string> = {
@@ -500,7 +502,7 @@ const ProductDetails = () => {
             {/* Additional information */}
             <div>
               <h3 className="text-md font-medium mb-2">معلومات إضافية:</h3>
-              <div className="text-sm text-gray-600 space-y-1 bg-gray-50 p-3 rounded-md border">
+              <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1 bg-gray-50 dark:bg-gray-800 p-3 rounded-md border">
                 {product?.category && (
                   <p>
                     <span className="font-semibold">التصنيف: </span>
@@ -518,6 +520,12 @@ const ProductDetails = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="mt-12">
+          <Separator className="mb-8" />
+          <ProductReviews productId={product.id} />
         </div>
       </div>
     </Layout>

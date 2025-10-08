@@ -5,44 +5,44 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 240 10% 97%;
+    --foreground: 222.2 84% 15%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 222.2 84% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222.2 84% 15%;
 
-    --primary: 142 71% 29%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 210 100% 56%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 15%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 142 71% 29%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 210 100% 56%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 142 71% 29%;
+    --ring: 210 100% 56%;
 
     --radius: 0.5rem;
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 142 71% 29%;
+    --sidebar-primary: 210 100% 56%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 142 71% 29%;
+    --sidebar-ring: 210 100% 56%;
   }
 
   .dark {
@@ -96,11 +96,17 @@
     overflow-x: hidden;
     margin: 0;
     padding: 0;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   
   /* Add default theme as dark */
   :root {
     color-scheme: dark;
+  }
+  
+  /* Smooth transitions for theme switching */
+  * {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
   
   html, body, #root {
