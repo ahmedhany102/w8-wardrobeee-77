@@ -17,7 +17,6 @@ import ProductDetails from './pages/ProductDetails';
 import CategoryPage from './pages/CategoryPage';
 import Terms from './pages/Terms';
 
-import { ThemeProvider } from 'next-themes';
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
 import { AuthProvider } from './contexts/AuthContext';
@@ -40,11 +39,10 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider defaultTheme="dark" attribute="class">
-        <Router>
-          <AuthProvider>
-            <div className="flex flex-col min-h-screen w-full">
-              <Routes>
+      <Router>
+        <AuthProvider>
+          <div className="flex flex-col min-h-screen w-full">
+            <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
@@ -76,13 +74,12 @@ function App() {
                 {/* 404 */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </div>
-            <BottomNavigation />
-            <SonnerToaster position="top-right" richColors closeButton />
-            <Toaster />
-          </AuthProvider>
-        </Router>
-      </ThemeProvider>
+          </div>
+          <BottomNavigation />
+          <SonnerToaster position="top-right" richColors closeButton />
+          <Toaster />
+        </AuthProvider>
+      </Router>
     </QueryClientProvider>
   );
 }

@@ -5,44 +5,44 @@
 
 @layer base {
   :root {
-    --background: 240 10% 97%;
-    --foreground: 222.2 84% 15%;
+    --background: 45 20% 96%; /* #FAF3E0 warm off-white for light mode */
+    --foreground: 237 18% 18%; /* #2B2D42 dark text for light mode */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 15%;
+    --card: 38 100% 97%; /* #FFF8EE light warm card */
+    --card-foreground: 237 18% 18%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 15%;
+    --popover: 38 100% 97%;
+    --popover-foreground: 237 18% 18%;
 
-    --primary: 210 100% 56%;
+    --primary: 27 100% 68%; /* #FFA45B warm orange accent */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 15%;
+    --secondary: 40 60% 90%;
+    --secondary-foreground: 237 18% 18%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 40 30% 92%;
+    --muted-foreground: 237 18% 45%;
 
-    --accent: 210 100% 56%;
+    --accent: 27 100% 68%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 210 100% 56%;
+    --border: 40 20% 85%;
+    --input: 40 20% 85%;
+    --ring: 27 100% 68%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 210 100% 56%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 210 100% 56%;
+    --sidebar-background: 38 100% 97%;
+    --sidebar-foreground: 237 18% 18%;
+    --sidebar-primary: 27 100% 68%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 40 60% 90%;
+    --sidebar-accent-foreground: 237 18% 18%;
+    --sidebar-border: 40 20% 85%;
+    --sidebar-ring: 27 100% 68%;
   }
 
   .dark {
@@ -88,6 +88,7 @@
 @layer base {
   * {
     @apply border-border;
+    transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
   }
 
   body {
@@ -96,17 +97,6 @@
     overflow-x: hidden;
     margin: 0;
     padding: 0;
-    transition: background-color 0.3s ease, color 0.3s ease;
-  }
-  
-  /* Add default theme as dark */
-  :root {
-    color-scheme: dark;
-  }
-  
-  /* Smooth transitions for theme switching */
-  * {
-    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
   
   html, body, #root {
