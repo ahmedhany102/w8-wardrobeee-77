@@ -140,13 +140,13 @@ serve(async (req) => {
 
     // Calculate discount
     let discount = 0;
-    if (coupon.discount_kind === 'percent') {
+    if (coupon.discount_type === 'percent') {
       discount = (eligibleSubtotal * coupon.discount_value) / 100;
       // Apply max_discount cap if set
       if (coupon.max_discount && discount > coupon.max_discount) {
         discount = coupon.max_discount;
       }
-    } else if (coupon.discount_kind === 'fixed') {
+    } else if (coupon.discount_type === 'fixed') {
       discount = coupon.discount_value;
     }
 
@@ -170,7 +170,7 @@ serve(async (req) => {
         coupon: {
           id: coupon.id,
           code: coupon.code,
-          discount_kind: coupon.discount_kind,
+          discount_type: coupon.discount_type,
           discount_value: coupon.discount_value
         },
         discount,
