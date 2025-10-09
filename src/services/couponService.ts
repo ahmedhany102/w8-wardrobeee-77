@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export class CouponService {
@@ -6,7 +5,6 @@ export class CouponService {
     try {
       console.log('🎟️ Validating coupon:', code, 'for order total:', orderTotal);
 
-      // Normalize the code for comparison
       const normalizedCode = code.toUpperCase().trim();
 
       // Query the coupon with case-insensitive matching
@@ -14,7 +12,7 @@ export class CouponService {
         .from('coupons')
         .select('*')
         .ilike('code', normalizedCode)
-        .eq('is_active', true)
+        .eq('active', true)
         .single();
 
       if (error || !coupon) {
@@ -26,11 +24,11 @@ export class CouponService {
       }
 
       // Check expiration date
-      if (coupon.expiration_date) {
-        const expirationDate = new Date(coupon.expiration_date);
+      if (coupon.expires_at) {
+        const expirationDate = new Date(coupon.expires_at);
         const now = new Date();
         if (expirationDate < now) {
-          console.log('❌ Coupon expired:', code, 'expired on:', expirationDate);
+          console.log('❌ Coupon expired:', code);
           return {
             valid: false,
             error: 'انتهت صلاحية كوبون الخصم'
@@ -39,29 +37,19 @@ export class CouponService {
       }
 
       // Check usage limit
-      if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
-        console.log('❌ Coupon usage limit exceeded:', code, 'used:', coupon.used_count, 'limit:', coupon.usage_limit);
+      if (coupon.max_uses && coupon.uses >= coupon.max_uses) {
+        console.log('❌ Coupon usage limit exceeded:', code);
         return {
           valid: false,
           error: 'تم استخدام كوبون الخصم بالكامل'
         };
       }
 
-      // Check minimum amount (handle null values properly)
-      const minimumAmount = coupon.minimum_amount || 0;
-      if (minimumAmount > 0 && orderTotal < minimumAmount) {
-        console.log('❌ Order total below minimum:', orderTotal, 'required:', minimumAmount);
-        return {
-          valid: false,
-          error: `الحد الأدنى للطلب ${minimumAmount} جنيه`
-        };
-      }
-
       // Calculate discount
       let discountAmount = 0;
-      if (coupon.discount_kind === 'percent') {
+      if (coupon.discount_kind === 'percentage') {
         discountAmount = (orderTotal * coupon.discount_value) / 100;
-      } else {
+      } else if (coupon.discount_kind === 'fixed') {
         discountAmount = coupon.discount_value;
       }
 
@@ -92,10 +80,9 @@ export class CouponService {
 
   static async applyCoupon(couponId: string) {
     try {
-      // First get the current used_count
       const { data: currentCoupon, error: fetchError } = await supabase
         .from('coupons')
-        .select('used_count')
+        .select('uses')
         .eq('id', couponId)
         .single();
 
@@ -108,8 +95,7 @@ export class CouponService {
       const { error } = await supabase
         .from('coupons')
         .update({ 
-          used_count: currentCoupon.used_count + 1,
-          updated_at: new Date().toISOString()
+          uses: currentCoupon.uses + 1
         })
         .eq('id', couponId);
 
