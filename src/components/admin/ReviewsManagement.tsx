@@ -29,11 +29,11 @@ export const ReviewsManagement = () => {
         .from('reviews')
         .select(`
           *,
-          profiles:user_id (
+          user:user_id (
             name,
             email
           ),
-          products:product_id (
+          product:product_id (
             name
           )
         `)
@@ -76,9 +76,9 @@ export const ReviewsManagement = () => {
     const searchLower = searchTerm.toLowerCase();
     return (
       review.comment?.toLowerCase().includes(searchLower) ||
-      review.profiles?.name?.toLowerCase().includes(searchLower) ||
-      review.profiles?.email?.toLowerCase().includes(searchLower) ||
-      review.products?.name?.toLowerCase().includes(searchLower) ||
+      review.user?.name?.toLowerCase().includes(searchLower) ||
+      review.user?.email?.toLowerCase().includes(searchLower) ||
+      review.product?.name?.toLowerCase().includes(searchLower) ||
       review.rating.toString().includes(searchLower)
     );
   });
@@ -104,6 +104,7 @@ export const ReviewsManagement = () => {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
+          type="text"
           placeholder="ابحث عن تقييم، منتج، أو مستخدم..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
@@ -135,15 +136,15 @@ export const ReviewsManagement = () => {
               filteredReviews.map((review) => (
                 <TableRow key={review.id}>
                   <TableCell className="font-medium">
-                    {review.products?.name || 'منتج محذوف'}
+                    {review.product?.name || 'منتج محذوف'}
                   </TableCell>
                   <TableCell>
                     <div>
                       <div className="font-medium">
-                        {review.profiles?.name || 'مستخدم'}
+                        {review.user?.name || 'مستخدم'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {review.profiles?.email}
+                        {review.user?.email}
                       </div>
                     </div>
                   </TableCell>
