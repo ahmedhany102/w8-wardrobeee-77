@@ -17,7 +17,7 @@ const Footer = () => {
     instagram: 'https://www.instagram.com/a7med._.hany/',
     developer_name: 'Ahmed Hany',
     developer_url: 'https://www.instagram.com/a7med0xd/', // Updated Instagram link
-    developer_portfolio: 'https://ahmed-hany-folio-glow.lovable.app/' // Portfolio link
+    developer_portfolio:  'https://www.instagram.com/a7med0xd/' // Portfolio link
   };
 
   const currentSettings = settings || defaultSettings;
