@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Linkedin, MessageCircleMore } from 'lucide-react';
@@ -16,7 +17,7 @@ const Footer = () => {
     facebook: 'https://www.facebook.com/share/16LEN8zQG3/',
     instagram: 'https://www.instagram.com/a7med._.hany/',
     developer_name: 'Ahmed Hany',
-    developer_url: 'https://www.instagram.com/a7med0xd/' // Instagram link
+    developer_url: 'https://ahmedhany.dev'
   };
 
   const currentSettings = settings || defaultSettings;
@@ -84,12 +85,6 @@ const Footer = () => {
               <li className="flex items-center">
                 <span className="text-gray-300">{currentSettings.address}</span>
               </li>
-              {/* Developer Info */}
-              <li className="mt-3">
-                <span className="text-gray-200 font-semibold text-base">
-                  Dev: <a href={currentSettings.developer_url} target="_blank" rel="noopener noreferrer" className="hover:text-pink-400">{currentSettings.developer_name}</a>
-                </span>
-              </li>
             </ul>
           </div>
           
@@ -107,6 +102,25 @@ const Footer = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-3 md:mb-0">
               © {new Date().getFullYear()} {currentSettings.store_name}. All Rights Reserved.
+            </div>
+            <div className="flex items-center space-x-4">
+              <span>Dev {currentSettings.developer_name}: </span>
+              
+              <a href="https://wa.me/qr/2O2JSVLBTNEIJ1" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-green-400" title="WhatsApp">
+                <MessageCircleMore size={16} />
+              </a>
+              
+              <a href="https://www.facebook.com/share/16LEN8zQG3/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-400" title="Facebook">
+                <Facebook size={16} />
+              </a>
+              
+              <a href="https://www.instagram.com/a7med._.hany/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-pink-400" title="Instagram">
+                <Instagram size={16} />
+              </a>
+              
+              <a href="https://linkedin.com/in/ahmed-hany-436342257" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-500" title="LinkedIn">
+                <Linkedin size={16} />
+              </a>
             </div>
           </div>
         </div>
