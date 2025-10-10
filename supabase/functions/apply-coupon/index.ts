@@ -20,6 +20,7 @@ interface ApplyCouponRequest {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -43,6 +44,9 @@ serve(async (req) => {
     const body: ApplyCouponRequest = await req.json();
     const { code, cart_items, subtotal } = body;
 
+    console.log('🎟️ Applying coupon:', code, 'for user:', userId, 'subtotal:', subtotal);
+
+    // Validate input
     if (!code || !cart_items || !subtotal) {
       return new Response(
         JSON.stringify({ ok: false, message: 'Missing required fields' }),
@@ -50,7 +54,7 @@ serve(async (req) => {
       );
     }
 
-    // Fetch coupon
+    // Fetch coupon with case-insensitive matching
     const { data: coupon, error: couponError } = await supabaseClient
       .from('coupons')
       .select('*')
@@ -59,6 +63,7 @@ serve(async (req) => {
       .maybeSingle();
 
     if (couponError || !coupon) {
+      console.log('❌ Coupon not found:', code);
       return new Response(
         JSON.stringify({ ok: false, message: 'كوبون الخصم غير صحيح أو غير نشط' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -66,24 +71,33 @@ serve(async (req) => {
     }
 
     const now = new Date();
-
+    
+    // Check if coupon has started
     if (coupon.starts_at && new Date(coupon.starts_at) > now) {
+      console.log('❌ Coupon not started yet:', code);
       return new Response(
         JSON.stringify({ ok: false, message: 'كوبون الخصم لم يبدأ بعد' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
+    // Check if coupon has expired
     if (coupon.ends_at && new Date(coupon.ends_at) < now) {
+      console.log('❌ Coupon expired:', code);
       return new Response(
         JSON.stringify({ ok: false, message: 'انتهت صلاحية كوبون الخصم' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
 
+    // Check minimum order value
     if (coupon.minimum_amount && subtotal < coupon.minimum_amount) {
+      console.log('❌ Order below minimum:', subtotal, 'required:', coupon.minimum_amount);
       return new Response(
-        JSON.stringify({ ok: false, message: `الحد الأدنى للطلب ${coupon.minimum_amount} جنيه` }),
+        JSON.stringify({ 
+          ok: false, 
+          message: `الحد الأدنى للطلب ${coupon.minimum_amount} جنيه` 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
@@ -96,6 +110,7 @@ serve(async (req) => {
         .eq('coupon_id', coupon.id);
 
       if (globalUsage !== null && globalUsage >= coupon.usage_limit_global) {
+        console.log('❌ Global usage limit exceeded:', globalUsage, 'limit:', coupon.usage_limit_global);
         return new Response(
           JSON.stringify({ ok: false, message: 'تم استخدام كوبون الخصم بالكامل' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -103,7 +118,7 @@ serve(async (req) => {
       }
     }
 
-    // Check per-user usage limit
+    // Check per-user usage limit (if user is authenticated)
     if (userId && coupon.usage_limit_per_user) {
       const { count: userUsage } = await supabaseClient
         .from('coupon_redemptions')
@@ -112,6 +127,7 @@ serve(async (req) => {
         .eq('user_id', userId);
 
       if (userUsage !== null && userUsage >= coupon.usage_limit_per_user) {
+        console.log('❌ User usage limit exceeded:', userUsage, 'limit:', coupon.usage_limit_per_user);
         return new Response(
           JSON.stringify({ ok: false, message: 'لقد استخدمت هذا الكوبون بالفعل' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
@@ -119,35 +135,44 @@ serve(async (req) => {
       }
     }
 
-    // Calculate discount
+    // Calculate eligible subtotal (for now, assume all items are eligible)
+    const eligibleSubtotal = subtotal;
+
+    // ✅ Calculate discount correctly
     let discount = 0;
     if (coupon.discount_kind === 'percentage') {
-      discount = (subtotal * coupon.discount_value) / 100;
+      discount = (eligibleSubtotal * coupon.discount_value) / 100;
+      // Apply max_discount cap if set
       if (coupon.max_discount && discount > coupon.max_discount) {
         discount = coupon.max_discount;
       }
     } else if (coupon.discount_kind === 'fixed') {
       discount = coupon.discount_value;
     }
+
+    // Ensure discount doesn't exceed subtotal and is not negative
     discount = Math.min(discount, subtotal);
     discount = Math.max(0, discount);
 
     const finalTotal = subtotal - discount;
 
-    // ✅ Record coupon redemption
-    await supabaseClient.from('coupon_redemptions').insert([
-      {
-        coupon_id: coupon.id,
-        user_id: userId || null,
-        used_at: new Date().toISOString(),
-      },
-    ]);
+    console.log('✅ Coupon applied successfully:', {
+      code,
+      discount,
+      finalTotal,
+      couponId: coupon.id
+    });
 
     return new Response(
       JSON.stringify({
         ok: true,
         message: 'تم تطبيق كوبون الخصم بنجاح',
-        coupon: { id: coupon.id, code: coupon.code, discount_kind: coupon.discount_kind, discount_value: coupon.discount_value },
+        coupon: {
+          id: coupon.id,
+          code: coupon.code,
+          discount_kind: coupon.discount_kind,
+          discount_value: coupon.discount_value
+        },
         discount,
         finalTotal
       }),
@@ -157,7 +182,10 @@ serve(async (req) => {
   } catch (error: any) {
     console.error('💥 Error applying coupon:', error);
     return new Response(
-      JSON.stringify({ ok: false, message: 'حدث خطأ أثناء التحقق من كوبون الخصم' }),
+      JSON.stringify({ 
+        ok: false, 
+        message: 'حدث خطأ أثناء التحقق من كوبون الخصم' 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
