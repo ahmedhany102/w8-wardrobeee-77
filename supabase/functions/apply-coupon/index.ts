@@ -138,9 +138,9 @@ serve(async (req) => {
     // Calculate eligible subtotal (for now, assume all items are eligible)
     const eligibleSubtotal = subtotal;
 
-    // Calculate discount
+    // ✅ Calculate discount correctly
     let discount = 0;
-    if (coupon.discount_kind === 'percent') {
+    if (coupon.discount_kind === 'percentage') {
       discount = (eligibleSubtotal * coupon.discount_value) / 100;
       // Apply max_discount cap if set
       if (coupon.max_discount && discount > coupon.max_discount) {
@@ -150,7 +150,7 @@ serve(async (req) => {
       discount = coupon.discount_value;
     }
 
-    // Ensure discount doesn't exceed subtotal
+    // Ensure discount doesn't exceed subtotal and is not negative
     discount = Math.min(discount, subtotal);
     discount = Math.max(0, discount);
 
