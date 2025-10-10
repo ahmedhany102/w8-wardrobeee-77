@@ -14,7 +14,7 @@ const Footer = () => {
     phone: '+20 123 456 7890',
     working_hours: 'Mon-Fri: 9AM-6PM',
     facebook: 'https://www.facebook.com/share/16LEN8zQG3/',
-    instagram: 'https://www.instagram.com/a7med._.hany/',
+    instagram: 'https://www.instagram.com/a7med0xd/',
     developer_name: 'Ahmed Hany',
     developer_url: 'https://www.instagram.com/a7med0xd/', // Updated Instagram link
     developer_portfolio:  'https://www.instagram.com/a7med0xd/' // Portfolio link
