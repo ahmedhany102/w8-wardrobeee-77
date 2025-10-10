@@ -24,7 +24,7 @@ const AdminContactSettings = () => {
     map_url: '',
     terms_and_conditions: '',
     developer_name: 'Ahmed Hany',
-    developer_url: 'https://https://ahmed-hany-folio-glow.lovable.app/'
+    developer_url: 'https://ahmedhany.dev'
   });
   const [activeTab, setActiveTab] = useState('contact');
   const [isSaving, setIsSaving] = useState(false);
@@ -46,7 +46,7 @@ const AdminContactSettings = () => {
         map_url: settings.map_url || '',
         terms_and_conditions: settings.terms_and_conditions || '',
         developer_name: 'Ahmed Hany',
-        developer_url: 'https://https://ahmed-hany-folio-glow.lovable.app/'
+        developer_url: 'https://ahmedhany.dev'
       });
     }
   }, [settings]);
@@ -76,7 +76,7 @@ const AdminContactSettings = () => {
         map_url: formData.map_url?.trim() || '',
         terms_and_conditions: formData.terms_and_conditions?.trim() || '',
         developer_name: 'Ahmed Hany',
-        developer_url: 'https://https://ahmed-hany-folio-glow.lovable.app/'
+        developer_url: 'https://ahmedhany.dev'
       };
       
       console.log('Cleaned data to save:', cleanData);
