@@ -19,7 +19,7 @@ interface Coupon {
   usage_limit?: number;
   used_count: number;
   minimum_amount: number;
-  active: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -39,7 +39,7 @@ const CouponManagement = () => {
     expiration_date?: string;
     usage_limit?: number;
     minimum_amount: number;
-    active: boolean;
+    is_active: boolean;
   }>({
     code: '',
     discount_kind: 'percent',
@@ -47,7 +47,7 @@ const CouponManagement = () => {
     expiration_date: undefined,
     usage_limit: undefined,
     minimum_amount: 0,
-    active: true,
+    is_active: true,
   });
 
   const resetFormData = () => {
@@ -58,7 +58,7 @@ const CouponManagement = () => {
       expiration_date: undefined,
       usage_limit: undefined,
       minimum_amount: 0,
-      active: true,
+      is_active: true,
     });
   };
 
@@ -96,7 +96,7 @@ const CouponManagement = () => {
         discount_kind: couponFormData.discount_kind,
         discount_value: couponFormData.discount_value,
         minimum_amount: couponFormData.minimum_amount,
-        active: couponFormData.active,
+        is_active: couponFormData.is_active,
         used_count: 0
       };
 
@@ -135,7 +135,7 @@ const CouponManagement = () => {
         discount_kind: couponFormData.discount_kind,
         discount_value: couponFormData.discount_value,
         minimum_amount: couponFormData.minimum_amount,
-        active: couponFormData.active
+        is_active: couponFormData.is_active
       };
 
       if (couponFormData.expiration_date) {
@@ -197,7 +197,7 @@ const CouponManagement = () => {
       expiration_date: coupon.expiration_date ? new Date(coupon.expiration_date).toISOString().split('T')[0] : undefined,
       usage_limit: coupon.usage_limit,
       minimum_amount: coupon.minimum_amount,
-      active: coupon.active,
+      is_active: coupon.is_active,
     });
     setShowEditDialog(true);
   };
@@ -213,7 +213,7 @@ const CouponManagement = () => {
   const isCouponActive = (coupon: Coupon) => {
     const now = new Date();
     return (
-      coupon.active &&
+      coupon.is_active &&
       (!coupon.expiration_date || new Date(coupon.expiration_date) >= now) &&
       (!coupon.usage_limit || coupon.used_count < coupon.usage_limit)
     );
@@ -401,8 +401,8 @@ const CouponManagement = () => {
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="active"
-                  checked={couponFormData.active}
+                  name="is_active"
+                  checked={couponFormData.is_active}
                   onChange={handleInputChange}
                   id="isActive"
                   className="mr-2"
@@ -511,8 +511,8 @@ const CouponManagement = () => {
               <div className="flex items-center">
                 <input
                   type="checkbox"
-                  name="active"
-                  checked={couponFormData.active}
+                  name="is_active"
+                  checked={couponFormData.is_active}
                   onChange={handleInputChange}
                   id="editIsActive"
                   className="mr-2"
