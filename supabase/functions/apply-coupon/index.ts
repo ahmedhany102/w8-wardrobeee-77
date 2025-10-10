@@ -59,7 +59,7 @@ serve(async (req) => {
       .from('coupons')
       .select('*')
       .ilike('code', code.trim())
-      .eq('is_active', true)
+      .eq('active', true)
       .maybeSingle();
 
     if (couponError || !coupon) {
