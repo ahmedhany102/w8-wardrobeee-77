@@ -24,9 +24,9 @@ const ContactInfo: React.FC<ContactInfoProps> = ({ settings }) => {
           </div>
           <div>
             <p className="text-sm text-white/70">Call Us</p>
-            <p className="text-lg font-semibold hover:text-green-300">
-              <a href={`tel:${phone}`}>{phone}</a>
-            </p>
+            <a href={`tel:${phone}`} className="text-lg font-semibold hover:text-green-300">
+              {phone}
+            </a>
           </div>
         </div>
         
@@ -36,9 +36,9 @@ const ContactInfo: React.FC<ContactInfoProps> = ({ settings }) => {
           </div>
           <div>
             <p className="text-sm text-white/70">Email Us</p>
-            <p className="text-lg font-semibold hover:text-green-300">
-              <a href={`mailto:${email}`}>{email}</a>
-            </p>
+            <a href={`mailto:${email}`} className="text-lg font-semibold hover:text-green-300">
+              {email}
+            </a>
           </div>
         </div>
         
@@ -48,14 +48,16 @@ const ContactInfo: React.FC<ContactInfoProps> = ({ settings }) => {
           </div>
           <div>
             <p className="text-sm text-white/70">Location</p>
-            <p className="text-lg font-semibold">{address}</p>
+            <p className="text-lg font-semibold">
+              {address}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Developer Info */}
-      <div className="mt-6 text-lg font-semibold text-white text-center hover:text-green-300">
-        Dev: <a href={developerWhatsapp} target="_blank" rel="noopener noreferrer">{developerName}</a>
+      <div className="mt-6 text-sm text-white/70 text-center">
+        Dev: <a href={developerWhatsapp} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-300">{developerName}</a>
       </div>
     </Card>
   );
