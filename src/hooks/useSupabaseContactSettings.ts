@@ -66,7 +66,7 @@ export const useSupabaseContactSettings = () => {
         map_url: updates.map_url?.trim() || '',
         terms_and_conditions: updates.terms_and_conditions?.trim() || '',
         developer_name: 'Ahmed Hany',
-        developer_url: 'https://ahmedhany.dev',
+        developer_url: 'https://ahmed-hany-folio-glow.lovable.app/',
         updated_at: new Date().toISOString()
       };
       
