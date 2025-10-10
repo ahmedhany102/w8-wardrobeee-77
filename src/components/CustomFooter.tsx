@@ -40,7 +40,7 @@ const CustomFooter = () => {
                 <Facebook size={16} />
               </a>
               
-              <a href="https://www.instagram.com/a7med._.hany/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-pink-400" title="Instagram">
+              <a href="https://www.instagram.com/a7med0xd/" target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-pink-400" title="Instagram">
                 <Instagram size={16} />
               </a>
               
