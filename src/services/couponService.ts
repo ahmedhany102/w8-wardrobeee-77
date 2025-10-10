@@ -14,7 +14,7 @@ export class CouponService {
         .from('coupons')
         .select('*')
         .ilike('code', normalizedCode)
-        .eq('is_active', true)
+        .eq('active', true)
         .single();
 
       if (error || !coupon) {
