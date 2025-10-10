@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Phone, Mail, MapPin } from 'lucide-react';
@@ -10,8 +11,6 @@ const ContactInfo: React.FC<ContactInfoProps> = ({ settings }) => {
   const phone = settings?.phone || '01501640040';
   const email = settings?.email || 'support@w8.com';
   const address = settings?.address || 'Cairo, Egypt';
-  const developerName = 'Ahmed Hany';
-  const developerWhatsapp = 'https://wa.me/qr/2O2JSVLBTNEIJ1';
 
   return (
     <Card className="p-6 shadow-md bg-gradient-to-br from-green-700 to-green-900 text-white">
@@ -53,11 +52,6 @@ const ContactInfo: React.FC<ContactInfoProps> = ({ settings }) => {
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Developer Info */}
-      <div className="mt-6 text-sm text-white/70 text-center">
-        Dev: <a href={developerWhatsapp} target="_blank" rel="noopener noreferrer" className="underline hover:text-green-300">{developerName}</a>
       </div>
     </Card>
   );
