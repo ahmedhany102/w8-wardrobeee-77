@@ -16,8 +16,8 @@ const Footer = () => {
     facebook: 'https://www.facebook.com/share/16LEN8zQG3/',
     instagram: 'https://www.instagram.com/a7med0xd/',
     developer_name: 'Ahmed Hany',
-    developer_url: 'https://www.instagram.com/a7med0xd/', // Instagram link
-    developer_portfolio: 'https://ahmed-hany-folio-glow.lovable.app/' // Portfolio link
+    developer_url: 'https://www.instagram.com/a7med0xd/',
+    developer_portfolio: 'https://ahmed-hany-folio-glow.lovable.app/',
   };
 
   const currentSettings = settings || defaultSettings;
@@ -96,7 +96,7 @@ const Footer = () => {
                   href={currentSettings.developer_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-pink-400"
+                  className="hover:text-pink-400 transition-all duration-300"
                 >
                   {currentSettings.developer_name}
                 </a>
@@ -110,7 +110,7 @@ const Footer = () => {
                   href={currentSettings.developer_portfolio}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-blue-400 underline font-medium"
+                  className="text-blue-400 font-semibold underline hover:text-blue-300 transition-all duration-300"
                 >
                   Visit Portfolio
                 </a>
