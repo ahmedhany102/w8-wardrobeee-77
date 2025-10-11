@@ -105,7 +105,15 @@ const Footer = () => {
 
             <div className="mt-1">
               <span className="text-gray-300 text-sm">
-             
+                Portfolio:{' '}
+                <a
+                  href={currentSettings.developer_portfolio}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 font-semibold underline hover:text-blue-300 transition-all duration-300"
+                >
+                  Visit Portfolio
+                </a>
               </span>
             </div>
           </div>
