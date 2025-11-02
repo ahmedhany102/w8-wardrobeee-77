@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { X, Menu, User, ShoppingCart, Home, Phone, LogIn, UserPlus } from "lucide-react";
+import { X, Menu, User, ShoppingCart, Home, Phone, LogIn, UserPlus, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import CartDatabase from "@/models/CartDatabase";
 
@@ -90,6 +90,16 @@ const MainNavigation = () => {
             >
               <User className="w-4 h-4" />
               <span>حسابي</span>
+            </Link>
+          )}
+          
+          {user && !isOnAdminPages && !isMobile && (
+            <Link 
+              to="/favorites" 
+              className={`flex items-center gap-1 px-2 py-1 rounded ${location.pathname === '/favorites' ? 'bg-white text-green-900' : 'hover:bg-white/20'}`}
+            >
+              <Heart className="w-4 h-4" />
+              <span>المفضلة</span>
             </Link>
           )}
           

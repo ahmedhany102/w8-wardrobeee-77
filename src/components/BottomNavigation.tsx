@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, User, Package, Truck } from 'lucide-react';
+import { Home, ShoppingCart, User, Package, Truck, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import CartDatabase from "@/models/CartDatabase";
 
@@ -71,8 +71,20 @@ const BottomNavigation: React.FC = () => {
           <span className="text-xs">العربة</span>
         </Link>
         
+        {user && (
+          <Link 
+            to="/favorites" 
+            className={`flex flex-1 flex-col items-center py-3 ${
+              location.pathname === '/favorites' ? 'text-green-700' : 'text-gray-500'
+            }`}
+          >
+            <Heart className="w-5 h-5" />
+            <span className="text-xs">المفضلة</span>
+          </Link>
+        )}
+        
         <Link 
-          to="/profile" 
+          to="/profile"
           className={`flex flex-1 flex-col items-center py-3 ${
             location.pathname === '/profile' ? 'text-green-700' : 'text-gray-500'
           }`}

@@ -12,7 +12,7 @@ interface Coupon {
   usage_limit?: number;
   used_count: number;
   minimum_amount: number;
-  is_active: boolean;
+  active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -44,8 +44,17 @@ export const useSupabaseCoupons = () => {
       
       console.log('✅ Coupons fetched:', data?.length || 0);
       const typedCoupons = (data || []).map(coupon => ({
-        ...coupon,
-        discount_kind: coupon.discount_kind as 'percent' | 'fixed'
+        id: coupon.id,
+        code: coupon.code,
+        discount_kind: coupon.discount_kind as 'percent' | 'fixed',
+        discount_value: coupon.discount_value,
+        expiration_date: coupon.expiration_date,
+        usage_limit: coupon.usage_limit,
+        used_count: coupon.used_count || 0,
+        minimum_amount: coupon.minimum_amount || 0,
+        active: coupon.active || false,
+        created_at: coupon.created_at,
+        updated_at: coupon.created_at // Fallback since updated_at may not exist
       })) as Coupon[];
       setCoupons(typedCoupons);
       
@@ -74,7 +83,7 @@ export const useSupabaseCoupons = () => {
         .from('coupons')
         .select('*')
         .ilike('code', trimmedCode)
-        .eq('is_active', true)
+        .eq('active', true)
         .single();
 
       if (error || !data) {
@@ -83,17 +92,26 @@ export const useSupabaseCoupons = () => {
         return null;
       }
 
-      const coupon = {
-        ...data,
-        discount_kind: data.discount_kind as 'percent' | 'fixed'
-      } as Coupon;
+      const coupon: Coupon = {
+        id: data.id,
+        code: data.code,
+        discount_kind: data.discount_kind as 'percent' | 'fixed',
+        discount_value: data.discount_value,
+        expiration_date: data.expiration_date,
+        usage_limit: data.usage_limit,
+        used_count: data.used_count || 0,
+        minimum_amount: data.minimum_amount || 0,
+        active: data.active || false,
+        created_at: data.created_at,
+        updated_at: data.created_at // Fallback since updated_at may not exist
+      };
 
       console.log('✅ Found coupon in DB:', coupon);
 
       // FIXED: Comprehensive validation with detailed error messages
       
       // 1. Check if coupon is active
-      if (!coupon.is_active) {
+      if (!coupon.active) {
         console.log('❌ Coupon is not active');
         toast.error('This coupon is currently inactive');
         return null;

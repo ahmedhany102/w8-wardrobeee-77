@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Product } from '@/models/Product';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import CartDatabase from "@/models/CartDatabase";
 import { ProductVariant } from '@/hooks/useProductVariants';
+import { useFavorites } from '@/hooks/useFavorites';
 
 interface ProductCardProps {
   product: Product;
@@ -20,6 +21,7 @@ interface ProductCardProps {
 const ProductCard = ({ product, className = '', variants = [] }: ProductCardProps) => {
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
   const navigate = useNavigate();
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   useEffect(() => {
     if (variants.length > 0) {
@@ -115,13 +117,19 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
     navigate(`/product/${product.id}`);
   };
 
+  // Handle favorite toggle
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click navigation
+    await toggleFavorite(product.id);
+  };
+
   return (
     <Card 
       className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 border-gray-200 ${className}`}
       onClick={handleProductClick}
       style={{ minHeight: '380px' }}
     >
-      <CardHeader className="p-0 pb-2">
+      <CardHeader className="p-0 pb-2 relative">
         <AspectRatio ratio={1} className="bg-gray-100 rounded-t-lg overflow-hidden">
           <img
             src={mainImage}
@@ -136,16 +144,28 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
           />
         </AspectRatio>
         
+        {/* Favorites button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-2 left-2 bg-white/90 hover:bg-white z-10 h-8 w-8"
+          onClick={handleToggleFavorite}
+        >
+          <Heart 
+            className={`h-4 w-4 ${isFavorite(product.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+          />
+        </Button>
+        
         {/* Discount badge */}
         {product.hasDiscount && product.discount && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold z-10">
             -{product.discount}%
           </div>
         )}
         
         {/* Out of stock overlay */}
         {isOutOfStock && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-t-lg">
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-t-lg z-20">
             <span className="text-white font-bold text-lg">غير متوفر</span>
           </div>
         )}

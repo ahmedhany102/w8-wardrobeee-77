@@ -16,6 +16,7 @@ import OrderTracking from './pages/OrderTracking';
 import ProductDetails from './pages/ProductDetails';
 import CategoryPage from './pages/CategoryPage';
 import Terms from './pages/Terms';
+import Favorites from './pages/Favorites';
 
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
@@ -58,6 +59,7 @@ function App() {
                   <Route path="/cart" element={<Cart />} />
                   <Route path="/order-tracking" element={<OrderTracking />} />
                   <Route path="/orders" element={<OrderTracking />} />
+                  <Route path="/favorites" element={<Favorites />} />
                 </Route>
 
                 {/* Admin routes */}

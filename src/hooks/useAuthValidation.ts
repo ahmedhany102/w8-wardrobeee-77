@@ -14,21 +14,9 @@ export const useAuthValidation = () => {
     setSession: (session: Session | null) => void,
     setUser: (user: AuthUser | null) => void
   ) => {
-    let timeoutId: NodeJS.Timeout | null = null;
-    
     try {
       console.log('🔍 Starting secure session validation...');
       setLoading(true);
-      
-      // Set up timeout protection - auto-logout after 3 seconds if stuck
-      timeoutId = setTimeout(() => {
-        console.warn('⏰ Session validation timeout - auto-logout triggered');
-        toast.error('Session expired. Please log in again.');
-        secureLogout();
-        setSession(null);
-        setUser(null);
-        setLoading(false);
-      }, 3000);
       
       // Clear any potentially corrupted localStorage data first
       try {
@@ -59,12 +47,6 @@ export const useAuthValidation = () => {
       
       // Get session with proper error handling
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-      
-      // Clear timeout since we got a response
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
       
       if (sessionError) {
         console.error('❌ Session validation error:', sessionError);
@@ -126,10 +108,6 @@ export const useAuthValidation = () => {
       
     } catch (error) {
       console.error('💥 Critical auth validation exception:', error);
-      // Clear timeout if still active
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       await secureLogout();
       setSession(null);
       setUser(null);

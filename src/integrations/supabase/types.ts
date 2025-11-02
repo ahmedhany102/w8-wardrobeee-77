@@ -242,75 +242,102 @@ export type Database = {
           redeemed_at?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
-            columns: ["coupon_id"]
-            isOneToOne: false
-            referencedRelation: "coupons"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       coupons: {
         Row: {
-          applies_to: string | null
+          active: boolean | null
           code: string
-          created_at: string
+          created_at: string | null
+          description: string | null
           discount_kind: string
+          discount_percent: number | null
           discount_value: number
-          ends_at: string | null
           expiration_date: string | null
+          expires_at: string | null
+          expiry_date: string | null
           id: string
-          is_active: boolean | null
           max_discount: number | null
+          max_uses: number | null
           minimum_amount: number | null
-          starts_at: string | null
-          updated_at: string
           usage_limit: number | null
           usage_limit_global: number | null
           usage_limit_per_user: number | null
           used_count: number | null
+          uses: number | null
         }
         Insert: {
-          applies_to?: string | null
+          active?: boolean | null
           code: string
-          created_at?: string
+          created_at?: string | null
+          description?: string | null
           discount_kind?: string
+          discount_percent?: number | null
           discount_value: number
-          ends_at?: string | null
           expiration_date?: string | null
+          expires_at?: string | null
+          expiry_date?: string | null
           id?: string
-          is_active?: boolean | null
           max_discount?: number | null
+          max_uses?: number | null
           minimum_amount?: number | null
-          starts_at?: string | null
-          updated_at?: string
           usage_limit?: number | null
           usage_limit_global?: number | null
           usage_limit_per_user?: number | null
           used_count?: number | null
+          uses?: number | null
         }
         Update: {
-          applies_to?: string | null
+          active?: boolean | null
           code?: string
-          created_at?: string
+          created_at?: string | null
+          description?: string | null
           discount_kind?: string
+          discount_percent?: number | null
           discount_value?: number
-          ends_at?: string | null
           expiration_date?: string | null
+          expires_at?: string | null
+          expiry_date?: string | null
           id?: string
-          is_active?: boolean | null
           max_discount?: number | null
+          max_uses?: number | null
           minimum_amount?: number | null
-          starts_at?: string | null
-          updated_at?: string
           usage_limit?: number | null
           usage_limit_global?: number | null
           usage_limit_per_user?: number | null
           used_count?: number | null
+          uses?: number | null
         }
         Relationships: []
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orders: {
         Row: {
@@ -626,6 +653,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_reviews_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reviews_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -663,15 +697,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_coupon_atomic: {
-        Args: {
-          p_coupon_id: string
-          p_usage_limit_global?: number
-          p_usage_limit_per_user?: number
-          p_user_id?: string
-        }
-        Returns: string
-      }
+      apply_coupon_atomic:
+        | {
+            Args: {
+              p_coupon_id: string
+              p_usage_limit_global?: number
+              p_usage_limit_per_user?: number
+              p_user_id?: string
+            }
+            Returns: string
+          }
+        | { Args: { coupon_code: string; user_uuid: string }; Returns: Json }
       assign_user_role: {
         Args: {
           new_role: Database["public"]["Enums"]["app_role"]
@@ -679,18 +715,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      can_user_authenticate: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
-      cancel_user_order: {
-        Args: { order_id: string }
-        Returns: boolean
-      }
-      check_ban_status: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      can_user_authenticate: { Args: { _user_id: string }; Returns: boolean }
+      cancel_user_order: { Args: { order_id: string }; Returns: boolean }
+      check_ban_status: { Args: never; Returns: undefined }
       delete_promotional_banner: {
         Args: { banner_id: string }
         Returns: boolean
@@ -699,14 +726,8 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: boolean
       }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_user_highest_role: {
-        Args: { _user_id: string }
-        Returns: string
-      }
+      get_current_user_role: { Args: never; Returns: string }
+      get_user_highest_role: { Args: { _user_id: string }; Returns: string }
       get_user_orders: {
         Args: { user_uuid: string }
         Returns: {
@@ -723,6 +744,12 @@ export type Database = {
           total_amount: number
           updated_at: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "orders"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       has_role: {
         Args: {
@@ -731,14 +758,8 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
-      is_super_admin: {
-        Args: { _user_id: string }
-        Returns: boolean
-      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       update_user_status: {
         Args: { new_status: string; target_user_id: string }
         Returns: boolean
