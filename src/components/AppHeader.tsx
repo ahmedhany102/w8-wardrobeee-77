@@ -29,16 +29,16 @@ const AppHeader = () => {
   };
 
   return (
-    <header className="w-full bg-gradient-to-r from-green-900 to-black dark:from-background dark:to-card sticky top-0 z-40 shadow-md border-b border-border">
+    <header className="w-full bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 border-b border-border shadow-sm">
       <div className="container px-4 py-2 mx-auto">
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center">
             {isAdminPage ? (
-              <Link to="/admin" className="text-xl font-bold text-white dark:text-foreground flex items-center">
+              <Link to="/admin" className="text-xl font-bold text-foreground flex items-center">
                 <Shield className="mr-2" /> Admin Panel
               </Link>
             ) : (
-              <Link to="/" className="text-xl font-bold text-white dark:text-foreground">
+              <Link to="/" className="text-xl font-bold text-foreground">
                 W8
               </Link>
             )}
@@ -59,7 +59,7 @@ const AppHeader = () => {
               
               {user ? (
                 <div className="flex items-center gap-3">
-                  <div className="text-sm text-gray-300 dark:text-muted-foreground">
+                  <div className="text-sm text-muted-foreground">
                     {user.name} {isAdmin && "(Admin)"}
                   </div>
                   <Button 
@@ -74,10 +74,10 @@ const AppHeader = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <div className="text-sm text-gray-300 dark:text-muted-foreground mr-2">
+                  <div className="text-sm text-muted-foreground mr-2">
                     Welcome, Guest
                   </div>
-                  <Link to="/login" className="text-sm text-white dark:text-foreground hover:text-green-300 dark:hover:text-primary mr-2">
+                  <Link to="/login" className="text-sm text-foreground hover:text-primary mr-2">
                     Login
                   </Link>
                 </div>

@@ -28,7 +28,7 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     // Get user from auth header
@@ -81,8 +81,8 @@ serve(async (req) => {
       );
     }
 
-    // Check if coupon has expired
-    if (coupon.ends_at && new Date(coupon.ends_at) < now) {
+    // Check if coupon has expired using either ends_at or expiration_date
+    if ((coupon.ends_at && new Date(coupon.ends_at) < now) || (coupon.expiration_date && new Date(coupon.expiration_date) < now)) {
       console.log('❌ Coupon expired:', code);
       return new Response(
         JSON.stringify({ ok: false, message: 'انتهت صلاحية كوبون الخصم' }),
@@ -138,16 +138,18 @@ serve(async (req) => {
     // Calculate eligible subtotal (for now, assume all items are eligible)
     const eligibleSubtotal = subtotal;
 
-    // ✅ Calculate discount correctly
+    // ✅ Calculate discount correctly (support 'percent' and 'percentage')
     let discount = 0;
-    if (coupon.discount_kind === 'percentage') {
-      discount = (eligibleSubtotal * coupon.discount_value) / 100;
+    const kind = String(coupon.discount_kind || '').toLowerCase();
+    const value = Number(coupon.discount_value || 0);
+    if (kind === 'percent' || kind === 'percentage') {
+      discount = (eligibleSubtotal * value) / 100;
       // Apply max_discount cap if set
-      if (coupon.max_discount && discount > coupon.max_discount) {
-        discount = coupon.max_discount;
+      if (coupon.max_discount && discount > Number(coupon.max_discount)) {
+        discount = Number(coupon.max_discount);
       }
-    } else if (coupon.discount_kind === 'fixed') {
-      discount = coupon.discount_value;
+    } else if (kind === 'fixed' || kind === 'amount') {
+      discount = value;
     }
 
     // Ensure discount doesn't exceed subtotal and is not negative
