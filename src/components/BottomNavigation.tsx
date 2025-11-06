@@ -44,12 +44,12 @@ const BottomNavigation: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-background border-t border-border shadow-lg z-50">
       <div className="flex justify-between items-center">
         <Link 
           to="/" 
           className={`flex flex-1 flex-col items-center py-3 ${
-            location.pathname === '/' ? 'text-green-700' : 'text-gray-500'
+            location.pathname === '/' ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
           }`}
         >
           <Home className="w-5 h-5" />
@@ -59,7 +59,7 @@ const BottomNavigation: React.FC = () => {
         <Link 
           to="/cart" 
           className={`flex flex-1 flex-col items-center py-3 relative ${
-            location.pathname === '/cart' ? 'text-green-700' : 'text-gray-500'
+            location.pathname === '/cart' ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
           }`}
         >
           <ShoppingCart className="w-5 h-5" />
@@ -75,7 +75,7 @@ const BottomNavigation: React.FC = () => {
           <Link 
             to="/favorites" 
             className={`flex flex-1 flex-col items-center py-3 ${
-              location.pathname === '/favorites' ? 'text-green-700' : 'text-gray-500'
+              location.pathname === '/favorites' ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
             }`}
           >
             <Heart className="w-5 h-5" />
@@ -86,7 +86,7 @@ const BottomNavigation: React.FC = () => {
         <Link 
           to="/profile"
           className={`flex flex-1 flex-col items-center py-3 ${
-            location.pathname === '/profile' ? 'text-green-700' : 'text-gray-500'
+            location.pathname === '/profile' ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
           }`}
         >
           <User className="w-5 h-5" />
@@ -96,7 +96,7 @@ const BottomNavigation: React.FC = () => {
         <Link 
           to="/orders" 
           className={`flex flex-1 flex-col items-center py-3 ${
-            location.pathname.includes('/orders') ? 'text-green-700' : 'text-gray-500'
+            location.pathname.includes('/orders') ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
           }`}
         >
           <Package className="w-5 h-5" />
@@ -106,7 +106,7 @@ const BottomNavigation: React.FC = () => {
         <Link 
           to="/order-tracking" 
           className={`flex flex-1 flex-col items-center py-3 ${
-            location.pathname === '/order-tracking' ? 'text-green-700' : 'text-gray-500'
+            location.pathname === '/order-tracking' ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
           }`}
         >
           <Truck className="w-5 h-5" />

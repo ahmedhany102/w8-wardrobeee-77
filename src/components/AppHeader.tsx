@@ -29,16 +29,16 @@ const AppHeader = () => {
   };
 
   return (
-    <header className="w-full bg-gradient-to-r from-green-900 to-black sticky top-0 z-40 shadow-md">
+    <header className="w-full bg-gradient-to-r from-green-900 to-black dark:from-background dark:to-card sticky top-0 z-40 shadow-md border-b border-border">
       <div className="container px-4 py-2 mx-auto">
         <div className="flex flex-col gap-2">
           <div className="flex justify-between items-center">
             {isAdminPage ? (
-              <Link to="/admin" className="text-xl font-bold text-white flex items-center">
+              <Link to="/admin" className="text-xl font-bold text-white dark:text-foreground flex items-center">
                 <Shield className="mr-2" /> Admin Panel
               </Link>
             ) : (
-              <Link to="/" className="text-xl font-bold text-white">
+              <Link to="/" className="text-xl font-bold text-white dark:text-foreground">
                 W8
               </Link>
             )}
@@ -47,7 +47,7 @@ const AppHeader = () => {
                 variant="ghost"
                 size="sm"
                 onClick={toggleTheme}
-                className="h-8 w-8 p-0 text-white hover:bg-gray-800"
+                className="h-8 w-8 p-0"
                 aria-label="Toggle theme"
               >
                 {theme === 'dark' ? (
@@ -59,14 +59,14 @@ const AppHeader = () => {
               
               {user ? (
                 <div className="flex items-center gap-3">
-                  <div className="text-sm text-gray-300">
+                  <div className="text-sm text-gray-300 dark:text-muted-foreground">
                     {user.name} {isAdmin && "(Admin)"}
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm" 
                     onClick={isAdminPage ? handleAdminLogout : handleLogout}
-                    className="flex items-center gap-1 bg-transparent border-gray-600 text-white hover:bg-gray-800"
+                    className="flex items-center gap-1"
                   >
                     <LogOut className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline text-xs">Logout</span>
@@ -74,15 +74,11 @@ const AppHeader = () => {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <div className="text-sm text-gray-300 mr-2">
+                  <div className="text-sm text-gray-300 dark:text-muted-foreground mr-2">
                     Welcome, Guest
                   </div>
-                  <Link to="/login" className="text-sm text-white hover:text-green-300 mr-2">
+                  <Link to="/login" className="text-sm text-white dark:text-foreground hover:text-green-300 dark:hover:text-primary mr-2">
                     Login
-                  </Link>
-                  <Link to="/admin-login" className="flex items-center text-sm text-white hover:text-green-300">
-                    <Shield className="h-3.5 w-3.5 mr-1" />
-                    Admin
                   </Link>
                 </div>
               )}
