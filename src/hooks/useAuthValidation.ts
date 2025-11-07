@@ -15,37 +15,10 @@ export const useAuthValidation = () => {
     setUser: (user: AuthUser | null) => void
   ) => {
     try {
-      console.log('🔍 Starting secure session validation...');
+      console.log('🔍 Starting session validation...');
       setLoading(true);
       
-      // Clear any potentially corrupted localStorage data first
-      try {
-        const authKeys = Object.keys(localStorage).filter(key => 
-          key.startsWith('sb-') && key.includes('-auth-token')
-        );
-        authKeys.forEach(authKey => {
-          const authData = localStorage.getItem(authKey);
-          if (authData) {
-            try {
-              const parsed = JSON.parse(authData);
-              if (!parsed || !parsed.access_token || !parsed.user) {
-                console.log('🧹 Clearing corrupted localStorage auth data');
-                localStorage.removeItem(authKey);
-              }
-            } catch (e) {
-              console.log('🧹 Removing corrupted auth key:', authKey);
-              localStorage.removeItem(authKey);
-            }
-          }
-        });
-      } catch (e) {
-        console.log('🧹 Clearing corrupted localStorage due to parse error');
-        Object.keys(localStorage)
-          .filter(key => key.startsWith('sb-'))
-          .forEach(key => localStorage.removeItem(key));
-      }
-      
-      // Get session with proper error handling
+      // Get session directly without manual localStorage manipulation
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {

@@ -718,6 +718,36 @@ export type Database = {
       can_user_authenticate: { Args: { _user_id: string }; Returns: boolean }
       cancel_user_order: { Args: { order_id: string }; Returns: boolean }
       check_ban_status: { Args: never; Returns: undefined }
+      claim_coupon: {
+        Args: { p_code: string }
+        Returns: {
+          active: boolean | null
+          code: string
+          created_at: string | null
+          description: string | null
+          discount_kind: string
+          discount_percent: number | null
+          discount_value: number
+          expiration_date: string | null
+          expires_at: string | null
+          expiry_date: string | null
+          id: string
+          max_discount: number | null
+          max_uses: number | null
+          minimum_amount: number | null
+          usage_limit: number | null
+          usage_limit_global: number | null
+          usage_limit_per_user: number | null
+          used_count: number | null
+          uses: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "coupons"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_promotional_banner: {
         Args: { banner_id: string }
         Returns: boolean

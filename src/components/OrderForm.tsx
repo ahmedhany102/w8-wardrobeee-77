@@ -7,6 +7,8 @@ import { Textarea } from './ui/textarea';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupabaseOrders } from '@/hooks/useSupabaseOrders';
+import { claimCoupon } from '@/services/claimCouponService';
+import { ApplyCouponService } from '@/services/applyCouponService';
 
 interface OrderFormProps {
   cartItems: {
@@ -24,6 +26,7 @@ interface OrderFormProps {
   appliedCoupon?: {
     code: string;
     discount: number;
+    couponId?: string;
   } | null;
 }
 
@@ -117,8 +120,24 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
         size: item.size || '-',
       }));
 
-      // Calculate discount if coupon applied
-      const discountAmount = appliedCoupon ? (total * appliedCoupon.discount) / 100 : 0;
+      // Claim coupon atomically if one was applied
+      let claimedCouponId: string | null = null;
+      if (appliedCoupon) {
+        console.log('🎟️ Attempting to claim coupon:', appliedCoupon.code);
+        const claimedCoupon = await claimCoupon(appliedCoupon.code);
+        
+        if (!claimedCoupon) {
+          toast.error('كود الخصم غير صالح أو انتهت صلاحيته. الرجاء إزالته والمحاولة مرة أخرى.');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        claimedCouponId = claimedCoupon.id;
+        console.log('✅ Coupon claimed successfully:', claimedCouponId);
+      }
+
+      // Calculate discount (appliedCoupon.discount is already the amount in EGP)
+      const discountAmount = appliedCoupon ? appliedCoupon.discount : 0;
 
       // Prepare order data with explicit user linking
       const orderData = {
@@ -142,10 +161,10 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
           method: formData.paymentMethod,
         },
         notes: formData.notes?.trim() || '',
-        ...(appliedCoupon && {
+        ...(appliedCoupon && claimedCouponId && {
           coupon_info: {
+            coupon_id: claimedCouponId,
             code: appliedCoupon.code,
-            discountPercentage: appliedCoupon.discount,
             discountAmount: discountAmount
           }
         })
@@ -155,6 +174,11 @@ const OrderForm: React.FC<OrderFormProps> = ({ cartItems, total, onOrderComplete
 
       // Save order to database
       const createdOrder = await addOrder(orderData);
+      
+      // Record coupon redemption if applicable
+      if (appliedCoupon && claimedCouponId) {
+        await ApplyCouponService.recordRedemption(claimedCouponId, createdOrder.id);
+      }
       
       console.log('Order successfully created and saved:', createdOrder);
 
