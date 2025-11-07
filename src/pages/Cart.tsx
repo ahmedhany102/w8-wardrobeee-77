@@ -399,7 +399,7 @@ const Cart = () => {
                       </div>
                       {appliedCoupon && (
                         <div className="flex justify-between text-sm text-green-600">
-                          <span>Discount ({appliedCoupon.discount}%)</span>
+                          <span>Discount ({appliedCoupon.code})</span>
                           <span>-{discountAmount.toFixed(2)} EGP</span>
                         </div>
                       )}

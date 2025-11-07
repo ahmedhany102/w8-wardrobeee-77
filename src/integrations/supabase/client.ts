@@ -49,7 +49,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
   }
 });
 
-// Enhanced auth state monitoring for debugging with corruption detection
+// Safe auth state monitoring - trust SDK's persistence
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('🔔 Supabase Auth Event:', event);
   console.log('🔑 Session exists:', !!session);
@@ -58,12 +58,6 @@ supabase.auth.onAuthStateChange((event, session) => {
     console.log('👤 User:', session.user.email);
     console.log('🕒 Session expires at:', new Date(session.expires_at! * 1000));
     console.log('🔄 Auto-refresh enabled');
-    
-    // Validate session data integrity
-    if (!session.access_token || !session.user) {
-      console.error('⚠️ Corrupted session detected, clearing storage');
-      safeLocalStorage.removeItem(`sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`);
-    }
   }
   
   if (event === 'TOKEN_REFRESHED') {
@@ -71,6 +65,6 @@ supabase.auth.onAuthStateChange((event, session) => {
   }
   
   if (event === 'SIGNED_OUT') {
-    console.log('🧹 User signed out, clearing auth storage');
+    console.log('🧹 User signed out');
   }
 });

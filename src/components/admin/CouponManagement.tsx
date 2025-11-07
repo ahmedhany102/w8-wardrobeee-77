@@ -72,9 +72,22 @@ const CouponManagement = () => {
         [name]: checked,
       }));
     } else if (name === 'discount_value' || name === 'usage_limit' || name === 'minimum_amount') {
+      let numValue = value === '' ? (name === 'minimum_amount' ? 0 : undefined) : Number(value);
+      
+      // Validate discount_value based on discount_kind
+      if (name === 'discount_value' && numValue !== undefined) {
+        if (couponFormData.discount_kind === 'percent') {
+          // Clamp percentage to 1-100
+          numValue = Math.max(1, Math.min(100, numValue));
+        } else if (couponFormData.discount_kind === 'fixed') {
+          // Ensure non-negative for fixed amount
+          numValue = Math.max(0, numValue);
+        }
+      }
+      
       setCouponFormData(prev => ({
         ...prev,
-        [name]: value === '' ? (name === 'minimum_amount' ? 0 : undefined) : Number(value),
+        [name]: numValue,
       }));
     } else {
       setCouponFormData(prev => ({
@@ -351,16 +364,25 @@ const CouponManagement = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">قيمة الخصم*</label>
+                  <label className="block text-sm font-medium mb-1">
+                    قيمة الخصم* {couponFormData.discount_kind === 'percent' ? '(%)' : '(EGP)'}
+                  </label>
                   <input
                     type="number"
                     name="discount_value"
-                    min="1"
+                    min={couponFormData.discount_kind === 'percent' ? '1' : '0'}
+                    max={couponFormData.discount_kind === 'percent' ? '100' : undefined}
+                    step={couponFormData.discount_kind === 'percent' ? '1' : '0.01'}
                     value={couponFormData.discount_value}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
                     required
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {couponFormData.discount_kind === 'percent' 
+                      ? 'أدخل نسبة من 1 إلى 100' 
+                      : 'أدخل مبلغ الخصم بالجنيه'}
+                  </p>
                 </div>
               </div>
               <div>
@@ -461,16 +483,25 @@ const CouponManagement = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">قيمة الخصم*</label>
+                  <label className="block text-sm font-medium mb-1">
+                    قيمة الخصم* {couponFormData.discount_kind === 'percent' ? '(%)' : '(EGP)'}
+                  </label>
                   <input
                     type="number"
                     name="discount_value"
-                    min="1"
+                    min={couponFormData.discount_kind === 'percent' ? '1' : '0'}
+                    max={couponFormData.discount_kind === 'percent' ? '100' : undefined}
+                    step={couponFormData.discount_kind === 'percent' ? '1' : '0.01'}
                     value={couponFormData.discount_value}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
                     required
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {couponFormData.discount_kind === 'percent' 
+                      ? 'أدخل نسبة من 1 إلى 100' 
+                      : 'أدخل مبلغ الخصم بالجنيه'}
+                  </p>
                 </div>
               </div>
               <div>
