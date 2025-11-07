@@ -14,6 +14,20 @@ export const useAuthValidation = () => {
     setSession: (session: Session | null) => void,
     setUser: (user: AuthUser | null) => void
   ) => {
+    let done = false;
+    const end = () => { 
+      if (!done) { 
+        done = true; 
+        setLoading(false); 
+      } 
+    };
+
+    // Watchdog timeout to prevent infinite loading
+    const watchdog = setTimeout(() => {
+      console.warn('⏰ Auth validation watchdog released the loader after 8s');
+      end();
+    }, 8000);
+
     try {
       console.log('🔍 Starting session validation...');
       setLoading(true);
@@ -26,7 +40,8 @@ export const useAuthValidation = () => {
         await secureLogout();
         setSession(null);
         setUser(null);
-        setLoading(false);
+        clearTimeout(watchdog);
+        end();
         return;
       }
 
@@ -34,7 +49,8 @@ export const useAuthValidation = () => {
         console.log('🔍 No valid session found - user needs to login');
         setSession(null);
         setUser(null);
-        setLoading(false);
+        clearTimeout(watchdog);
+        end();
         return;
       }
 
@@ -53,7 +69,8 @@ export const useAuthValidation = () => {
         await secureLogout();
         setSession(null);
         setUser(null);
-        setLoading(false);
+        clearTimeout(watchdog);
+        end();
         toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
         return;
       }
@@ -87,7 +104,8 @@ export const useAuthValidation = () => {
       toast.error('Authentication failed. Please try logging in again.');
     } finally {
       // CRITICAL: Always set loading to false
-      setLoading(false);
+      clearTimeout(watchdog);
+      end();
       console.log('🔧 Auth validation completed, loading set to false');
     }
   };

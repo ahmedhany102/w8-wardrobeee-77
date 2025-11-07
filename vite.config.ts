@@ -15,8 +15,19 @@ export default defineConfig(({ mode }) => ({
     componentTagger(),
   ].filter(Boolean),
   resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    alias: [
+      { find: "@", replacement: path.resolve(__dirname, "./src") },
+      { find: "worker_threads", replacement: path.resolve(__dirname, "./src/utils/empty-module.ts") },
+      { find: "fs", replacement: path.resolve(__dirname, "./src/utils/empty-module.ts") },
+      { find: "module", replacement: path.resolve(__dirname, "./src/utils/empty-module.ts") },
+    ],
+  },
+  optimizeDeps: {
+    exclude: ['worker_threads'],
+  },
+  build: {
+    rollupOptions: {
+      external: ['worker_threads'],
     },
   },
 }));
