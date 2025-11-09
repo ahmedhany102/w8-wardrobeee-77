@@ -82,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             setSession(newSession);
+            console.log("🔥 Fetching user profile for:", newSession.user.id);
 
             try {
               const userData = await fetchUserProfile(newSession.user.id, newSession.user.email!);
