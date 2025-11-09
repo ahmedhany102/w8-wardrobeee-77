@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -5,13 +6,13 @@ import type { Session } from '@supabase/supabase-js';
 import type { AuthUser, AuthContextType } from '@/types/auth';
 import { useAuthValidation } from '@/hooks/useAuthValidation';
 import { useAuthOperations } from '@/hooks/useAuthOperations';
-import { fetchUserProfile } from '@/utils/authUtils';
+import { fetchUserProfile, clearSessionData } from '@/utils/authUtils';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -20,7 +21,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-
+  
   const { validateSessionAndUser, loading, setLoading } = useAuthValidation();
   const { login, adminLogin, signup, logout } = useAuthOperations();
 
@@ -30,83 +31,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     console.log('🚀 Initializing auth system with timeout protection...');
-
-    // ✅ Auth state listener
+    
+    // Set up auth state change listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('🔔 Auth state changed:', event, newSession?.user?.email || 'No user');
-
-        // ✅ FIXED: prevent transient SIGNED_OUT bugs
+      async (event, session) => {
+        console.log('🔔 Auth state changed:', event, session?.user?.email || 'No user');
+        
         if (event === 'SIGNED_OUT') {
-          console.log('👋 SIGNED_OUT event received');
-
-          // check if Supabase still has a valid session
-          const { data } = await supabase.auth.getSession();
-
-          if (data.session) {
-            console.log('⏳ Ignoring transient SIGNED_OUT (session still present)');
-            return;
-          }
-
-          // ✅ actual logout
-          console.log('🚪 User fully signed out, clearing state');
+          console.log('👋 User signed out - clearing state');
           setUser(null);
           setSession(null);
           setLoading(false);
           return;
         }
-
-        // ✅ SIGNED_IN or TOKEN_REFRESHED
+        
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (newSession?.user) {
-            console.log('🔐 SIGNED_IN / TOKEN_REFRESHED - processing user...');
-
-            // ban check
-            const { data: canAuth, error: authCheckError } = await supabase.rpc(
-              'can_user_authenticate',
-              { _user_id: newSession.user.id }
-            );
+          if (session?.user) {
+            console.log('🔐 User signed in or token refreshed - processing...');
+            
+            // CRITICAL: Check if user is banned before allowing access
+            console.log('🔍 Checking ban status in auth state change...');
+            const { data: canAuth, error: authCheckError } = await supabase.rpc('can_user_authenticate', {
+              _user_id: session.user.id
+            });
 
             if (authCheckError) {
               console.error('❌ Auth check error:', authCheckError);
             }
 
             if (!canAuth) {
-              console.warn('🚫 BLOCKED: banned user detected');
+              console.warn('🚫 BLOCKED: Banned user detected in auth state change, signing out:', session.user.email);
               await supabase.auth.signOut();
-              setUser(null);
               setSession(null);
+              setUser(null);
               setLoading(false);
               toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
               return;
             }
-
-            setSession(newSession);
-
+            
+            setSession(session);
+            
             try {
-              const userData = await fetchUserProfile(newSession.user.id, newSession.user.email!);
+              const userData = await fetchUserProfile(session.user.id, session.user.email!);
               setUser(userData);
-              console.log('✅ User profile loaded:', userData);
+              console.log('✅ Profile loaded after auth change:', userData);
             } catch (error) {
-              console.error('❌ Failed to load profile:', error);
-
-              const fallbackUser: AuthUser = {
-                id: newSession.user.id,
-                email: newSession.user.email!,
-                name: newSession.user.email?.split('@')[0] || 'User',
+              console.error('❌ Failed to load profile after auth change:', error);
+              // Fallback user data with default USER role
+              const basicUserData: AuthUser = {
+                id: session.user.id,
+                email: session.user.email!,
+                name: session.user.email?.split('@')[0] || 'User',
                 role: 'USER'
               };
-
-              setUser(fallbackUser);
+              setUser(basicUserData);
             }
-
             setLoading(false);
           }
         }
       }
     );
 
-    // ✅ initial session validation
+    // THEN validate initial session with timeout protection
     const initializeAuth = async () => {
       try {
         await validateSessionAndUser(setSession, setUser);
