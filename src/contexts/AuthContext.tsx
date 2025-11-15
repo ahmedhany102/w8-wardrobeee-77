@@ -5,13 +5,13 @@ import type { Session } from '@supabase/supabase-js';
 import type { AuthUser, AuthContextType } from '@/types/auth';
 import { useAuthValidation } from '@/hooks/useAuthValidation';
 import { useAuthOperations } from '@/hooks/useAuthOperations';
-import { fetchUserProfile, clearSessionData } from '@/utils/authUtils';
+import { fetchUserProfile } from '@/utils/authUtils';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
@@ -20,138 +20,108 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  
-  // سنستخدم فقط setLoading من هذا الـ hook
-  const { loading, setLoading } = useAuthValidation();
+
+  const { validateSessionAndUser, loading, setLoading } = useAuthValidation();
   const { login, adminLogin, signup, logout } = useAuthOperations();
 
-  // سنحتفظ بهذه الدالة في حال احتجتها يدويًا، لكن لن نستخدمها عند بدء التشغيل
-  const { validateSessionAndUser } = useAuthValidation();
   const checkAuthStatus = async () => {
     await validateSessionAndUser(setSession, setUser);
   };
 
-
   useEffect(() => {
-    console.log('🚀 Initializing auth system (v3 - Final Fix)...');
-    
-    // 1. إعداد المستمع أولاً
+    console.log('🚀 Initializing auth system with timeout protection...');
+
+    // ✅ Auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log('🔔 Auth state changed:', event, newSession?.user?.email || 'No user');
-        
-        // =======================
-        //
-        //  ✅  الإصلاح الأول:
-        //  إعادة التحقق من حدث تسجيل الخروج العابر (من الكود القديم)
-        //
-        // =======================
+
+        // ✅ FIXED: prevent transient SIGNED_OUT bugs
         if (event === 'SIGNED_OUT') {
           console.log('👋 SIGNED_OUT event received');
 
-          // التحقق هل الجلسة لا تزال موجودة (حدث عابر)؟
+          // check if Supabase still has a valid session
           const { data } = await supabase.auth.getSession();
 
           if (data.session) {
-            console.log('⏳ Ignoring transient SIGNED_OUT, session still present');
-            return; // تجاهل الحدث، انتظر TOKEN_REFRESHED
+            console.log('⏳ Ignoring transient SIGNED_OUT (session still present)');
+            return;
           }
 
-          // فعلاً مفيش سيشن → ده logout حقيقي
+          // ✅ actual logout
           console.log('🚪 User fully signed out, clearing state');
           setUser(null);
           setSession(null);
-          setLoading(false); // <-- هام: إيقاف التحميل
+          setLoading(false);
           return;
         }
-        
-        // =======================
-        //
-        //  ✅  الإصلاح الثاني:
-        //  التعامل مع تسجيل الدخول / تحديث التوكن
-        //
-        // =======================
+
+        // ✅ SIGNED_IN or TOKEN_REFRESHED
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (newSession?.user) {
-            console.log('🔐 User signed in or token refreshed - processing...');
-            
-            // (الكود الجيد الذي أضفته للتحقق من الحظر)
-            const { data: canAuth, error: authCheckError } = await supabase.rpc('can_user_authenticate', {
-              _user_id: newSession.user.id
-            });
+            console.log('🔐 SIGNED_IN / TOKEN_REFRESHED - processing user...');
 
-            if (authCheckError) console.error('❌ Auth check error:', authCheckError);
+            // ban check
+            const { data: canAuth, error: authCheckError } = await supabase.rpc(
+              'can_user_authenticate',
+              { _user_id: newSession.user.id }
+            );
+
+            if (authCheckError) {
+              console.error('❌ Auth check error:', authCheckError);
+            }
 
             if (!canAuth) {
-              console.warn('🚫 BLOCKED: Banned user detected, signing out');
+              console.warn('🚫 BLOCKED: banned user detected');
               await supabase.auth.signOut();
-              setSession(null);
               setUser(null);
-              setLoading(false); // <-- هام: إيقاف التحميل
+              setSession(null);
+              setLoading(false);
               toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
               return;
             }
-            
-            // المستخدم سليم، قم بتسجيل دخوله
+
             setSession(newSession);
+
             try {
               const userData = await fetchUserProfile(newSession.user.id, newSession.user.email!);
               setUser(userData);
-              console.log('✅ Profile loaded after auth change:', userData);
+              console.log('✅ User profile loaded:', userData);
             } catch (error) {
-              console.error('❌ Failed to load profile after auth change:', error);
-              const basicUserData: AuthUser = {
+              console.error('❌ Failed to load profile:', error);
+
+              const fallbackUser: AuthUser = {
                 id: newSession.user.id,
                 email: newSession.user.email!,
                 name: newSession.user.email?.split('@')[0] || 'User',
                 role: 'USER'
               };
-              setUser(basicUserData);
+
+              setUser(fallbackUser);
             }
-            setLoading(false); // <-- هام: إيقاف التحميل
-            return;
+
+            setLoading(false);
           }
         }
       }
     );
 
-    // =======================
-    //
-    //  ✅  الإصلاح الثالث (الأهم):
-    //  إلغاء سباق الحالات (Race Condition)
-    //
-    // =======================
-    const checkInitialSession = async () => {
-      console.log('Checking initial session state...');
-      // getSession() تتحقق من الجلسة الحالية
-      const { data } = await supabase.auth.getSession();
-
-      if (data.session) {
-        // وجدنا جلسة!
-        // لا تفعل شيئًا هنا.
-        // لأن getSession() ستجعل المستمع (onAuthStateChange)
-        // يطلق حدث TOKEN_REFRESHED أو SIGNED_IN
-        // وهذا سيمنع حدوث "سباق الحالات"
-        console.log('Initial check: Session found. Letting listener handle it.');
-      } else {
-        // لا توجد جلسة.
-        // المستمع (onAuthStateChange) لن يطلق أي حدث.
-        // يجب علينا إيقاف التحميل يدويًا.
-        // هذا هو السطر الذي كان مفقودًا وتسبب في مشكلتك.
-        console.log('Initial check: No session found. Setting loading=false.');
-        setUser(null);
-        setSession(null);
+    // ✅ initial session validation
+    const initializeAuth = async () => {
+      try {
+        await validateSessionAndUser(setSession, setUser);
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
         setLoading(false);
       }
     };
 
-    // 2. تشغيل التحقق الأولي
-    checkInitialSession();
+    initializeAuth();
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const contextValue = {
     user,
@@ -162,7 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     loading,
     isAdmin: user?.role === 'ADMIN',
-    checkAuthStatus // أعدنا هذه الدالة
+    checkAuthStatus
   };
 
   console.log('🏪 Auth Context State:', {
