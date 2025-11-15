@@ -79,3 +79,4 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
   console.log('✅ Authentication successful, rendering protected content');
   return children ? children : <Outlet />;
 };
+
