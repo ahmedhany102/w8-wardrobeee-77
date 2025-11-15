@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { RequireAuth } from './components/RequireAuth';
@@ -16,7 +15,6 @@ import OrderTracking from './pages/OrderTracking';
 import ProductDetails from './pages/ProductDetails';
 import CategoryPage from './pages/CategoryPage';
 import Terms from './pages/Terms';
-import Favorites from './pages/Favorites';
 
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
@@ -56,10 +54,9 @@ function App() {
                 {/* Protected routes */}
                 <Route element={<RequireAuth adminOnly={false} />}>
                   <Route path="/profile" element={<Profile />} />
-                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/cart" element...
                   <Route path="/order-tracking" element={<OrderTracking />} />
                   <Route path="/orders" element={<OrderTracking />} />
-                  <Route path="/favorites" element={<Favorites />} />
                 </Route>
 
                 {/* Admin routes */}
