@@ -75,6 +75,7 @@ export const RequireAuth = ({ adminOnly = false, children }: RequireAuthProps) =
     return <Navigate to="/" replace />;
   }
 
+  
   // Authentication successful
   console.log('✅ Authentication successful, rendering protected content');
   return children ? children : <Outlet />;
