@@ -31,24 +31,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     console.log('🚀 Initializing auth system with timeout protection...');
 
-    // ✅ Auth state listener
+    // ✅ Auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log('🔔 Auth state changed:', event, newSession?.user?.email || 'No user');
 
-        // ✅ FIXED: prevent transient SIGNED_OUT bugs
+        // ✅ إصلاح SIGNED_OUT المؤقت (السبب الأساسي للـ infinite loading)
         if (event === 'SIGNED_OUT') {
           console.log('👋 SIGNED_OUT event received');
 
-          // check if Supabase still has a valid session
+          // لازم نشوف هل في Session حقيقية موجودة ولا لأ
           const { data } = await supabase.auth.getSession();
 
           if (data.session) {
-            console.log('⏳ Ignoring transient SIGNED_OUT (session still present)');
+            console.log('⏳ Ignoring transient SIGNED_OUT, session still present');
             return;
           }
 
-          // ✅ actual logout
+          // فعلاً مفيش سيشن → ده logout حقيقي
           console.log('🚪 User fully signed out, clearing state');
           setUser(null);
           setSession(null);
@@ -56,12 +56,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        // ✅ SIGNED_IN or TOKEN_REFRESHED
+        // ✅ SIGNED_IN أو TOKEN_REFRESHED
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (newSession?.user) {
-            console.log('🔐 SIGNED_IN / TOKEN_REFRESHED - processing user...');
+            console.log('🔐 User signed in or token refreshed - processing...');
 
-            // ban check
+            // Check ban
             const { data: canAuth, error: authCheckError } = await supabase.rpc(
               'can_user_authenticate',
               { _user_id: newSession.user.id }
@@ -72,7 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             if (!canAuth) {
-              console.warn('🚫 BLOCKED: banned user detected');
+              console.warn('🚫 BLOCKED: Banned user detected, signing out');
               await supabase.auth.signOut();
               setUser(null);
               setSession(null);
@@ -86,18 +86,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             try {
               const userData = await fetchUserProfile(newSession.user.id, newSession.user.email!);
               setUser(userData);
-              console.log('✅ User profile loaded:', userData);
-            } catch (error) {
-              console.error('❌ Failed to load profile:', error);
+              console.log('✅ Profile loaded after auth change:', userData);
+            } catch (err) {
+              console.error('❌ Failed to load profile:', err);
 
-              const fallbackUser: AuthUser = {
+              const fallback: AuthUser = {
                 id: newSession.user.id,
                 email: newSession.user.email!,
                 name: newSession.user.email?.split('@')[0] || 'User',
                 role: 'USER'
               };
-
-              setUser(fallbackUser);
+              setUser(fallback);
             }
 
             setLoading(false);
@@ -106,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // ✅ initial session validation
+    // ✅ Initial session validation
     const initializeAuth = async () => {
       try {
         await validateSessionAndUser(setSession, setUser);
@@ -118,9 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const contextValue = {
