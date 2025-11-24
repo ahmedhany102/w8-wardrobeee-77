@@ -29,7 +29,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    console.log('🚀 Initializing auth system with timeout protection...');
+    console.log('🚀 Initializing auth system with 3s fail-safe protection...');
+
+    // Clear recovery flag on successful mount
+    const lastRecovery = sessionStorage.getItem('auth_recovery_timestamp');
+    if (lastRecovery) {
+      const timeSince = Date.now() - parseInt(lastRecovery);
+      if (timeSince > 5000) {
+        sessionStorage.removeItem('auth_recovery_timestamp');
+      }
+    }
 
     // ✅ Auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
