@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import type { AuthUser, AuthContextType } from '@/types/auth';
-import { useAuthValidation } from '@/hooks/useAuthValidation';
 import { useAuthOperations } from '@/hooks/useAuthOperations';
 import { fetchUserProfile } from '@/utils/authUtils';
 
@@ -20,112 +19,118 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const { validateSessionAndUser, loading, setLoading } = useAuthValidation();
   const { login, adminLogin, signup, logout } = useAuthOperations();
 
+  // Helper function to load user profile and check ban status
+  const loadUserProfile = async (userId: string, userEmail: string) => {
+    try {
+      // Check if user is banned
+      const { data: canAuth, error: authCheckError } = await supabase.rpc(
+        'can_user_authenticate',
+        { _user_id: userId }
+      );
+
+      if (authCheckError) {
+        console.error('❌ Auth check error:', authCheckError);
+      }
+
+      if (!canAuth) {
+        console.warn('🚫 BLOCKED: banned user detected');
+        await supabase.auth.signOut();
+        setUser(null);
+        setSession(null);
+        toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
+        return null;
+      }
+
+      // Fetch user profile
+      const userData = await fetchUserProfile(userId, userEmail);
+      console.log('✅ User profile loaded:', userData);
+      return userData;
+    } catch (error) {
+      console.error('❌ Failed to load profile:', error);
+      
+      // Fallback user data
+      const fallbackUser: AuthUser = {
+        id: userId,
+        email: userEmail,
+        name: userEmail.split('@')[0] || 'User',
+        role: 'USER'
+      };
+      
+      return fallbackUser;
+    }
+  };
+
   const checkAuthStatus = async () => {
-    await validateSessionAndUser(setSession, setUser);
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    
+    if (currentSession?.user) {
+      const userData = await loadUserProfile(currentSession.user.id, currentSession.user.email!);
+      if (userData) {
+        setSession(currentSession);
+        setUser(userData);
+      }
+    } else {
+      setSession(null);
+      setUser(null);
+    }
   };
 
   useEffect(() => {
-    console.log('🚀 Initializing auth system with 3s fail-safe protection...');
+    console.log('🚀 Initializing auth system...');
 
-    // Clear recovery flag on successful mount
-    const lastRecovery = sessionStorage.getItem('auth_recovery_timestamp');
-    if (lastRecovery) {
-      const timeSince = Date.now() - parseInt(lastRecovery);
-      if (timeSince > 5000) {
-        sessionStorage.removeItem('auth_recovery_timestamp');
+    // Get initial session
+    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
+      console.log('🔍 Initial session check:', initialSession?.user?.email || 'No session');
+      
+      if (initialSession?.user) {
+        setSession(initialSession);
+        const userData = await loadUserProfile(initialSession.user.id, initialSession.user.email!);
+        if (userData) {
+          setUser(userData);
+        }
       }
-    }
+      
+      setLoading(false);
+    });
 
-    // ✅ Auth state listener
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log('🔔 Auth state changed:', event, newSession?.user?.email || 'No user');
 
-        // ✅ FIXED: prevent transient SIGNED_OUT bugs
         if (event === 'SIGNED_OUT') {
-          console.log('👋 SIGNED_OUT event received');
-
-          // check if Supabase still has a valid session
-          const { data } = await supabase.auth.getSession();
-
-          if (data.session) {
-            console.log('⏳ Ignoring transient SIGNED_OUT (session still present)');
-            return;
-          }
-
-          // ✅ actual logout
-          console.log('🚪 User fully signed out, clearing state');
+          console.log('👋 User signed out');
           setUser(null);
           setSession(null);
-          setLoading(false);
           return;
         }
 
-        // ✅ SIGNED_IN or TOKEN_REFRESHED
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (newSession?.user) {
-            console.log('🔐 SIGNED_IN / TOKEN_REFRESHED - processing user...');
-
-            // ban check
-            const { data: canAuth, error: authCheckError } = await supabase.rpc(
-              'can_user_authenticate',
-              { _user_id: newSession.user.id }
-            );
-
-            if (authCheckError) {
-              console.error('❌ Auth check error:', authCheckError);
-            }
-
-            if (!canAuth) {
-              console.warn('🚫 BLOCKED: banned user detected');
-              await supabase.auth.signOut();
-              setUser(null);
-              setSession(null);
-              setLoading(false);
-              toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
-              return;
-            }
-
+            console.log('🔐 Processing user session...');
             setSession(newSession);
-
-            try {
-              const userData = await fetchUserProfile(newSession.user.id, newSession.user.email!);
+            
+            const userData = await loadUserProfile(newSession.user.id, newSession.user.email!);
+            if (userData) {
               setUser(userData);
-              console.log('✅ User profile loaded:', userData);
-            } catch (error) {
-              console.error('❌ Failed to load profile:', error);
-
-              const fallbackUser: AuthUser = {
-                id: newSession.user.id,
-                email: newSession.user.email!,
-                name: newSession.user.email?.split('@')[0] || 'User',
-                role: 'USER'
-              };
-
-              setUser(fallbackUser);
             }
+          }
+        }
 
-            setLoading(false);
+        if (event === 'USER_UPDATED') {
+          if (newSession?.user) {
+            const userData = await loadUserProfile(newSession.user.id, newSession.user.email!);
+            if (userData) {
+              setUser(userData);
+            }
           }
         }
       }
     );
-
-    // ✅ initial session validation
-    const initializeAuth = async () => {
-      try {
-        await validateSessionAndUser(setSession, setUser);
-      } catch (error) {
-        console.error('Failed to initialize auth:', error);
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
 
     return () => {
       subscription.unsubscribe();
