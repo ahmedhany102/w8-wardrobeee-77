@@ -108,6 +108,7 @@ export const useAuthValidation = () => {
       end();
       console.log('🔧 Auth validation completed, loading set to false');
     }
+    
   };
 
   return { validateSessionAndUser, loading, setLoading };
