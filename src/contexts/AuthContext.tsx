@@ -68,10 +68,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             );
 
             if (authCheckError) {
-              console.error('❌ Auth check error:', authCheckError);
+              console.error('❌ Auth check error (allowing access by default):', authCheckError);
             }
 
-            if (!canAuth) {
+            // Only block if explicitly returned false (fail open)
+            if (canAuth === false) {
               console.warn('🚫 BLOCKED: banned user detected');
               await supabase.auth.signOut();
               setUser(null);
