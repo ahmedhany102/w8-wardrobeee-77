@@ -22,11 +22,43 @@ export const useAuthValidation = () => {
       } 
     };
 
-    // Watchdog timeout to prevent infinite loading
-    const watchdog = setTimeout(() => {
-      console.warn('⏰ Auth validation watchdog released the loader after 8s');
+    // 🧨 FAIL-SAFE: Force recovery from infinite loading
+    const watchdog = setTimeout(async () => {
+      console.error('🚨 AUTH FAIL-SAFE TRIGGERED: Infinite loading detected after 3s');
+      
+      // Check if we just recovered to prevent reload loops
+      const lastRecovery = sessionStorage.getItem('auth_recovery_timestamp');
+      const now = Date.now();
+      
+      if (lastRecovery && (now - parseInt(lastRecovery)) < 5000) {
+        console.warn('⚠️ Recovery attempted recently, breaking reload loop');
+        end();
+        return;
+      }
+      
+      // Mark recovery attempt
+      sessionStorage.setItem('auth_recovery_timestamp', now.toString());
+      
+      // Force clear everything
+      console.log('🧹 Clearing all auth state...');
+      localStorage.clear();
+      sessionStorage.removeItem('auth_recovery_timestamp'); // Keep only this
+      sessionStorage.setItem('auth_recovery_timestamp', now.toString());
+      
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (e) {
+        console.error('Sign out error:', e);
+      }
+      
+      setSession(null);
+      setUser(null);
       end();
-    }, 8000);
+      
+      // Force reload to clean state
+      console.log('🔄 Force reloading to recover...');
+      setTimeout(() => window.location.reload(), 100);
+    }, 3000);
 
     try {
       console.log('🔍 Starting session validation...');
