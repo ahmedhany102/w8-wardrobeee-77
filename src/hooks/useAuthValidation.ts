@@ -15,11 +15,11 @@ export const useAuthValidation = () => {
     setUser: (user: AuthUser | null) => void
   ) => {
     let done = false;
-    const end = () => {
-      if (!done) {
-        done = true;
-        setLoading(false);
-      }
+    const end = () => { 
+      if (!done) { 
+        done = true; 
+        setLoading(false); 
+      } 
     };
 
     // Watchdog timeout to prevent infinite loading
@@ -31,10 +31,10 @@ export const useAuthValidation = () => {
     try {
       console.log('🔍 Starting session validation...');
       setLoading(true);
-
+      
       // Get session directly without manual localStorage manipulation
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-
+      
       if (sessionError) {
         console.error('❌ Session validation error:', sessionError);
         await secureLogout();
@@ -61,11 +61,10 @@ export const useAuthValidation = () => {
       });
 
       if (authCheckError) {
-        console.error('❌ Auth check error (allowing access by default):', authCheckError);
+        console.error('❌ Auth check error:', authCheckError);
       }
 
-      // Only block if explicitly returned false (fail open)
-      if (canAuth === false) {
+      if (!canAuth) {
         console.warn('🚫 BLOCKED: Banned user session detected, signing out:', currentSession.user.email);
         await secureLogout();
         setSession(null);
@@ -96,7 +95,7 @@ export const useAuthValidation = () => {
         console.log('⚠️ Using fallback user data:', basicUserData);
         setUser(basicUserData);
       }
-
+      
     } catch (error) {
       console.error('💥 Critical auth validation exception:', error);
       await secureLogout();
