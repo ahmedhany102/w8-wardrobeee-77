@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Session } from '@supabase/supabase-js';
 import type { AuthUser, AuthContextType } from '@/types/auth';
+import { useAuthValidation } from '@/hooks/useAuthValidation';
 import { useAuthOperations } from '@/hooks/useAuthOperations';
 import { fetchUserProfile } from '@/utils/authUtils';
 
@@ -19,123 +20,104 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // We only pull the logic functions, not the state, to avoid circular dependencies
+  const { validateSessionAndUser, loading, setLoading } = useAuthValidation();
   const { login, adminLogin, signup, logout } = useAuthOperations();
 
-  const loadUserProfile = async (userId: string, userEmail: string | undefined) => {
-    try {
-      // 1. Check ban status first
-      const { data: canAuth, error: authCheckError } = await supabase.rpc(
-        'can_user_authenticate',
-        { _user_id: userId }
-      );
-
-      if (authCheckError) console.error('❌ Auth check error:', authCheckError);
-
-      if (canAuth === false) { // Explicit check for false
-        console.warn('🚫 BLOCKED: banned user detected');
-        await supabase.auth.signOut();
-        return null;
-      }
-
-      // 2. Fetch profile
-      // Ensure we have a string for email, even if it's empty
-      const safeEmail = userEmail || "";
-      const userData = await fetchUserProfile(userId, safeEmail);
-      return userData;
-
-    } catch (error) {
-      console.error('❌ Failed to load profile:', error);
-      
-      // SAFE Fallback that won't crash
-      const safeEmail = userEmail || "";
-      const safeName = safeEmail.includes('@') ? safeEmail.split('@')[0] : 'User';
-      
-      return {
-        id: userId,
-        email: safeEmail,
-        name: safeName,
-        role: 'USER'
-      } as AuthUser;
-    }
-  };
-
   const checkAuthStatus = async () => {
-    // Manually refresh auth state
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    if (currentSession?.user) {
-      const userData = await loadUserProfile(currentSession.user.id, currentSession.user.email);
-      if (userData) {
-        setSession(currentSession);
-        setUser(userData);
-      }
-    } else {
-      setSession(null);
-      setUser(null);
-    }
+    await validateSessionAndUser(setSession, setUser);
   };
 
   useEffect(() => {
-    let mounted = true;
-    console.log('🚀 Initializing auth system...');
+    console.log('🚀 Initializing auth system with timeout protection...');
 
-    async function initializeAuth() {
-      try {
-        // 1. Get the session ONCE
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-
-        if (mounted && initialSession?.user) {
-          console.log('🔍 Found existing session, loading profile...');
-          const userData = await loadUserProfile(initialSession.user.id, initialSession.user.email);
-          
-          // If loadUserProfile returned null (banned), we don't set user
-          if (mounted && userData) {
-            setSession(initialSession);
-            setUser(userData);
-          }
-        }
-      } catch (err) {
-        console.error("💥 Critical Auth Initialization Error:", err);
-      } finally {
-        // 2. ALWAYS finish loading, no matter what
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    initializeAuth();
-
-    // 3. Listen for changes (Login, Logout, Auto-Refresh)
+    // ✅ Auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        if (!mounted) return;
-        console.log('🔔 Auth Event:', event);
+        console.log('🔔 Auth state changed:', event, newSession?.user?.email || 'No user');
 
+        // ✅ إصلاح SIGNED_OUT المؤقت (السبب الأساسي للـ infinite loading)
         if (event === 'SIGNED_OUT') {
+          console.log('👋 SIGNED_OUT event received');
+
+          // لازم نشوف هل في Session حقيقية موجودة ولا لأ
+          const { data } = await supabase.auth.getSession();
+
+          if (data.session) {
+            console.log('⏳ Ignoring transient SIGNED_OUT, session still present');
+            return;
+          }
+
+          // فعلاً مفيش سيشن → ده logout حقيقي
+          console.log('🚪 User fully signed out, clearing state');
           setUser(null);
           setSession(null);
-          setLoading(false); // Ensure loader is off on logout
-        } 
-        else if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
-          setSession(newSession);
-          // Only fetch profile if we don't have it or it's a new user
-          // Note: You can optimize this to not fetch on every refresh if needed
-          const userData = await loadUserProfile(newSession.user.id, newSession.user.email);
-          if (mounted && userData) {
-             setUser(userData);
+          setLoading(false);
+          return;
+        }
+
+        // ✅ SIGNED_IN أو TOKEN_REFRESHED
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (newSession?.user) {
+            console.log('🔐 User signed in or token refreshed - processing...');
+
+            // Check ban
+            const { data: canAuth, error: authCheckError } = await supabase.rpc(
+              'can_user_authenticate',
+              { _user_id: newSession.user.id }
+            );
+
+            if (authCheckError) {
+              console.error('❌ Auth check error:', authCheckError);
+            }
+
+            if (!canAuth) {
+              console.warn('🚫 BLOCKED: Banned user detected, signing out');
+              await supabase.auth.signOut();
+              setUser(null);
+              setSession(null);
+              setLoading(false);
+              toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
+              return;
+            }
+
+            setSession(newSession);
+
+            try {
+              const userData = await fetchUserProfile(newSession.user.id, newSession.user.email!);
+              setUser(userData);
+              console.log('✅ Profile loaded after auth change:', userData);
+            } catch (err) {
+              console.error('❌ Failed to load profile:', err);
+
+              const fallback: AuthUser = {
+                id: newSession.user.id,
+                email: newSession.user.email!,
+                name: newSession.user.email?.split('@')[0] || 'User',
+                role: 'USER'
+              };
+              setUser(fallback);
+            }
+
+            setLoading(false);
           }
-          if (mounted) setLoading(false);
         }
       }
     );
 
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
+    // ✅ Initial session validation
+    const initializeAuth = async () => {
+      try {
+        await validateSessionAndUser(setSession, setUser);
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+        setLoading(false);
+      }
     };
+
+    initializeAuth();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const contextValue = {
@@ -149,6 +131,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin: user?.role === 'ADMIN',
     checkAuthStatus
   };
+
+  console.log('🏪 Auth Context State:', {
+    user: user?.email || 'No user',
+    session: !!session,
+    loading,
+    isAdmin: user?.role === 'ADMIN'
+  });
 
   return (
     <AuthContext.Provider value={contextValue}>
