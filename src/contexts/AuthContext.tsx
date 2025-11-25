@@ -21,54 +21,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // We only pull the logic functions, not the state, to avoid circular dependencies
   const { login, adminLogin, signup, logout } = useAuthOperations();
 
-  // Helper function to load user profile and check ban status
-  const loadUserProfile = async (userId: string, userEmail: string) => {
+  const loadUserProfile = async (userId: string, userEmail: string | undefined) => {
     try {
-      // Check if user is banned
+      // 1. Check ban status first
       const { data: canAuth, error: authCheckError } = await supabase.rpc(
         'can_user_authenticate',
         { _user_id: userId }
       );
 
-      if (authCheckError) {
-        console.error('❌ Auth check error:', authCheckError);
-      }
+      if (authCheckError) console.error('❌ Auth check error:', authCheckError);
 
-      if (!canAuth) {
+      if (canAuth === false) { // Explicit check for false
         console.warn('🚫 BLOCKED: banned user detected');
         await supabase.auth.signOut();
-        setUser(null);
-        setSession(null);
-        toast.error('تم حظر حسابك. تم تسجيل الخروج تلقائياً');
         return null;
       }
 
-      // Fetch user profile
-      const userData = await fetchUserProfile(userId, userEmail);
-      console.log('✅ User profile loaded:', userData);
+      // 2. Fetch profile
+      // Ensure we have a string for email, even if it's empty
+      const safeEmail = userEmail || "";
+      const userData = await fetchUserProfile(userId, safeEmail);
       return userData;
+
     } catch (error) {
       console.error('❌ Failed to load profile:', error);
       
-      // Fallback user data
-      const fallbackUser: AuthUser = {
-        id: userId,
-        email: userEmail,
-        name: userEmail.split('@')[0] || 'User',
-        role: 'USER'
-      };
+      // SAFE Fallback that won't crash
+      const safeEmail = userEmail || "";
+      const safeName = safeEmail.includes('@') ? safeEmail.split('@')[0] : 'User';
       
-      return fallbackUser;
+      return {
+        id: userId,
+        email: safeEmail,
+        name: safeName,
+        role: 'USER'
+      } as AuthUser;
     }
   };
 
   const checkAuthStatus = async () => {
+    // Manually refresh auth state
     const { data: { session: currentSession } } = await supabase.auth.getSession();
-    
     if (currentSession?.user) {
-      const userData = await loadUserProfile(currentSession.user.id, currentSession.user.email!);
+      const userData = await loadUserProfile(currentSession.user.id, currentSession.user.email);
       if (userData) {
         setSession(currentSession);
         setUser(userData);
@@ -80,59 +78,62 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    let mounted = true;
     console.log('🚀 Initializing auth system...');
 
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
-      console.log('🔍 Initial session check:', initialSession?.user?.email || 'No session');
-      
-      if (initialSession?.user) {
-        setSession(initialSession);
-        const userData = await loadUserProfile(initialSession.user.id, initialSession.user.email!);
-        if (userData) {
-          setUser(userData);
+    async function initializeAuth() {
+      try {
+        // 1. Get the session ONCE
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+
+        if (mounted && initialSession?.user) {
+          console.log('🔍 Found existing session, loading profile...');
+          const userData = await loadUserProfile(initialSession.user.id, initialSession.user.email);
+          
+          // If loadUserProfile returned null (banned), we don't set user
+          if (mounted && userData) {
+            setSession(initialSession);
+            setUser(userData);
+          }
+        }
+      } catch (err) {
+        console.error("💥 Critical Auth Initialization Error:", err);
+      } finally {
+        // 2. ALWAYS finish loading, no matter what
+        if (mounted) {
+          setLoading(false);
         }
       }
-      
-      setLoading(false);
-    });
+    }
 
-    // Listen for auth changes
+    initializeAuth();
+
+    // 3. Listen for changes (Login, Logout, Auto-Refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
-        console.log('🔔 Auth state changed:', event, newSession?.user?.email || 'No user');
+        if (!mounted) return;
+        console.log('🔔 Auth Event:', event);
 
         if (event === 'SIGNED_OUT') {
-          console.log('👋 User signed out');
           setUser(null);
           setSession(null);
-          return;
-        }
-
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (newSession?.user) {
-            console.log('🔐 Processing user session...');
-            setSession(newSession);
-            
-            const userData = await loadUserProfile(newSession.user.id, newSession.user.email!);
-            if (userData) {
-              setUser(userData);
-            }
+          setLoading(false); // Ensure loader is off on logout
+        } 
+        else if (newSession?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED')) {
+          setSession(newSession);
+          // Only fetch profile if we don't have it or it's a new user
+          // Note: You can optimize this to not fetch on every refresh if needed
+          const userData = await loadUserProfile(newSession.user.id, newSession.user.email);
+          if (mounted && userData) {
+             setUser(userData);
           }
-        }
-
-        if (event === 'USER_UPDATED') {
-          if (newSession?.user) {
-            const userData = await loadUserProfile(newSession.user.id, newSession.user.email!);
-            if (userData) {
-              setUser(userData);
-            }
-          }
+          if (mounted) setLoading(false);
         }
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -148,13 +149,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin: user?.role === 'ADMIN',
     checkAuthStatus
   };
-
-  console.log('🏪 Auth Context State:', {
-    user: user?.email || 'No user',
-    session: !!session,
-    loading,
-    isAdmin: user?.role === 'ADMIN'
-  });
 
   return (
     <AuthContext.Provider value={contextValue}>
