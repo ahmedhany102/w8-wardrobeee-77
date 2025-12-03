@@ -69,8 +69,20 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
       console.error('❌ Error fetching user roles:', rolesError);
     }
 
-    // Determine if user is admin based on their roles
+    // Determine user role based on their roles in user_roles table
+    const isSuperAdmin = roles?.some(r => r.role === 'super_admin') || false;
     const isAdmin = roles?.some(r => r.role === 'admin' || r.role === 'super_admin') || false;
+    const isVendor = roles?.some(r => r.role === 'vendor_admin') || false;
+
+    // Determine the highest role
+    const getUserRole = (): 'SUPER_ADMIN' | 'ADMIN' | 'VENDOR' | 'USER' => {
+      if (isSuperAdmin) return 'SUPER_ADMIN';
+      if (isAdmin) return 'ADMIN';
+      if (isVendor) return 'VENDOR';
+      return 'USER';
+    };
+
+    const userRole = getUserRole();
 
     if (!profile) {
       console.log('👤 Creating new profile for user:', userEmail);
@@ -81,9 +93,9 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
           id: userId,
           email: userEmail,
           name: userEmail?.split('@')[0] || 'User',
-          role: isAdmin ? 'ADMIN' : 'USER',
+          role: userRole === 'SUPER_ADMIN' || userRole === 'ADMIN' ? 'ADMIN' : userRole === 'VENDOR' ? 'VENDOR' : 'USER',
           is_admin: isAdmin,
-          is_super_admin: roles?.some(r => r.role === 'super_admin') || false,
+          is_super_admin: isSuperAdmin,
           status: 'ACTIVE'
         })
         .select()
@@ -98,7 +110,7 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
         id: newProfile.id,
         email: newProfile.email,
         name: newProfile.name,
-        role: isAdmin ? 'ADMIN' : 'USER',
+        role: userRole,
         displayName: newProfile.name
       };
     } else {
@@ -106,7 +118,7 @@ export const fetchUserProfile = async (userId: string, userEmail: string): Promi
         id: profile.id,
         email: profile.email,
         name: profile.name,
-        role: isAdmin ? 'ADMIN' : 'USER',
+        role: userRole,
         displayName: profile.name
       };
     }

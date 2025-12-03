@@ -4,17 +4,18 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Button } from './ui/button';
-import { LogOut, Shield, Moon, Sun } from 'lucide-react';
+import { LogOut, Shield, Moon, Sun, Store } from 'lucide-react';
 import { toast } from 'sonner';
 
 const AppHeader = () => {
-  const { user, logout, isAdmin } = useAuth();
+  const { user, logout, isAdmin, isVendor } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check if currently on an admin page
+  // Check if currently on an admin or vendor page
   const isAdminPage = location.pathname.includes('/admin');
+  const isVendorPage = location.pathname.includes('/vendor');
 
   const handleLogout = () => {
     logout();
@@ -28,6 +29,15 @@ const AppHeader = () => {
     navigate('/admin-login');
   };
 
+  // Determine user role badge
+  const getRoleBadge = () => {
+    if (!user) return null;
+    if (user.role === 'SUPER_ADMIN') return "(Super Admin)";
+    if (user.role === 'ADMIN') return "(Admin)";
+    if (user.role === 'VENDOR') return "(Vendor)";
+    return null;
+  };
+
   return (
     <header className="w-full bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 border-b border-border shadow-sm">
       <div className="container px-4 py-2 mx-auto">
@@ -36,6 +46,10 @@ const AppHeader = () => {
             {isAdminPage ? (
               <Link to="/admin" className="text-xl font-bold text-foreground flex items-center">
                 <Shield className="mr-2" /> Admin Panel
+              </Link>
+            ) : isVendorPage ? (
+              <Link to="/vendor" className="text-xl font-bold text-foreground flex items-center">
+                <Store className="mr-2" /> Vendor Panel
               </Link>
             ) : (
               <Link to="/" className="text-xl font-bold text-foreground">
@@ -60,8 +74,19 @@ const AppHeader = () => {
               {user ? (
                 <div className="flex items-center gap-3">
                   <div className="text-sm text-muted-foreground">
-                    {user.name} {isAdmin && "(Admin)"}
+                    {user.name} {getRoleBadge()}
                   </div>
+                  
+                  {/* Show vendor dashboard link for vendors */}
+                  {isVendor && !isAdminPage && !isVendorPage && (
+                    <Link to="/vendor">
+                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                        <Store className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline text-xs">Vendor</span>
+                      </Button>
+                    </Link>
+                  )}
+                  
                   <Button 
                     variant="outline" 
                     size="sm" 

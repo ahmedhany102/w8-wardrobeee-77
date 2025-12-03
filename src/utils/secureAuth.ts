@@ -120,6 +120,40 @@ export const checkAdminStatus = async (userId: string): Promise<boolean> => {
   }
 };
 
+// Server-side vendor check using secure user_roles table
+export const checkVendorStatus = async (userId: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.rpc('can_manage_vendor_resources', { _user_id: userId });
+
+    if (error) {
+      console.error('❌ Error checking vendor status via RPC:', error);
+      return false;
+    }
+
+    return Boolean(data);
+  } catch (error) {
+    console.error('💥 Exception checking vendor status:', error);
+    return false;
+  }
+};
+
+// Get user's highest role from server
+export const getUserHighestRole = async (userId: string): Promise<string> => {
+  try {
+    const { data, error } = await supabase.rpc('get_user_highest_role', { _user_id: userId });
+
+    if (error) {
+      console.error('❌ Error getting user role via RPC:', error);
+      return 'user';
+    }
+
+    return data || 'user';
+  } catch (error) {
+    console.error('💥 Exception getting user role:', error);
+    return 'user';
+  }
+};
+
 export const secureLogout = async (): Promise<void> => {
   try {
     console.log('🚪 Secure logout...');

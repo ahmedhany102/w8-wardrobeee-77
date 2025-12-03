@@ -128,7 +128,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signup,
     logout,
     loading,
-    isAdmin: user?.role === 'ADMIN',
+    isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',
+    isVendor: user?.role === 'VENDOR' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',
+    isSuperAdmin: user?.role === 'SUPER_ADMIN',
     checkAuthStatus
   };
 
@@ -136,7 +138,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user: user?.email || 'No user',
     session: !!session,
     loading,
-    isAdmin: user?.role === 'ADMIN'
+    role: user?.role,
+    isAdmin: user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN',
+    isVendor: user?.role === 'VENDOR' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN'
   });
 
   return (
