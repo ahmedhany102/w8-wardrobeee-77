@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { RequireAuth } from './components/RequireAuth';
+import { RequireVendorAuth } from './components/RequireVendorAuth';
 
 import Index from './pages/Index';
 import Login from './pages/Login';
@@ -17,6 +18,7 @@ import ProductDetails from './pages/ProductDetails';
 import CategoryPage from './pages/CategoryPage';
 import Terms from './pages/Terms';
 import Favorites from './pages/Favorites';
+import VendorDashboard from './pages/vendor/VendorDashboard';
 
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
@@ -60,6 +62,15 @@ function App() {
                   <Route path="/order-tracking" element={<OrderTracking />} />
                   <Route path="/orders" element={<OrderTracking />} />
                   <Route path="/favorites" element={<Favorites />} />
+                </Route>
+
+                {/* Vendor routes */}
+                <Route element={<RequireVendorAuth />}>
+                  <Route path="/vendor" element={<VendorDashboard />} />
+                  <Route path="/vendor/products" element={<VendorDashboard />} />
+                  <Route path="/vendor/orders" element={<VendorDashboard />} />
+                  <Route path="/vendor/analytics" element={<VendorDashboard />} />
+                  <Route path="/vendor/settings" element={<VendorDashboard />} />
                 </Route>
 
                 {/* Admin routes */}

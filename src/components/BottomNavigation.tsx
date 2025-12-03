@@ -1,17 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, ShoppingCart, User, Package, Truck, Heart } from 'lucide-react';
+import { Home, ShoppingCart, User, Package, Truck, Heart, Store } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import CartDatabase from "@/models/CartDatabase";
 
 const BottomNavigation: React.FC = () => {
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, isVendor } = useAuth();
   const [cartItemCount, setCartItemCount] = useState(0);
 
-  // Check if we're on admin pages
+  // Check if we're on admin or vendor pages
   const isOnAdminPages = location.pathname.startsWith('/admin');
+  const isOnVendorPages = location.pathname.startsWith('/vendor');
 
   // Update cart count
   useEffect(() => {
@@ -37,9 +38,9 @@ const BottomNavigation: React.FC = () => {
     };
   }, []);
 
-  // Don't show bottom navigation on admin pages
-  if (isOnAdminPages) {
-    console.log("On admin page - hiding bottom navigation");
+  // Don't show bottom navigation on admin or vendor pages
+  if (isOnAdminPages || isOnVendorPages) {
+    console.log("On admin/vendor page - hiding bottom navigation");
     return null;
   }
 
@@ -83,6 +84,19 @@ const BottomNavigation: React.FC = () => {
           </Link>
         )}
         
+        {/* Show vendor link for vendor users */}
+        {isVendor && (
+          <Link 
+            to="/vendor" 
+            className={`flex flex-1 flex-col items-center py-3 ${
+              location.pathname.startsWith('/vendor') ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
+            }`}
+          >
+            <Store className="w-5 h-5" />
+            <span className="text-xs">متجري</span>
+          </Link>
+        )}
+        
         <Link 
           to="/profile"
           className={`flex flex-1 flex-col items-center py-3 ${
@@ -101,16 +115,6 @@ const BottomNavigation: React.FC = () => {
         >
           <Package className="w-5 h-5" />
           <span className="text-xs">طلباتي</span>
-        </Link>
-        
-        <Link 
-          to="/order-tracking" 
-          className={`flex flex-1 flex-col items-center py-3 ${
-            location.pathname === '/order-tracking' ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'
-          }`}
-        >
-          <Truck className="w-5 h-5" />
-          <span className="text-xs">التتبع</span>
         </Link>
       </div>
     </div>

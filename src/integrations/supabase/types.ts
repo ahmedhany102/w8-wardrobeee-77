@@ -715,6 +715,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_manage_vendor_resources: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       can_user_authenticate: { Args: { _user_id: string }; Returns: boolean }
       cancel_user_order: { Args: { order_id: string }; Returns: boolean }
       check_ban_status: { Args: never; Returns: undefined }
@@ -790,6 +794,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_vendor_admin: { Args: { _user_id: string }; Returns: boolean }
       update_user_status: {
         Args: { new_status: string; target_user_id: string }
         Returns: boolean

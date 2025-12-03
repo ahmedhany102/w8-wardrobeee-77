@@ -1,11 +1,13 @@
 
 import type { User, Session } from '@supabase/supabase-js';
 
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'VENDOR' | 'USER';
+
 export interface AuthUser {
   id: string;
   email: string;
   name?: string;
-  role: 'ADMIN' | 'USER';
+  role: UserRole;
   displayName?: string;
 }
 
@@ -18,5 +20,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   loading: boolean;
   isAdmin: boolean;
+  isVendor: boolean;
+  isSuperAdmin: boolean;
   checkAuthStatus: () => Promise<void>;
 }
