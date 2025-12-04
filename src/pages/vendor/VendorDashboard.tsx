@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/Layout';
@@ -7,15 +6,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Package, ShoppingCart, BarChart3, Settings, Plus, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import VendorSettings from './VendorSettings';
+import { useVendorProfile } from '@/hooks/useVendorProfile';
+import { VendorStatusBanner } from '@/components/vendor/VendorStatusBanner';
 
 const VendorDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { profile, loading: profileLoading } = useVendorProfile();
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
   };
+
+  const isApproved = profile?.status === 'approved';
 
   return (
     <Layout hideFooter>
@@ -25,7 +30,7 @@ const VendorDashboard = () => {
           <div>
             <h1 className="text-3xl font-bold text-foreground">لوحة تحكم البائع</h1>
             <p className="text-muted-foreground mt-1">
-              مرحباً، {user?.name || user?.email?.split('@')[0] || 'البائع'}
+              مرحباً، {profile?.store_name || user?.name || user?.email?.split('@')[0] || 'البائع'}
             </p>
           </div>
           <div className="flex gap-2">
@@ -35,6 +40,9 @@ const VendorDashboard = () => {
             </Button>
           </div>
         </div>
+
+        {/* Status Banner */}
+        {profile && <VendorStatusBanner status={profile.status} />}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -105,18 +113,26 @@ const VendorDashboard = () => {
                     <CardTitle>منتجاتي</CardTitle>
                     <CardDescription>إدارة منتجات متجرك</CardDescription>
                   </div>
-                  <Button>
+                  <Button disabled={!isApproved}>
                     <Plus className="h-4 w-4 ml-2" />
                     إضافة منتج
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا توجد منتجات حتى الآن</p>
-                  <p className="text-sm">ابدأ بإضافة منتجك الأول</p>
-                </div>
+                {!isApproved ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>يجب أن يكون متجرك معتمداً لإضافة منتجات</p>
+                    <p className="text-sm">انتقل لإعدادات المتجر لمتابعة حالة طلبك</p>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>لا توجد منتجات حتى الآن</p>
+                    <p className="text-sm">ابدأ بإضافة منتجك الأول</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -154,19 +170,7 @@ const VendorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>إعدادات المتجر</CardTitle>
-                <CardDescription>تخصيص معلومات متجرك</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>إعدادات المتجر قيد التطوير</p>
-                  <p className="text-sm">سيتم إضافة المزيد من الخيارات قريباً</p>
-                </div>
-              </CardContent>
-            </Card>
+            <VendorSettings />
           </TabsContent>
         </Tabs>
       </div>

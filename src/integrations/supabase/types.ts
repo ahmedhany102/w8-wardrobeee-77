@@ -692,6 +692,45 @@ export type Database = {
         }
         Relationships: []
       }
+      vendor_profiles: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          phone: string | null
+          status: string
+          store_description: string | null
+          store_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          status?: string
+          store_description?: string | null
+          store_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          phone?: string | null
+          status?: string
+          store_description?: string | null
+          store_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -708,6 +747,10 @@ export type Database = {
             Returns: string
           }
         | { Args: { coupon_code: string; user_uuid: string }; Returns: Json }
+      approve_vendor: {
+        Args: { target_vendor_profile_id: string }
+        Returns: boolean
+      }
       assign_user_role: {
         Args: {
           new_role: Database["public"]["Enums"]["app_role"]
@@ -785,6 +828,23 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_vendor_profiles_with_users: {
+        Args: { status_filter?: string }
+        Returns: {
+          address: string
+          created_at: string
+          id: string
+          logo_url: string
+          phone: string
+          status: string
+          store_description: string
+          store_name: string
+          updated_at: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -797,6 +857,10 @@ export type Database = {
       is_vendor_admin: { Args: { _user_id: string }; Returns: boolean }
       update_user_status: {
         Args: { new_status: string; target_user_id: string }
+        Returns: boolean
+      }
+      update_vendor_status: {
+        Args: { new_status: string; target_vendor_profile_id: string }
         Returns: boolean
       }
     }

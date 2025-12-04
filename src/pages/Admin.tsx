@@ -14,8 +14,9 @@ import UsersPanel from "@/components/admin/UsersPanel";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import AdminDashboardStats from "@/components/AdminDashboardStats";
 import { ReviewsManagement } from "@/components/admin/ReviewsManagement";
-import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree, Star } from "lucide-react";
+import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree, Star, Store } from "lucide-react";
 import { useSupabaseProducts, useSupabaseUsers, useSupabaseOrders } from "@/hooks/useSupabaseData";
+import AdminVendors from "@/pages/admin/AdminVendors";
 
 const Admin = ({ activeTab = "dashboard" }) => {
   const { user, logout } = useAuth();
@@ -112,6 +113,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <Star className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">التقييمات</span>
             </TabsTrigger>
+            <TabsTrigger value="vendors" onClick={() => navigate("/admin/vendors")}>
+              <Store className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">البائعين</span>
+            </TabsTrigger>
             <TabsTrigger value="users" onClick={() => navigate("/admin/users")}>
               <Users className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">المستخدمين</span>
@@ -160,6 +165,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
           <TabsContent value="reviews">
             <ReviewsManagement />
+          </TabsContent>
+
+          <TabsContent value="vendors">
+            <AdminVendors />
           </TabsContent>
           
           <TabsContent value="users">

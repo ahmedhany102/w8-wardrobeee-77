@@ -86,6 +86,16 @@ const AppHeader = () => {
                       </Button>
                     </Link>
                   )}
+
+                  {/* Show become vendor link for regular users */}
+                  {!isVendor && !isAdmin && !isAdminPage && !isVendorPage && (
+                    <Link to="/become-vendor">
+                      <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary hover:text-primary/80">
+                        <Store className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline text-xs">Sell with us</span>
+                      </Button>
+                    </Link>
+                  )}
                   
                   <Button 
                     variant="outline" 
