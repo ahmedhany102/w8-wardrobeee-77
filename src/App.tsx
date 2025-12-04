@@ -19,6 +19,7 @@ import CategoryPage from './pages/CategoryPage';
 import Terms from './pages/Terms';
 import Favorites from './pages/Favorites';
 import VendorDashboard from './pages/vendor/VendorDashboard';
+import BecomeVendor from './pages/BecomeVendor';
 
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
@@ -62,6 +63,7 @@ function App() {
                   <Route path="/order-tracking" element={<OrderTracking />} />
                   <Route path="/orders" element={<OrderTracking />} />
                   <Route path="/favorites" element={<Favorites />} />
+                  <Route path="/become-vendor" element={<BecomeVendor />} />
                 </Route>
 
                 {/* Vendor routes */}
@@ -82,6 +84,7 @@ function App() {
                   <Route path="/admin/coupons" element={<Admin activeTab="coupons" />} />
                   <Route path="/admin/contact" element={<Admin activeTab="contact" />} />
                   <Route path="/admin/ads" element={<Admin activeTab="ads" />} />
+                  <Route path="/admin/vendors" element={<Admin activeTab="vendors" />} />
                 </Route>
 
                 {/* 404 */}
