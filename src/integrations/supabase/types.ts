@@ -525,6 +525,7 @@ export type Database = {
           price: number | null
           rating: number | null
           sizes: Json | null
+          status: string | null
           stock: number | null
           updated_at: string | null
           user_id: string | null
@@ -546,6 +547,7 @@ export type Database = {
           price?: number | null
           rating?: number | null
           sizes?: Json | null
+          status?: string | null
           stock?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -567,6 +569,7 @@ export type Database = {
           price?: number | null
           rating?: number | null
           sizes?: Json | null
+          status?: string | null
           stock?: number | null
           updated_at?: string | null
           user_id?: string | null
@@ -828,6 +831,37 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_vendor_products: {
+        Args: { _status_filter?: string; _vendor_id?: string }
+        Returns: {
+          category: string | null
+          category_id: string | null
+          colors: Json | null
+          created_at: string | null
+          description: string | null
+          discount: number | null
+          featured: boolean | null
+          id: string
+          image_url: string | null
+          images: Json | null
+          inventory: number | null
+          main_image: string | null
+          name: string | null
+          price: number | null
+          rating: number | null
+          sizes: Json | null
+          status: string | null
+          stock: number | null
+          updated_at: string | null
+          user_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "products"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_vendor_profiles_with_users: {
         Args: { status_filter?: string }
         Returns: {
@@ -855,6 +889,10 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_admin: { Args: { _user_id: string }; Returns: boolean }
+      update_product_status: {
+        Args: { _new_status: string; _product_id: string }
+        Returns: boolean
+      }
       update_user_status: {
         Args: { new_status: string; target_user_id: string }
         Returns: boolean

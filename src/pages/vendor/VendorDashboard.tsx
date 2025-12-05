@@ -4,16 +4,19 @@ import Layout from '@/components/Layout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Package, ShoppingCart, BarChart3, Settings, Plus, LogOut } from 'lucide-react';
+import { Package, ShoppingCart, BarChart3, Settings, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import VendorSettings from './VendorSettings';
 import { useVendorProfile } from '@/hooks/useVendorProfile';
 import { VendorStatusBanner } from '@/components/vendor/VendorStatusBanner';
+import { VendorProductsTab } from '@/components/vendor/VendorProductsTab';
+import { useVendorProducts } from '@/hooks/useVendorProducts';
 
 const VendorDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { profile, loading: profileLoading } = useVendorProfile();
+  const { products } = useVendorProducts();
 
   const handleLogout = async () => {
     await logout();
@@ -21,6 +24,7 @@ const VendorDashboard = () => {
   };
 
   const isApproved = profile?.status === 'approved';
+  const activeProducts = products.filter(p => p.status === 'active' || p.status === 'approved').length;
 
   return (
     <Layout hideFooter>
@@ -51,7 +55,7 @@ const VendorDashboard = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">المنتجات</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">{activeProducts}</div>
               <p className="text-xs text-muted-foreground">منتج نشط</p>
             </CardContent>
           </Card>
@@ -106,35 +110,7 @@ const VendorDashboard = () => {
           </TabsList>
 
           <TabsContent value="products">
-            <Card>
-              <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>منتجاتي</CardTitle>
-                    <CardDescription>إدارة منتجات متجرك</CardDescription>
-                  </div>
-                  <Button disabled={!isApproved}>
-                    <Plus className="h-4 w-4 ml-2" />
-                    إضافة منتج
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {!isApproved ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>يجب أن يكون متجرك معتمداً لإضافة منتجات</p>
-                    <p className="text-sm">انتقل لإعدادات المتجر لمتابعة حالة طلبك</p>
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>لا توجد منتجات حتى الآن</p>
-                    <p className="text-sm">ابدأ بإضافة منتجك الأول</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <VendorProductsTab isApproved={isApproved} />
           </TabsContent>
 
           <TabsContent value="orders">

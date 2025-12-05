@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductManagement from "@/components/admin/ProductManagement";
+import AdminProductsManagement from "@/components/admin/AdminProductsManagement";
 import OrdersPanel from "@/components/admin/OrdersPanel";
 import CouponManagement from "@/components/admin/CouponManagement";
 import AdminContactSettings from "@/components/admin/AdminContactSettings";
@@ -14,7 +15,7 @@ import UsersPanel from "@/components/admin/UsersPanel";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import AdminDashboardStats from "@/components/AdminDashboardStats";
 import { ReviewsManagement } from "@/components/admin/ReviewsManagement";
-import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree, Star, Store } from "lucide-react";
+import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree, Star, Store, ShoppingCart } from "lucide-react";
 import { useSupabaseProducts, useSupabaseUsers, useSupabaseOrders } from "@/hooks/useSupabaseData";
 import AdminVendors from "@/pages/admin/AdminVendors";
 
@@ -27,8 +28,8 @@ const Admin = ({ activeTab = "dashboard" }) => {
   const { users, loading: usersLoading } = useSupabaseUsers();
   const { orders, loading: ordersLoading } = useSupabaseOrders();
 
-  // Check if user exists and is admin
-  if (!user || user.role !== "ADMIN") {
+  // Check if user exists and is admin (ADMIN or SUPER_ADMIN)
+  if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
     return <Navigate to="/admin-login" />;
   }
 
@@ -93,8 +94,12 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <Package className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">المنتجات</span>
             </TabsTrigger>
+            <TabsTrigger value="vendor-products" onClick={() => setCurrentTab("vendor-products")}>
+              <Store className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">منتجات البائعين</span>
+            </TabsTrigger>
             <TabsTrigger value="orders" onClick={() => navigate("/admin/orders")}>
-              <Settings className="w-4 h-4 mr-2" />
+              <ShoppingCart className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الطلبات</span>
             </TabsTrigger>
             <TabsTrigger value="coupons" onClick={() => navigate("/admin/coupons")}>
@@ -145,6 +150,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
           <TabsContent value="products">
             <ProductManagement />
+          </TabsContent>
+
+          <TabsContent value="vendor-products">
+            <AdminProductsManagement />
           </TabsContent>
 
           <TabsContent value="orders">
