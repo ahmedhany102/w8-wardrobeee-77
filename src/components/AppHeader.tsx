@@ -16,6 +16,9 @@ const AppHeader = () => {
   // Check if currently on an admin or vendor page
   const isAdminPage = location.pathname.includes('/admin');
   const isVendorPage = location.pathname.includes('/vendor');
+  
+  // Super admins and admins should not see vendor UI
+  const isSuperAdminOrAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
   const handleLogout = () => {
     logout();
@@ -77,8 +80,18 @@ const AppHeader = () => {
                     {user.name} {getRoleBadge()}
                   </div>
                   
-                  {/* Show vendor dashboard link for vendors */}
-                  {isVendor && !isAdminPage && !isVendorPage && (
+                  {/* Show admin dashboard link for admins */}
+                  {isSuperAdminOrAdmin && !isAdminPage && (
+                    <Link to="/admin">
+                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                        <Shield className="h-3.5 w-3.5" />
+                        <span className="hidden sm:inline text-xs">Admin</span>
+                      </Button>
+                    </Link>
+                  )}
+                  
+                  {/* Show vendor dashboard link for vendors (NOT for admins) */}
+                  {isVendor && !isSuperAdminOrAdmin && !isAdminPage && !isVendorPage && (
                     <Link to="/vendor">
                       <Button variant="outline" size="sm" className="flex items-center gap-1">
                         <Store className="h-3.5 w-3.5" />
@@ -87,8 +100,8 @@ const AppHeader = () => {
                     </Link>
                   )}
 
-                  {/* Show become vendor link for regular users */}
-                  {!isVendor && !isAdmin && !isAdminPage && !isVendorPage && (
+                  {/* Show become vendor link for regular users only (NOT for admins or existing vendors) */}
+                  {!isVendor && !isSuperAdminOrAdmin && !isAdminPage && !isVendorPage && (
                     <Link to="/become-vendor">
                       <Button variant="ghost" size="sm" className="flex items-center gap-1 text-primary hover:text-primary/80">
                         <Store className="h-3.5 w-3.5" />

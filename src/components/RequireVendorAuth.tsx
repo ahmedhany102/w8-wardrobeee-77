@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
-import { checkVendorStatus } from "@/utils/secureAuth";
+import { checkVendorStatus, checkAdminStatus } from "@/utils/secureAuth";
 
 interface RequireVendorAuthProps {
   children?: JSX.Element;
@@ -14,18 +14,26 @@ export const RequireVendorAuth = ({ children }: RequireVendorAuthProps) => {
   const location = useLocation();
   const [vendorCheckLoading, setVendorCheckLoading] = useState(true);
   const [isVendor, setIsVendor] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  // Server-side vendor verification
+  // Server-side vendor and admin verification
   useEffect(() => {
     if (user && !loading) {
       setVendorCheckLoading(true);
-      checkVendorStatus(user.id)
-        .then(canManageVendor => {
+      
+      // Check both vendor and admin status
+      Promise.all([
+        checkVendorStatus(user.id),
+        checkAdminStatus(user.id)
+      ])
+        .then(([canManageVendor, isAdmin]) => {
           setIsVendor(canManageVendor);
+          setIsSuperAdmin(isAdmin);
           setVendorCheckLoading(false);
         })
         .catch(() => {
           setIsVendor(false);
+          setIsSuperAdmin(false);
           setVendorCheckLoading(false);
         });
     } else if (!loading && !user) {
@@ -39,6 +47,7 @@ export const RequireVendorAuth = ({ children }: RequireVendorAuthProps) => {
     loading,
     vendorCheckLoading,
     isVendor,
+    isSuperAdmin,
     location: location.pathname
   });
 
@@ -62,6 +71,12 @@ export const RequireVendorAuth = ({ children }: RequireVendorAuthProps) => {
     console.log('❌ User not authenticated, redirecting to login');
     toast.error("يرجى تسجيل الدخول للوصول إلى لوحة تحكم البائع");
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Super admin should go to admin dashboard, not vendor dashboard
+  if (isSuperAdmin) {
+    console.log('👑 Super admin detected, redirecting to admin dashboard');
+    return <Navigate to="/admin" replace />;
   }
 
   // Check vendor permissions using server-side verification
