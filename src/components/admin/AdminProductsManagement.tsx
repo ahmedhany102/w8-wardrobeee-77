@@ -191,12 +191,12 @@ export const AdminProductsManagement: React.FC = () => {
                 <SelectItem value="rejected">مرفوض</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={vendorFilter} onValueChange={setVendorFilter}>
+            <Select value={vendorFilter || 'all-vendors'} onValueChange={(val) => setVendorFilter(val === 'all-vendors' ? '' : val)}>
               <SelectTrigger className="w-full md:w-[200px]">
                 <SelectValue placeholder="جميع البائعين" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع البائعين</SelectItem>
+                <SelectItem value="all-vendors">جميع البائعين</SelectItem>
                 {vendors.map((vendor) => (
                   <SelectItem key={vendor.id} value={vendor.id}>
                     {vendor.name || vendor.email}
