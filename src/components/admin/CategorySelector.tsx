@@ -29,38 +29,41 @@ const CategorySelector: React.FC<CategorySelectorProps> = ({ value, onChange }) 
     );
   }
 
+  // Don't render Select until categories are loaded to avoid empty value issues
+  if (allActiveCategories.length === 0) {
+    return (
+      <div>
+        <label className="block text-sm font-medium mb-1">الفئة*</label>
+        <div className="w-full p-2 border rounded text-sm bg-muted text-muted-foreground">
+          لا توجد فئات متاحة
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">Category*</label>
+      <label className="block text-sm font-medium mb-1">الفئة*</label>
       <Select
-        value={value || ""}
+        value={value || undefined}
         onValueChange={(val) => {
           console.log('🎯 Category selected via CategorySelector:', val);
-          if (val && val !== "" && val !== "placeholder" && val !== "no-categories") {
+          if (val) {
             onChange(val);
           }
         }}
       >
         <SelectTrigger>
-          <SelectValue placeholder="Select a category" />
+          <SelectValue placeholder="اختر فئة" />
         </SelectTrigger>
-        <SelectContent className="bg-white z-50 shadow-lg border">
-          {allActiveCategories.length === 0 ? (
-            <SelectItem value="no-categories" disabled>
-              No categories available
+        <SelectContent className="bg-popover z-50 shadow-lg border">
+          {allActiveCategories.map((category) => (
+            <SelectItem key={category.id} value={category.id}>
+              {category.parent_id ? `→ ${category.name}` : category.name}
             </SelectItem>
-          ) : (
-            allActiveCategories.map((category) => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.parent_id ? `→ ${category.name}` : category.name}
-              </SelectItem>
-            ))
-          )}
+          ))}
         </SelectContent>
       </Select>
-      {allActiveCategories.length === 0 && !loading && (
-        <p className="text-sm text-red-600 mt-1">No categories found. Please check your categories table.</p>
-      )}
     </div>
   );
 };
