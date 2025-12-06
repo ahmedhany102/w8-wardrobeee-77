@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductManagement from "@/components/admin/ProductManagement";
 import AdminProductsManagement from "@/components/admin/AdminProductsManagement";
+import AdminOrdersManagement from "@/components/admin/AdminOrdersManagement";
 import OrdersPanel from "@/components/admin/OrdersPanel";
 import CouponManagement from "@/components/admin/CouponManagement";
 import AdminContactSettings from "@/components/admin/AdminContactSettings";
@@ -102,6 +103,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <ShoppingCart className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الطلبات</span>
             </TabsTrigger>
+            <TabsTrigger value="vendor-orders" onClick={() => setCurrentTab("vendor-orders")}>
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">طلبات البائعين</span>
+            </TabsTrigger>
             <TabsTrigger value="coupons" onClick={() => navigate("/admin/coupons")}>
               <Ticket className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الكوبونات</span>
@@ -158,6 +163,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
           <TabsContent value="orders">
             <OrdersPanel />
+          </TabsContent>
+
+          <TabsContent value="vendor-orders">
+            <AdminOrdersManagement />
           </TabsContent>
 
           <TabsContent value="coupons">

@@ -10,13 +10,16 @@ import VendorSettings from './VendorSettings';
 import { useVendorProfile } from '@/hooks/useVendorProfile';
 import { VendorStatusBanner } from '@/components/vendor/VendorStatusBanner';
 import { VendorProductsTab } from '@/components/vendor/VendorProductsTab';
+import { VendorOrdersTab } from '@/components/vendor/VendorOrdersTab';
 import { useVendorProducts } from '@/hooks/useVendorProducts';
+import { useVendorOrders } from '@/hooks/useVendorOrders';
 
 const VendorDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { profile, loading: profileLoading } = useVendorProfile();
   const { products } = useVendorProducts();
+  const { orders } = useVendorOrders();
 
   const handleLogout = async () => {
     await logout();
@@ -25,6 +28,8 @@ const VendorDashboard = () => {
 
   const isApproved = profile?.status === 'approved';
   const activeProducts = products.filter(p => p.status === 'active' || p.status === 'approved').length;
+  const pendingOrders = orders.filter(o => o.order_status === 'PENDING' || o.order_status === 'pending').length;
+  const totalRevenue = orders.reduce((sum, o) => sum + (o.vendor_total || 0), 0);
 
   return (
     <Layout hideFooter>
@@ -61,10 +66,10 @@ const VendorDashboard = () => {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">الطلبات</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">الطلبات الجديدة</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold text-yellow-600">{pendingOrders}</div>
               <p className="text-xs text-muted-foreground">طلب جديد</p>
             </CardContent>
           </Card>
@@ -73,8 +78,8 @@ const VendorDashboard = () => {
               <CardTitle className="text-sm font-medium text-muted-foreground">الإيرادات</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0 ج.م</div>
-              <p className="text-xs text-muted-foreground">هذا الشهر</p>
+              <div className="text-2xl font-bold">{totalRevenue.toFixed(2)} ج.م</div>
+              <p className="text-xs text-muted-foreground">إجمالي المبيعات</p>
             </CardContent>
           </Card>
           <Card>
@@ -114,19 +119,7 @@ const VendorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="orders">
-            <Card>
-              <CardHeader>
-                <CardTitle>طلباتي</CardTitle>
-                <CardDescription>الطلبات التي تحتوي على منتجاتك</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا توجد طلبات حتى الآن</p>
-                  <p className="text-sm">ستظهر الطلبات هنا عندما يشتري العملاء منتجاتك</p>
-                </div>
-              </CardContent>
-            </Card>
+            <VendorOrdersTab isApproved={isApproved} />
           </TabsContent>
 
           <TabsContent value="analytics">

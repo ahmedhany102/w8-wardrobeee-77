@@ -339,6 +339,65 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          color: string | null
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string
+          product_image: string | null
+          product_name: string
+          quantity: number
+          size: string | null
+          status: string
+          total_price: number
+          unit_price: number
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id: string
+          product_image?: string | null
+          product_name: string
+          quantity?: number
+          size?: string | null
+          status?: string
+          total_price: number
+          unit_price: number
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string
+          product_image?: string | null
+          product_name?: string
+          quantity?: number
+          size?: string | null
+          status?: string
+          total_price?: number
+          unit_price?: number
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           coupon_info: Json | null
@@ -831,6 +890,36 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_vendor_order_items: {
+        Args: { _order_id: string; _vendor_id?: string }
+        Returns: {
+          color: string
+          item_id: string
+          item_status: string
+          product_id: string
+          product_image: string
+          product_name: string
+          quantity: number
+          size: string
+          total_price: number
+          unit_price: number
+          vendor_id: string
+        }[]
+      }
+      get_vendor_orders: {
+        Args: { _status_filter?: string; _vendor_id?: string }
+        Returns: {
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          item_count: number
+          order_date: string
+          order_id: string
+          order_number: string
+          order_status: string
+          vendor_total: number
+        }[]
+      }
       get_vendor_products: {
         Args: { _status_filter?: string; _vendor_id?: string }
         Returns: {
@@ -889,6 +978,10 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_admin: { Args: { _user_id: string }; Returns: boolean }
+      update_order_item_status: {
+        Args: { _item_id: string; _new_status: string }
+        Returns: boolean
+      }
       update_product_status: {
         Args: { _new_status: string; _product_id: string }
         Returns: boolean

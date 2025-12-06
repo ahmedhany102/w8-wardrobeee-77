@@ -68,6 +68,26 @@ export const useSupabaseOrders = () => {
         toast.error(errorMsg);
         throw new Error(errorMsg);
       }
+
+      // Fetch vendor_id for each product
+      const productIds = orderData.items.map(item => item.productId);
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('id, user_id, main_image, image_url')
+        .in('id', productIds);
+
+      if (productsError) {
+        console.error('Error fetching product vendors:', productsError);
+      }
+
+      // Create a map of product_id -> vendor_id
+      const productVendorMap: Record<string, { vendor_id: string; image: string }> = {};
+      (products || []).forEach(p => {
+        productVendorMap[p.id] = {
+          vendor_id: p.user_id,
+          image: p.main_image || p.image_url || ''
+        };
+      });
       
       // Ensure proper data structure for database insert
       const cleanOrderData = {
@@ -122,6 +142,38 @@ export const useSupabaseOrders = () => {
         console.error(errorMsg);
         toast.error(errorMsg);
         throw new Error(errorMsg);
+      }
+
+      // Create order_items for multi-vendor tracking
+      const orderItems = orderData.items.map(item => {
+        const productInfo = productVendorMap[item.productId] || { vendor_id: null, image: '' };
+        return {
+          order_id: data.id,
+          product_id: item.productId,
+          vendor_id: productInfo.vendor_id,
+          product_name: item.productName,
+          product_image: item.imageUrl || productInfo.image || '',
+          quantity: parseInt(item.quantity) || 1,
+          unit_price: parseFloat(item.unitPrice) || 0,
+          total_price: parseFloat(item.totalPrice) || 0,
+          size: item.size !== '-' ? item.size : null,
+          color: item.color !== '-' ? item.color : null,
+          status: 'pending'
+        };
+      }).filter(item => item.vendor_id); // Only create items with valid vendor_id
+
+      if (orderItems.length > 0) {
+        console.log('Creating order_items for multi-vendor tracking:', orderItems);
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(orderItems);
+
+        if (itemsError) {
+          console.error('Error creating order_items:', itemsError);
+          // Don't fail the order, just log the error
+        } else {
+          console.log('✅ Order items created successfully for vendor tracking');
+        }
       }
       
       console.log('Order successfully created in database:', data);
