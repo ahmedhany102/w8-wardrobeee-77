@@ -260,6 +260,7 @@ export type Database = {
           max_discount: number | null
           max_uses: number | null
           minimum_amount: number | null
+          updated_at: string | null
           usage_limit: number | null
           usage_limit_global: number | null
           usage_limit_per_user: number | null
@@ -281,6 +282,7 @@ export type Database = {
           max_discount?: number | null
           max_uses?: number | null
           minimum_amount?: number | null
+          updated_at?: string | null
           usage_limit?: number | null
           usage_limit_global?: number | null
           usage_limit_per_user?: number | null
@@ -302,6 +304,7 @@ export type Database = {
           max_discount?: number | null
           max_uses?: number | null
           minimum_amount?: number | null
+          updated_at?: string | null
           usage_limit?: number | null
           usage_limit_global?: number | null
           usage_limit_per_user?: number | null
@@ -844,6 +847,7 @@ export type Database = {
           max_discount: number | null
           max_uses: number | null
           minimum_amount: number | null
+          updated_at: string | null
           usage_limit: number | null
           usage_limit_global: number | null
           usage_limit_per_user: number | null
