@@ -69,7 +69,6 @@ export const useProductOperations = () => {
       if (updates.name) updateData.name = updates.name.trim();
       if (updates.description !== undefined) updateData.description = updates.description?.trim() || '';
       if (updates.price) updateData.price = parseFloat(String(updates.price));
-      if (updates.type) updateData.type = updates.type;
       if (updates.category) updateData.category = updates.category;
       if (updates.main_image !== undefined) {
         updateData.main_image = updates.main_image || '';
