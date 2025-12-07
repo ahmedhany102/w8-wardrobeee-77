@@ -1,4 +1,3 @@
-
 import { ProductFormData, DatabaseProductData } from '@/types/product';
 
 export const cleanProductDataForInsert = (productData: ProductFormData, userId: string): DatabaseProductData => {
@@ -31,8 +30,7 @@ export const cleanProductDataForInsert = (productData: ProductFormData, userId: 
     name: String(productData.name || '').trim(),
     description: String(productData.description || '').trim(),
     price: Number(productData.price) || (cleanSizes.length > 0 ? cleanSizes[0].price : 0),
-    type: String(productData.type || '').trim(),
-    category: String(productData.category || productData.type || '').trim(),
+    category: String(productData.category || '').trim(),
     main_image: mainImage,
     image_url: mainImage, // Keep both for compatibility
     images: cleanImages,

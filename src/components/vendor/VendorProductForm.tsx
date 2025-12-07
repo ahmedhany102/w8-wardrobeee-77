@@ -26,7 +26,6 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
     name: initialData?.name || '',
     description: initialData?.description || '',
     price: initialData?.price || 0,
-    type: initialData?.category || '',
     category: initialData?.category || '',
     main_image: initialData?.main_image || initialData?.image_url || '',
     images: initialData?.images || [],
@@ -92,10 +91,7 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
           <Label>الفئة</Label>
           <CategorySelector
             value={formData.category || ''}
-            onChange={(value) => {
-              handleChange('category', value);
-              handleChange('type', value);
-            }}
+            onChange={(value) => handleChange('category', value)}
           />
         </div>
 

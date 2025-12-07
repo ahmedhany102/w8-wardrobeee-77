@@ -8,7 +8,6 @@ export interface ProductFormData {
   name: string;
   description?: string;
   price: number | string;
-  type: string;
   category?: string;
   main_image?: string;
   images?: string[];
@@ -26,7 +25,6 @@ export interface DatabaseProductData {
   name: string;
   description: string;
   price: number;
-  type: string;
   category: string;
   main_image: string;
   image_url: string;
@@ -37,6 +35,7 @@ export interface DatabaseProductData {
   featured: boolean;
   stock: number;
   inventory: number;
+  status?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -47,7 +46,6 @@ export interface CleanProductData {
   name: string;
   description: string;
   price: number;
-  type: string;
   category: string;
   main_image: string;
   image_url: string;
@@ -67,7 +65,6 @@ export interface ProductUpdateData {
   name?: string;
   description?: string;
   price?: number | string;
-  type?: string;
   category?: string;
   main_image?: string;
   images?: string[];

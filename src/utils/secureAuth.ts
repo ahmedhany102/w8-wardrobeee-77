@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { createRateLimiter } from './sanitization';
@@ -30,7 +29,7 @@ export const secureLogin = async (email: string, password: string): Promise<bool
     }
 
     if (data.session && data.user) {
-      // CRITICAL: Check if user is banned IMMEDIATELY after login
+      // Check if user is banned IMMEDIATELY after login
       console.log('🔍 Checking ban status for user:', data.user.id);
       
       const { data: canAuth, error: authCheckError } = await supabase.rpc('can_user_authenticate', {
@@ -105,7 +104,6 @@ export const secureSignup = async (email: string, password: string, name: string
 // Server-side admin check using secure user_roles table
 export const checkAdminStatus = async (userId: string): Promise<boolean> => {
   try {
-    // Prefer secure RPC to avoid any RLS edge cases
     const { data, error } = await supabase.rpc('is_admin', { _user_id: userId });
 
     if (error) {
@@ -158,19 +156,19 @@ export const secureLogout = async (): Promise<void> => {
   try {
     console.log('🚪 Secure logout...');
     
-    // Clear all storage
-    localStorage.clear();
-    sessionStorage.clear();
-    
+    // Sign out from Supabase - this clears the session properly
     await supabase.auth.signOut();
     
     console.log('✅ Secure logout completed');
     toast.success('Logged out successfully');
   } catch (error: any) {
     console.warn('⚠️ Logout exception:', error);
-    // Force clear even if signOut fails
-    localStorage.clear();
-    sessionStorage.clear();
+    // Try to sign out again if there was an error
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      // Ignore
+    }
     toast.success('Logged out successfully');
   }
 };
