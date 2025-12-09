@@ -174,6 +174,32 @@ export const useSupabaseOrders = () => {
         } else {
           console.log('✅ Order items created successfully for vendor tracking');
         }
+
+        // Decrement stock for each item
+        for (const item of orderData.items) {
+          const color = item.color && item.color !== '-' ? item.color : null;
+          const size = item.size && item.size !== '-' ? item.size : null;
+          
+          if (color && size) {
+            try {
+              const { error: stockError } = await supabase.rpc('decrement_product_stock', {
+                p_product_id: item.productId,
+                p_color: color,
+                p_size: size,
+                p_quantity: parseInt(item.quantity) || 1
+              });
+
+              if (stockError) {
+                console.warn('Stock decrement warning for product:', item.productId, stockError.message);
+                // Continue with order even if stock decrement fails
+              } else {
+                console.log('✅ Stock decremented for:', item.productName, color, size);
+              }
+            } catch (stockErr) {
+              console.warn('Stock decrement error:', stockErr);
+            }
+          }
+        }
       }
       
       console.log('Order successfully created in database:', data);

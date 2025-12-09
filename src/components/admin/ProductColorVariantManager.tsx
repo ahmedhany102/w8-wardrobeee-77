@@ -5,8 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Plus, Upload } from 'lucide-react';
+import { Trash2, Plus, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ColorVariantOption {
   id?: string;
@@ -34,6 +35,7 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
   productId
 }) => {
   const [localVariants, setLocalVariants] = useState<ColorVariant[]>(variants);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setLocalVariants(variants);
@@ -100,14 +102,54 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
     onChange(updatedVariants);
   };
 
-  const handleImageUpload = (variantIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (variantIndex: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleVariantChange(variantIndex, 'image', reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('يرجى اختيار ملف صورة صالح');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('حجم الصورة يجب أن يكون أقل من 5 ميجابايت');
+      return;
+    }
+
+    setUploadingIndex(variantIndex);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `variant_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `variants/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('products_images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        toast.error('فشل في رفع الصورة');
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('products_images')
+        .getPublicUrl(filePath);
+
+      handleVariantChange(variantIndex, 'image', urlData.publicUrl);
+      toast.success('تم رفع الصورة بنجاح');
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast.error('حدث خطأ أثناء رفع الصورة');
+    } finally {
+      setUploadingIndex(null);
     }
   };
 
@@ -157,12 +199,18 @@ const ProductColorVariantManager: React.FC<ProductColorVariantManagerProps> = ({
                 </div>
                 <div>
                   <Label>صورة اللون *</Label>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(variantIndex, e)}
-                    className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700"
-                  />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(variantIndex, e)}
+                      disabled={uploadingIndex === variantIndex}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700"
+                    />
+                    {uploadingIndex === variantIndex && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                  </div>
                   {variant.image && (
                     <div className="mt-2">
                       <img src={variant.image} alt={variant.color} className="h-16 w-16 object-cover rounded border" />

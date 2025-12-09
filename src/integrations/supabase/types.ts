@@ -861,6 +861,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      decrement_product_stock: {
+        Args: {
+          p_color: string
+          p_product_id: string
+          p_quantity: number
+          p_size: string
+        }
+        Returns: boolean
+      }
+      decrement_variant_stock: {
+        Args: { p_color_variant_id: string; p_quantity: number; p_size: string }
+        Returns: boolean
+      }
       delete_promotional_banner: {
         Args: { banner_id: string }
         Returns: boolean
@@ -870,6 +883,44 @@ export type Database = {
         Returns: boolean
       }
       get_current_user_role: { Args: never; Returns: string }
+      get_product_variant_options: {
+        Args: { p_product_id: string }
+        Returns: {
+          color: string
+          color_variant_id: string
+          image: string
+          option_id: string
+          price: number
+          size: string
+          stock: number
+        }[]
+      }
+      get_product_with_vendor: {
+        Args: { p_product_id: string }
+        Returns: {
+          category: string
+          category_id: string
+          colors: Json
+          created_at: string
+          description: string
+          discount: number
+          featured: boolean
+          id: string
+          image_url: string
+          images: Json
+          inventory: number
+          main_image: string
+          name: string
+          price: number
+          sizes: Json
+          status: string
+          stock: number
+          updated_at: string
+          user_id: string
+          vendor_logo_url: string
+          vendor_store_name: string
+        }[]
+      }
       get_user_highest_role: { Args: { _user_id: string }; Returns: string }
       get_user_orders: {
         Args: { user_uuid: string }

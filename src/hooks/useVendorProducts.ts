@@ -87,8 +87,20 @@ export const useVendorProducts = (statusFilter?: string) => {
 
       if (error) {
         console.error('Error adding product:', error);
-        toast.error('فشل في إضافة المنتج');
+        toast.error('فشل في إضافة المنتج: ' + error.message);
         return null;
+      }
+
+      // Save color variants if they exist
+      const pendingVariants = (window as any).__pendingColorVariants;
+      if (pendingVariants && pendingVariants.length > 0 && data?.id) {
+        const { ProductVariantService } = await import('@/services/productVariantService');
+        const variantsSaved = await ProductVariantService.saveProductVariants(data.id, pendingVariants);
+        if (!variantsSaved) {
+          console.warn('Failed to save color variants');
+        }
+        // Clear pending variants
+        delete (window as any).__pendingColorVariants;
       }
 
       toast.success('تم إضافة المنتج بنجاح - في انتظار الموافقة');
@@ -135,6 +147,18 @@ export const useVendorProducts = (statusFilter?: string) => {
         console.error('Error updating product:', error);
         toast.error('فشل في تحديث المنتج');
         return false;
+      }
+
+      // Save color variants if they exist
+      const pendingVariants = (window as any).__pendingColorVariants;
+      if (pendingVariants && pendingVariants.length > 0) {
+        const { ProductVariantService } = await import('@/services/productVariantService');
+        const variantsSaved = await ProductVariantService.saveProductVariants(productId, pendingVariants);
+        if (!variantsSaved) {
+          console.warn('Failed to save color variants');
+        }
+        // Clear pending variants
+        delete (window as any).__pendingColorVariants;
       }
 
       toast.success('تم تحديث المنتج بنجاح');
