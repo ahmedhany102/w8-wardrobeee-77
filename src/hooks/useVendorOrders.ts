@@ -36,27 +36,40 @@ export const useVendorOrders = (statusFilter?: string) => {
 
   const fetchOrders = useCallback(async () => {
     if (!user) {
+      console.log('🔴 useVendorOrders: No user, skipping fetch');
       setLoading(false);
       return;
     }
 
+    console.log('🟢 useVendorOrders: Fetching orders for user:', {
+      userId: user.id,
+      userEmail: user.email,
+      userRole: user.role,
+      statusFilter: statusFilter || 'all'
+    });
+
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase.rpc('get_vendor_orders', {
         _vendor_id: null,
         _status_filter: statusFilter || 'all'
       });
 
       if (error) {
-        console.error('Error fetching vendor orders:', error);
+        console.error('🔴 useVendorOrders: Error fetching vendor orders:', error);
         toast.error('فشل في تحميل الطلبات');
         return;
       }
 
+      console.log('🟢 useVendorOrders: RPC returned data:', {
+        rowCount: data?.length || 0,
+        orders: data
+      });
+
       setOrders(data || []);
     } catch (error) {
-      console.error('Error in fetchOrders:', error);
+      console.error('🔴 useVendorOrders: Exception in fetchOrders:', error);
       toast.error('حدث خطأ أثناء تحميل الطلبات');
     } finally {
       setLoading(false);
@@ -64,6 +77,7 @@ export const useVendorOrders = (statusFilter?: string) => {
   }, [user, statusFilter]);
 
   useEffect(() => {
+    console.log('🔵 useVendorOrders: useEffect triggered, user=', user?.email);
     fetchOrders();
   }, [fetchOrders]);
 
@@ -87,7 +101,7 @@ export const useVendorOrderDetails = (orderId: string) => {
 
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase.rpc('get_vendor_order_items', {
         _order_id: orderId,
         _vendor_id: null
@@ -157,7 +171,7 @@ export const useAdminOrders = (vendorFilter?: string, statusFilter?: string) => 
 
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase.rpc('get_vendor_orders', {
         _vendor_id: vendorFilter || null,
         _status_filter: statusFilter || 'all'
@@ -232,7 +246,7 @@ export const useAdminOrderDetails = (orderId: string) => {
 
     try {
       setLoading(true);
-      
+
       // Fetch order info
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -247,7 +261,7 @@ export const useAdminOrderDetails = (orderId: string) => {
       }
 
       setOrderInfo(orderData);
-      
+
       // Fetch all items (admin sees all)
       const { data: itemsData, error: itemsError } = await supabase.rpc('get_vendor_order_items', {
         _order_id: orderId,
