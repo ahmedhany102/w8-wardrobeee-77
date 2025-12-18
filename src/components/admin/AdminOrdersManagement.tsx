@@ -170,7 +170,6 @@ const OrderDetailsDialog: React.FC<{
               </Card>
             )}
 
-            
             {/* Items by Vendor */}
             {Object.entries(itemsByVendor).map(([vendorId, vendorItems]) => {
               const vendor = vendors[vendorId];
@@ -477,6 +476,5 @@ export const AdminOrdersManagement: React.FC = () => {
     </div>
   );
 };
-
 
 export default AdminOrdersManagement;
