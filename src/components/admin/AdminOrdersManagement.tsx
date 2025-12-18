@@ -174,13 +174,18 @@ const OrderDetailsDialog: React.FC<{
             {Object.entries(itemsByVendor).map(([vendorId, vendorItems]) => {
               const vendor = vendors[vendorId];
               const vendorTotal = vendorItems.reduce((sum, item) => sum + item.total_price, 0);
+            // Handle null/undefined vendor_id (admin products)
+              const isAdminProduct = vendorId === 'null' || vendorId === 'undefined' || !vendorId;
+              const vendorDisplayName = isAdminProduct 
+                ? 'منتجات المتجر' 
+                : (vendor?.name || vendor?.email || 'بائع غير معروف');
 
               return (
                 <Card key={vendorId}>
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-lg">
-                        {vendor?.name || vendor?.email || 'بائع غير معروف'}
+                      {vendorDisplayName}
                       </CardTitle>
                       <Badge variant="outline">{vendorTotal} ج.م</Badge>
                     </div>
