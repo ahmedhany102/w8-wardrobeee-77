@@ -6,7 +6,6 @@ import { ProductFormData } from '@/types/product';
 import { cleanProductDataForInsert } from '@/utils/productUtils';
 import { formatProductForDisplay } from '@/utils/productUtils';
 
-
 export interface VendorProduct {
   id: string;
   name: string;
