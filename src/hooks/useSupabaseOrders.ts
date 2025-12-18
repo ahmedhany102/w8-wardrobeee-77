@@ -160,7 +160,7 @@ export const useSupabaseOrders = () => {
           color: item.color !== '-' ? item.color : null,
           status: 'pending'
         };
-           }).filter(item => item.product_id); // Include ALL items - vendor_id can be null for admin products
+      }).filter(item => item.vendor_id); // Only create items with valid vendor_id
 
       if (orderItems.length > 0) {
         console.log('Creating order_items for multi-vendor tracking:', orderItems);
