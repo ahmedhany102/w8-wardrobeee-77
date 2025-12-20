@@ -12,6 +12,8 @@ interface Ad {
   is_active: boolean;
 }
 
+
+
 const AdsDisplay: React.FC = () => {
   const { ads, loading } = useSupabaseAds();
 
