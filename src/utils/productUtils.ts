@@ -2,15 +2,15 @@ import { ProductFormData, DatabaseProductData } from '@/types/product';
 
 export const cleanProductDataForInsert = (productData: ProductFormData, userId: string): DatabaseProductData => {
   console.log('🧹 Cleaning product data for database insertion:', productData);
-
+  
   // Ensure arrays are properly formatted
-  const cleanImages = Array.isArray(productData.images) ?
+  const cleanImages = Array.isArray(productData.images) ? 
     productData.images.filter(Boolean) : [];
-  const cleanColors = Array.isArray(productData.colors) ?
+  const cleanColors = Array.isArray(productData.colors) ? 
     productData.colors.filter(Boolean) : [];
-
+  
   // Clean and structure sizes data properly
-  const cleanSizes = Array.isArray(productData.sizes) ?
+  const cleanSizes = Array.isArray(productData.sizes) ? 
     productData.sizes
       .filter(size => size && size.size && typeof size.size === 'string')
       .map(size => ({
@@ -21,17 +21,16 @@ export const cleanProductDataForInsert = (productData: ProductFormData, userId: 
 
   // Calculate total inventory from all sizes
   const totalInventory = cleanSizes.reduce((sum, size) => sum + size.stock, 0);
-
+  
   // Prepare main image
   const mainImage = productData.main_image || cleanImages[0] || '';
-
+  
   const cleanData: DatabaseProductData = {
     user_id: userId,
     name: String(productData.name || '').trim(),
     description: String(productData.description || '').trim(),
     price: Number(productData.price) || (cleanSizes.length > 0 ? cleanSizes[0].price : 0),
-    category: '', // Keep empty for backward compatibility
-    category_id: productData.category || null, // Map UUID to category_id
+    category: String(productData.category || '').trim(),
     main_image: mainImage,
     image_url: mainImage, // Keep both for compatibility
     images: cleanImages,
@@ -49,7 +48,7 @@ export const cleanProductDataForInsert = (productData: ProductFormData, userId: 
 
 export const formatProductForDisplay = (rawProduct: any) => {
   if (!rawProduct) return null;
-
+  
   // Ensure sizes is always an array
   let sizes = [];
   if (rawProduct.sizes) {
@@ -64,7 +63,7 @@ export const formatProductForDisplay = (rawProduct: any) => {
       }
     }
   }
-
+  
   // Ensure colors is always an array
   let colors = [];
   if (rawProduct.colors) {
@@ -79,7 +78,7 @@ export const formatProductForDisplay = (rawProduct: any) => {
       }
     }
   }
-
+  
   // Ensure images is always an array
   let images = [];
   if (rawProduct.images) {
@@ -94,7 +93,7 @@ export const formatProductForDisplay = (rawProduct: any) => {
       }
     }
   }
-
+  
   return {
     ...rawProduct,
     sizes,
