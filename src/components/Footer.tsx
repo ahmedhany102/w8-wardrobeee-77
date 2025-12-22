@@ -8,7 +8,7 @@ const Footer = () => {
 
   // Default values with updated developer info
   const defaultSettings = {
-    store_name: 'W8 for Men',
+    store_name: 'W8',
     address: 'Cairo, Egypt',
     email: 'info@w8store.com',
     phone: '+20 123 456 7890',
