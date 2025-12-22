@@ -10,8 +10,8 @@ const Footer = () => {
   const defaultSettings = {
     store_name: 'W8 for Men',
     address: 'Cairo, Egypt',
-    email: 'info@w8store.com',
-    phone: '+20 123 456 7890',
+    email: 'info@w8.com',
+    phone: '+20 1501640040',
     working_hours: 'Mon-Fri: 9AM-6PM',
     facebook: 'https://www.facebook.com/share/16LEN8zQG3/',
     instagram: 'https://www.instagram.com/a7med0xd/',
@@ -34,6 +34,7 @@ const Footer = () => {
     );
   }
 
+  
   return (
     <footer className="bg-background border-t border-border text-foreground pt-6 pb-3 mt-auto">
       <div className="container mx-auto px-4">
