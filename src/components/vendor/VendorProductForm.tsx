@@ -38,11 +38,12 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
   onCancel,
   loading = false,
 }) => {
+  // تم التعديل هنا: إضافة دعم لقراءة category_id من البيانات الأولية
   const [formData, setFormData] = useState<ProductFormData>({
     name: initialData?.name || '',
     description: initialData?.description || '',
     price: initialData?.price || 0,
-    category: initialData?.category || '',
+    category: initialData?.category || initialData?.category_id || '', // Fix: Read category_id if available
     main_image: initialData?.main_image || initialData?.image_url || '',
     images: initialData?.images || [],
     colors: initialData?.colors || [],
@@ -104,8 +105,15 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
     }
 
     try {
+      // تم التعديل هنا: إرسال category_id بشكل صريح
+      const submissionData = {
+        ...formData,
+        category_id: formData.category // Fix: Ensure category_id is sent to backend
+      };
+
       // Submit the main product data
-      await onSubmit(formData);
+      // Cast to any to avoid TypeScript errors if ProductFormData type is strict
+      await onSubmit(submissionData as any);
       
       // Note: Variants will be saved after product creation in the parent component
       // The parent should call saveVariants with the new product ID
