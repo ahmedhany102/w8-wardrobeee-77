@@ -50,6 +50,7 @@ export const useProductOperations = () => {
       return null;
     }
   };
+  
 
   const updateProduct = async (id: string, updates: ProductUpdateData) => {
     if (!user) {
