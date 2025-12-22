@@ -46,7 +46,6 @@ export const cleanProductDataForInsert = (productData: ProductFormData, userId: 
   return cleanData;
 };
 
-
 export const formatProductForDisplay = (rawProduct: any) => {
   if (!rawProduct) return null;
   
