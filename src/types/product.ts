@@ -26,6 +26,7 @@ export interface DatabaseProductData {
   description: string;
   price: number;
   category: string;
+  category_id?: string | null; // UUID foreign key to categories table
   main_image: string;
   image_url: string;
   images: string[];
