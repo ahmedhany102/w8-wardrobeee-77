@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ProductFormData, ProductUpdateData } from '@/types/product';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,7 +9,6 @@ import { toastManager } from '@/utils/toastManager';
 export const useProductOperations = () => {
   const { user } = useAuth();
 
-  // 1. تعديل دالة الإضافة (addProduct)
   const addProduct = async (productData: ProductFormData) => {
     if (!user) {
       toastManager.error('You must be logged in to add products');
@@ -25,15 +25,7 @@ export const useProductOperations = () => {
       }
 
       const userId = user.id;
-      // نحصل على البيانات المنظفة
       const cleanData = cleanProductDataForInsert(productData, userId);
-      
-      // === التعديل الهام هنا (لحل مشكلة الإضافة) ===
-      // نتأكد من إضافة category_id للبيانات المرسلة
-      if ((productData as any).category_id || productData.category) {
-        (cleanData as any).category_id = (productData as any).category_id || productData.category;
-      }
-      // ==========================================
       
       console.log('📤 Sending to database:', cleanData);
       
@@ -59,7 +51,6 @@ export const useProductOperations = () => {
     }
   };
 
-  // 2. تعديل دالة التحديث (updateProduct)
   const updateProduct = async (id: string, updates: ProductUpdateData) => {
     if (!user) {
       toastManager.error('You must be logged in to update products');
@@ -78,14 +69,7 @@ export const useProductOperations = () => {
       if (updates.name) updateData.name = updates.name.trim();
       if (updates.description !== undefined) updateData.description = updates.description?.trim() || '';
       if (updates.price) updateData.price = parseFloat(String(updates.price));
-      
-      // === التعديل الهام هنا (لحل مشكلة التعديل) ===
-      if (updates.category) {
-        updateData.category = updates.category;
-        updateData.category_id = updates.category; // نرسل category_id أيضاً
-      }
-      // ==========================================
-
+      if (updates.category) updateData.category = updates.category;
       if (updates.main_image !== undefined) {
         updateData.main_image = updates.main_image || '';
         updateData.image_url = updates.main_image || '';
@@ -125,34 +109,33 @@ export const useProductOperations = () => {
   };
 
   const deleteProduct = async (id: string) => {
-    // ... (الكود كما هو دون تغيير)
     if (!user) {
-        toastManager.error('You must be logged in to delete products');
-        return null;
-      }
-  
-      try {
-        const userId = user.id;
-        const { error } = await supabase
-          .from('products')
-          .delete()
-          .eq('id', id)
-          .eq('user_id', userId);
-  
-        if (error) {
-          console.error('❌ Failed to delete product:', error);
-          toastManager.error('Failed to delete product: ' + error.message);
-          return null;
-        }
-  
-        console.log('✅ Product deleted successfully');
-        toastManager.success('Product deleted successfully!');
-        return true;
-      } catch (error: any) {
-        console.error('💥 Exception while deleting product:', error);
+      toastManager.error('You must be logged in to delete products');
+      return null;
+    }
+
+    try {
+      const userId = user.id;
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId);
+
+      if (error) {
+        console.error('❌ Failed to delete product:', error);
         toastManager.error('Failed to delete product: ' + error.message);
         return null;
       }
+
+      console.log('✅ Product deleted successfully');
+      toastManager.success('Product deleted successfully!');
+      return true;
+    } catch (error: any) {
+      console.error('💥 Exception while deleting product:', error);
+      toastManager.error('Failed to delete product: ' + error.message);
+      return null;
+    }
   };
 
   return { addProduct, updateProduct, deleteProduct };
