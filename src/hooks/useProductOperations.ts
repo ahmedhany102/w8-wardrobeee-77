@@ -17,7 +17,7 @@ export const useProductOperations = () => {
 
     try {
       console.log('🎯 Adding product with complete data validation...', productData);
-      
+
       const validationError = validateRequiredFields(productData);
       if (validationError) {
         toastManager.error(validationError);
@@ -26,9 +26,9 @@ export const useProductOperations = () => {
 
       const userId = user.id;
       const cleanData = cleanProductDataForInsert(productData, userId);
-      
+
       console.log('📤 Sending to database:', cleanData);
-      
+
       const { data, error } = await supabase
         .from('products')
         .insert(cleanData)
@@ -65,11 +65,14 @@ export const useProductOperations = () => {
       }
 
       const updateData: Record<string, any> = {};
-      
+
       if (updates.name) updateData.name = updates.name.trim();
       if (updates.description !== undefined) updateData.description = updates.description?.trim() || '';
       if (updates.price) updateData.price = parseFloat(String(updates.price));
-      if (updates.category) updateData.category = updates.category;
+      if (updates.category) {
+        updateData.category = ''; // Keep for backward compatibility
+        updateData.category_id = updates.category; // UUID goes to category_id
+      }
       if (updates.main_image !== undefined) {
         updateData.main_image = updates.main_image || '';
         updateData.image_url = updates.main_image || '';
@@ -83,7 +86,7 @@ export const useProductOperations = () => {
       if (updates.inventory !== undefined) updateData.inventory = parseInt(String(updates.inventory)) || parseInt(String(updates.stock || 0)) || 0;
 
       const userId = user.id;
-      
+
       const { data, error } = await supabase
         .from('products')
         .update(updateData)
