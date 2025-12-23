@@ -17,7 +17,6 @@ const FeaturedProductsManagement: React.FC = () => {
     setFeatured(stored ? JSON.parse(stored) : []);
   }, []);
 
-  
   const addFeatured = (id: string) => {
     if (featured.includes(id)) return;
     const updated = [...featured, id];

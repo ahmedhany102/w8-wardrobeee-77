@@ -13,8 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface Coupon {
   id: string;
   code: string;
-  // تصحيح النوع هنا
-  discount_kind: 'percentage' | 'fixed';
+  discount_kind: 'percent' | 'fixed';
   discount_value: number;
   expiration_date?: string;
   usage_limit?: number;
@@ -32,11 +31,10 @@ const CouponManagement = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editCoupon, setEditCoupon] = useState<Coupon | null>(null);
   const [deleteCouponId, setDeleteCouponId] = useState<string | null>(null);
-   
+  
   const [couponFormData, setCouponFormData] = useState<{
     code: string;
-    // تصحيح النوع هنا
-    discount_kind: 'percentage' | 'fixed';
+    discount_kind: 'percent' | 'fixed';
     discount_value: number;
     expiration_date?: string;
     usage_limit?: number;
@@ -44,8 +42,7 @@ const CouponManagement = () => {
     active: boolean;
   }>({
     code: '',
-    // تصحيح القيمة الافتراضية
-    discount_kind: 'percentage',
+    discount_kind: 'percent',
     discount_value: 10,
     expiration_date: undefined,
     usage_limit: undefined,
@@ -56,8 +53,7 @@ const CouponManagement = () => {
   const resetFormData = () => {
     setCouponFormData({
       code: '',
-      // تصحيح القيمة عند إعادة التعيين
-      discount_kind: 'percentage',
+      discount_kind: 'percent',
       discount_value: 10,
       expiration_date: undefined,
       usage_limit: undefined,
@@ -80,8 +76,7 @@ const CouponManagement = () => {
       
       // Validate discount_value based on discount_kind
       if (name === 'discount_value' && numValue !== undefined) {
-        // تصحيح الشرط هنا
-        if (couponFormData.discount_kind === 'percentage') {
+        if (couponFormData.discount_kind === 'percent') {
           // Clamp percentage to 1-100
           numValue = Math.max(1, Math.min(100, numValue));
         } else if (couponFormData.discount_kind === 'fixed') {
@@ -283,11 +278,9 @@ const CouponManagement = () => {
                   {coupons.map(coupon => (
                     <TableRow key={coupon.id} className="hover:bg-green-50 transition-colors">
                       <TableCell className="font-bold">{coupon.code}</TableCell>
-                      {/* تصحيح الشرط هنا */}
-                      <TableCell>{coupon.discount_kind === 'percentage' ? 'نسبة مئوية' : 'مبلغ ثابت'}</TableCell>
+                      <TableCell>{coupon.discount_kind === 'percent' ? 'نسبة مئوية' : 'مبلغ ثابت'}</TableCell>
                       <TableCell>
-                        {/* تصحيح الشرط هنا */}
-                        {coupon.discount_value}{coupon.discount_kind === 'percentage' ? '%' : ' EGP'}
+                        {coupon.discount_value}{coupon.discount_kind === 'percent' ? '%' : ' EGP'}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {coupon.expiration_date ? formatDate(coupon.expiration_date) : 'بدون انتهاء'}
@@ -366,31 +359,27 @@ const CouponManagement = () => {
                     className="w-full p-2 border rounded text-sm"
                     required
                   >
-                    {/* تم التصحيح هنا: القيمة أصبحت percentage */}
-                    <option value="percentage">نسبة مئوية</option>
+                    <option value="percent">نسبة مئوية</option>
                     <option value="fixed">مبلغ ثابت</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    {/* تصحيح الشرط هنا */}
-                    قيمة الخصم* {couponFormData.discount_kind === 'percentage' ? '(%)' : '(EGP)'}
+                    قيمة الخصم* {couponFormData.discount_kind === 'percent' ? '(%)' : '(EGP)'}
                   </label>
                   <input
                     type="number"
                     name="discount_value"
-                    // تصحيح الشروط هنا
-                    min={couponFormData.discount_kind === 'percentage' ? '1' : '0'}
-                    max={couponFormData.discount_kind === 'percentage' ? '100' : undefined}
-                    step={couponFormData.discount_kind === 'percentage' ? '1' : '0.01'}
+                    min={couponFormData.discount_kind === 'percent' ? '1' : '0'}
+                    max={couponFormData.discount_kind === 'percent' ? '100' : undefined}
+                    step={couponFormData.discount_kind === 'percent' ? '1' : '0.01'}
                     value={couponFormData.discount_value}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
                     required
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    {/* تصحيح الشرط هنا */}
-                    {couponFormData.discount_kind === 'percentage' 
+                    {couponFormData.discount_kind === 'percent' 
                       ? 'أدخل نسبة من 1 إلى 100' 
                       : 'أدخل مبلغ الخصم بالجنيه'}
                   </p>
@@ -489,31 +478,27 @@ const CouponManagement = () => {
                     className="w-full p-2 border rounded text-sm"
                     required
                   >
-                    {/* تم التصحيح هنا أيضاً */}
-                    <option value="percentage">نسبة مئوية</option>
+                    <option value="percent">نسبة مئوية</option>
                     <option value="fixed">مبلغ ثابت</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">
-                    {/* تصحيح الشرط هنا */}
-                    قيمة الخصم* {couponFormData.discount_kind === 'percentage' ? '(%)' : '(EGP)'}
+                    قيمة الخصم* {couponFormData.discount_kind === 'percent' ? '(%)' : '(EGP)'}
                   </label>
                   <input
                     type="number"
                     name="discount_value"
-                    // تصحيح الشروط هنا
-                    min={couponFormData.discount_kind === 'percentage' ? '1' : '0'}
-                    max={couponFormData.discount_kind === 'percentage' ? '100' : undefined}
-                    step={couponFormData.discount_kind === 'percentage' ? '1' : '0.01'}
+                    min={couponFormData.discount_kind === 'percent' ? '1' : '0'}
+                    max={couponFormData.discount_kind === 'percent' ? '100' : undefined}
+                    step={couponFormData.discount_kind === 'percent' ? '1' : '0.01'}
                     value={couponFormData.discount_value}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded text-sm"
                     required
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    {/* تصحيح الشرط هنا */}
-                    {couponFormData.discount_kind === 'percentage' 
+                    {couponFormData.discount_kind === 'percent' 
                       ? 'أدخل نسبة من 1 إلى 100' 
                       : 'أدخل مبلغ الخصم بالجنيه'}
                   </p>
