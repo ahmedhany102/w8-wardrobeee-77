@@ -10,9 +10,14 @@ import { toast } from 'sonner';
 import CartDatabase from "@/models/CartDatabase";
 import { ProductVariant } from '@/hooks/useProductVariants';
 import { useFavorites } from '@/hooks/useFavorites';
+import VendorBadge from '@/components/VendorBadge';
 
 interface ProductCardProps {
-  product: Product;
+  product: Product & { 
+    vendor_name?: string; 
+    vendor_slug?: string;
+    vendor_id?: string;
+  };
   onAddToCart?: (product: Product, size: string, quantity?: number) => void;
   className?: string;
   variants?: ProductVariant[];
@@ -125,18 +130,18 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
 
   return (
     <Card 
-      className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-green-300 border-gray-200 ${className}`}
+      className={`group cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-primary/50 border-border bg-card ${className}`}
       onClick={handleProductClick}
       style={{ minHeight: '380px' }}
     >
       <CardHeader className="p-0 pb-2 relative">
-        <AspectRatio ratio={1} className="bg-gray-100 rounded-t-lg overflow-hidden">
+        <AspectRatio ratio={3/4} className="bg-muted rounded-t-lg overflow-hidden">
           <img
             src={mainImage}
             alt={product.name}
             width="300"
-            height="300"
-            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            height="400"
+            className="w-full h-full object-contain transition-transform duration-200 group-hover:scale-105"
             loading="lazy"
             onError={(e) => {
               (e.target as HTMLImageElement).src = "/placeholder.svg";
@@ -148,33 +153,42 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-2 left-2 bg-white/90 hover:bg-white z-10 h-8 w-8"
+          className="absolute top-2 left-2 bg-card/90 hover:bg-card z-10 h-8 w-8"
           onClick={handleToggleFavorite}
         >
           <Heart 
-            className={`h-4 w-4 ${isFavorite(product.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+            className={`h-4 w-4 ${isFavorite(product.id) ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`}
           />
         </Button>
         
         {/* Discount badge */}
         {product.hasDiscount && product.discount && (
-          <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold z-10">
+          <div className="absolute top-2 right-2 bg-destructive text-destructive-foreground px-2 py-1 rounded-full text-xs font-bold z-10">
             -{product.discount}%
           </div>
         )}
         
         {/* Out of stock overlay */}
         {isOutOfStock && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-t-lg z-20">
-            <span className="text-white font-bold text-lg">غير متوفر</span>
+          <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center rounded-t-lg z-20">
+            <span className="text-background font-bold text-lg">غير متوفر</span>
           </div>
         )}
       </CardHeader>
 
       <CardContent className="p-3 pb-2">
-        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-green-700 transition-colors">
+        <h3 className="font-semibold text-sm mb-1 line-clamp-2 text-foreground group-hover:text-primary transition-colors">
           {product.name}
         </h3>
+        
+        {/* Vendor Badge */}
+        {product.vendor_name && product.vendor_slug && (
+          <VendorBadge 
+            vendorName={product.vendor_name} 
+            vendorSlug={product.vendor_slug}
+            className="mb-2"
+          />
+        )}
         
         {/* Price section */}
         <div className="flex items-center gap-2 mb-2">
