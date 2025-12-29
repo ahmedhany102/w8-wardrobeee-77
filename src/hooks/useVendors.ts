@@ -23,13 +23,7 @@ export const useVendors = () => {
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      
-      // التعديل هنا: استدعاء مباشر من الجدول بدلاً من rpc
-      const { data, error } = await supabase
-        .from('vendors')
-        .select('*')
-        .eq('status', 'active') // جلب المتاجر النشطة فقط
-        .order('created_at', { ascending: false }); // الأحدث أولاً
+      const { data, error } = await supabase.rpc('get_active_vendors');
       
       if (error) throw error;
       
