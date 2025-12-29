@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import SearchBar from './SearchBar';
 import CategoryNavigation from './CategoryNavigation';
 import { useSupabaseProducts } from '@/hooks/useSupabaseProducts';
@@ -8,8 +8,11 @@ import ProductGrid from './ProductGrid';
 import ShoppingCartDialog from './ShoppingCartDialog';
 import { useCartIntegration } from '@/hooks/useCartIntegration';
 import { useBulkProductVariants } from '@/hooks/useBulkProductVariants';
+import BrowseModeToggle, { BrowseMode } from './BrowseModeToggle';
+import VendorsGrid from './VendorsGrid';
 
 const ProductCatalog: React.FC = () => {
+  const [browseMode, setBrowseMode] = useState<BrowseMode>('products');
   const { products, loading } = useSupabaseProducts();
   const { cartItems, cartCount, addToCart: addToCartDB, removeFromCart, updateQuantity, clearCart } = useCartIntegration();
   const {
@@ -70,21 +73,30 @@ const ProductCatalog: React.FC = () => {
         onCartClick={() => setShowCartDialog(true)}
       />
       
-      <CategoryNavigation 
-        onCategorySelect={handleCategoryFilter}
-        selectedCategory={selectedCategoryId}
-      />
+      {/* Browse Mode Toggle */}
+      <BrowseModeToggle mode={browseMode} onModeChange={setBrowseMode} />
       
-      <SearchBar onSearch={handleSearch} placeholder="ابحث عن المنتجات..." />
-      
-      <ProductGrid 
-        products={filteredProducts}
-        loading={loading}
-        searchQuery={searchQuery}
-        onAddToCart={handleAddToCart}
-        onClearSearch={clearFilters}
-        variantsByProduct={variantsByProduct}
-      />
+      {browseMode === 'products' ? (
+        <>
+          <CategoryNavigation 
+            onCategorySelect={handleCategoryFilter}
+            selectedCategory={selectedCategoryId}
+          />
+          
+          <SearchBar onSearch={handleSearch} placeholder="ابحث عن المنتجات..." />
+          
+          <ProductGrid 
+            products={filteredProducts}
+            loading={loading}
+            searchQuery={searchQuery}
+            onAddToCart={handleAddToCart}
+            onClearSearch={clearFilters}
+            variantsByProduct={variantsByProduct}
+          />
+        </>
+      ) : (
+        <VendorsGrid />
+      )}
 
       <ShoppingCartDialog
         isOpen={showCartDialog}

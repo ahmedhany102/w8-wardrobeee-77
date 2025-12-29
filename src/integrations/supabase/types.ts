@@ -594,6 +594,7 @@ export type Database = {
           stock: number | null
           updated_at: string | null
           user_id: string | null
+          vendor_id: string | null
         }
         Insert: {
           category?: string | null
@@ -616,6 +617,7 @@ export type Database = {
           stock?: number | null
           updated_at?: string | null
           user_id?: string | null
+          vendor_id?: string | null
         }
         Update: {
           category?: string | null
@@ -638,6 +640,7 @@ export type Database = {
           stock?: number | null
           updated_at?: string | null
           user_id?: string | null
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -645,6 +648,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -799,6 +809,42 @@ export type Database = {
         }
         Relationships: []
       }
+      vendors: {
+        Row: {
+          cover_url: string | null
+          created_at: string
+          id: string
+          logo_url: string | null
+          name: string
+          owner_id: string
+          slug: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          owner_id: string
+          slug: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cover_url?: string | null
+          created_at?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          owner_id?: string
+          slug?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -884,6 +930,19 @@ export type Database = {
       delete_user_account: {
         Args: { target_user_id: string }
         Returns: boolean
+      }
+      generate_vendor_slug: { Args: { vendor_name: string }; Returns: string }
+      get_active_vendors: {
+        Args: never
+        Returns: {
+          cover_url: string
+          id: string
+          logo_url: string
+          name: string
+          product_count: number
+          slug: string
+          status: string
+        }[]
       }
       get_current_user_role: { Args: never; Returns: string }
       get_product_variant_options: {
@@ -1002,6 +1061,39 @@ export type Database = {
           stock: number | null
           updated_at: string | null
           user_id: string | null
+          vendor_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "products"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_vendor_products_by_slug: {
+        Args: { vendor_slug: string }
+        Returns: {
+          category: string | null
+          category_id: string | null
+          colors: Json | null
+          created_at: string | null
+          description: string | null
+          discount: number | null
+          featured: boolean | null
+          id: string
+          image_url: string | null
+          images: Json | null
+          inventory: number | null
+          main_image: string | null
+          name: string | null
+          price: number | null
+          rating: number | null
+          sizes: Json | null
+          status: string | null
+          stock: number | null
+          updated_at: string | null
+          user_id: string | null
+          vendor_id: string | null
         }[]
         SetofOptions: {
           from: "*"
