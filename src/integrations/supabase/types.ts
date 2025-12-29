@@ -357,7 +357,7 @@ export type Database = {
           total_price: number
           unit_price: number
           updated_at: string
-          vendor_id: string
+          vendor_id: string | null
         }
         Insert: {
           color?: string | null
@@ -373,7 +373,7 @@ export type Database = {
           total_price: number
           unit_price: number
           updated_at?: string
-          vendor_id: string
+          vendor_id?: string | null
         }
         Update: {
           color?: string | null
@@ -389,7 +389,7 @@ export type Database = {
           total_price?: number
           unit_price?: number
           updated_at?: string
-          vendor_id?: string
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -413,6 +413,7 @@ export type Database = {
           payment_info: Json | null
           payment_status: string
           status: string
+          status_locked: boolean | null
           total_amount: number
           updated_at: string | null
         }
@@ -427,6 +428,7 @@ export type Database = {
           payment_info?: Json | null
           payment_status?: string
           status?: string
+          status_locked?: boolean | null
           total_amount: number
           updated_at?: string | null
         }
@@ -441,6 +443,7 @@ export type Database = {
           payment_info?: Json | null
           payment_status?: string
           status?: string
+          status_locked?: boolean | null
           total_amount?: number
           updated_at?: string | null
         }
@@ -802,6 +805,7 @@ export type Database = {
     }
     Functions: {
       apply_coupon_atomic:
+        | { Args: { coupon_code: string; user_uuid: string }; Returns: Json }
         | {
             Args: {
               p_coupon_id: string
@@ -811,7 +815,6 @@ export type Database = {
             }
             Returns: string
           }
-        | { Args: { coupon_code: string; user_uuid: string }; Returns: Json }
       approve_vendor: {
         Args: { target_vendor_profile_id: string }
         Returns: boolean
@@ -935,6 +938,7 @@ export type Database = {
           payment_info: Json | null
           payment_status: string
           status: string
+          status_locked: boolean | null
           total_amount: number
           updated_at: string | null
         }[]
