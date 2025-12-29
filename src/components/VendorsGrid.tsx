@@ -1,102 +1,88 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useVendors } from '@/hooks/useVendors';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Store, ArrowLeft } from 'lucide-react';
+import { Loader2, Search, Store } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-const VendorsGrid: React.FC = () => {
-  const { vendors, loading, error } = useVendors();
-  const navigate = useNavigate();
-
-  if (loading) {
-    return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <Card key={i} className="overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex flex-col items-center">
-                <Skeleton className="w-16 h-16 rounded-full mb-3" />
-                <Skeleton className="h-4 w-24 mb-2" />
-                <Skeleton className="h-3 w-16 mb-3" />
-                <Skeleton className="h-8 w-full" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-destructive">حدث خطأ أثناء تحميل المتاجر</p>
-      </div>
-    );
-  }
-
-  if (vendors.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <Store className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-        <h3 className="text-lg font-semibold mb-1">لا توجد متاجر حالياً</h3>
-        <p className="text-muted-foreground text-sm">
-          سيتم إضافة متاجر جديدة قريباً
-        </p>
-      </div>
-    );
-  }
+const VendorsGrid = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  // بنبعت كلمة البحث للهوك عشان يجيب المتاجر المتفلترة
+  const { vendors, loading } = useVendors(searchTerm);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-      {vendors.map((vendor) => (
-        <Card 
-          key={vendor.id} 
-          className="overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer group"
-          onClick={() => navigate(`/store/${vendor.slug}`)}
-        >
-          <CardContent className="p-4">
-            <div className="flex flex-col items-center text-center">
-              {/* Vendor Logo */}
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-3 overflow-hidden border-2 border-primary/20 group-hover:border-primary/40 transition-colors">
-                {vendor.logo_url ? (
-                  <img 
-                    src={vendor.logo_url} 
-                    alt={vendor.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Store className="w-6 h-6 text-primary" />
-                )}
-              </div>
-              
-              {/* Vendor Name */}
-              <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors line-clamp-1">
-                {vendor.name}
-              </h3>
-              
-              {/* Product Count */}
-              {typeof vendor.product_count === 'number' && (
-                <p className="text-xs text-muted-foreground mb-3">
-                  {vendor.product_count} منتج
-                </p>
-              )}
-              
-              {/* Visit Store Button */}
-              <Button 
-                size="sm"
-                className="w-full gap-1 text-xs group-hover:gap-2 transition-all"
-                variant="outline"
-              >
-                <span>زيارة المتجر</span>
-                <ArrowLeft className="w-3 h-3" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-6 animate-fade-in">
+      {/* شريط البحث الخاص بالمتاجر */}
+      <div className="flex items-center gap-2 max-w-md mx-auto mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input 
+            placeholder="ابحث عن اسم المتجر..." 
+            className="pr-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : vendors.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Store className="w-12 h-12 mx-auto mb-4 opacity-20" />
+          <p>لا يوجد متاجر مطابقة للبحث</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {vendors.map((vendor) => (
+            <Link key={vendor.id} to={`/store/${vendor.slug}`}>
+              <Card className="h-full hover:shadow-lg transition-shadow overflow-hidden group border-primary/10">
+                {/* الغلاف */}
+                <div className="h-32 bg-gray-100 relative overflow-hidden">
+                  {vendor.cover_url ? (
+                    <img 
+                      src={vendor.cover_url} 
+                      alt={vendor.name} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-r from-orange-100 to-orange-50 flex items-center justify-center">
+                      <Store className="w-10 h-10 text-orange-200" />
+                    </div>
+                  )}
+                  {/* اللوجو */}
+                  <div className="absolute -bottom-6 right-4">
+                    <div className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-sm overflow-hidden">
+                      {vendor.logo_url ? (
+                        <img src={vendor.logo_url} alt={vendor.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                          <span className="text-xl font-bold text-gray-400">{vendor.name.charAt(0)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <CardContent className="pt-8 pb-4 px-4 text-right">
+                  <h3 className="font-bold text-lg mb-1">{vendor.name}</h3>
+                  {vendor.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                      {vendor.description}
+                    </p>
+                  )}
+                  <Button variant="outline" size="sm" className="w-full mt-2 group-hover:border-orange-500 group-hover:text-orange-500">
+                    زيارة المتجر
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
