@@ -49,6 +49,7 @@ type Action =
       toastId?: ToasterToast["id"]
     }
 
+
 interface State {
   toasts: ToasterToast[]
 }
