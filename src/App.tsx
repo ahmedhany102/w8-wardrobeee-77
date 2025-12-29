@@ -20,6 +20,8 @@ import Terms from './pages/Terms';
 import Favorites from './pages/Favorites';
 import VendorDashboard from './pages/vendor/VendorDashboard';
 import BecomeVendor from './pages/BecomeVendor';
+import Vendors from './pages/Vendors';
+import StorePage from './pages/StorePage';
 
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
@@ -55,6 +57,8 @@ function App() {
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/category/:slug" element={<CategoryPage />} />
                 <Route path="/product/:id" element={<ProductDetails />} />
+                <Route path="/vendors" element={<Vendors />} />
+                <Route path="/store/:vendorSlug" element={<StorePage />} />
 
                 {/* Protected routes */}
                 <Route element={<RequireAuth adminOnly={false} />}>
