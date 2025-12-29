@@ -55,13 +55,13 @@ const Index = () => {
         {/* Greeting Section */}
         {user && (
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2">أهلاً بك {user.name}!</h2>
-            <p className="text-gray-600">نتمنى لك تجربة تسوق ممتعة</p>
+            <h2 className="text-xl font-bold text-foreground mb-2">أهلاً بك {user.name}!</h2>
+            <p className="text-muted-foreground">نتمنى لك تجربة تسوق ممتعة</p>
           </div>
         )}
 
         {/* Product Catalog */}
-        <h2 className="text-2xl font-bold mb-6">تصفح منتجاتنا</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-6">منتجاتنا المميزة</h2>
         <ProductCatalog />
       </div>
     </Layout>
