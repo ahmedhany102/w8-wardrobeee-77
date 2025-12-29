@@ -44,7 +44,7 @@ const Profile = () => {
   });
 
   const onSubmit = async (data: PasswordFormValues) => {
-    if (!user) {
+    if (!user || !user.email) {
       toast.error('You must be logged in to change your password');
       return;
     }
@@ -52,13 +52,24 @@ const Profile = () => {
     setIsUpdatingPassword(true);
     
     try {
-      // Use Supabase Auth to update the user's password
+      // First verify current password by re-authenticating
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: data.currentPassword,
+      });
+
+      if (signInError) {
+        toast.error('Current password is incorrect');
+        setIsUpdatingPassword(false);
+        return;
+      }
+
+      // Current password verified, now update to new password
       const { error } = await supabase.auth.updateUser({
         password: data.newPassword,
       });
 
       if (error) {
-        console.error("Error updating password:", error.message);
         toast.error("Password update failed: " + error.message);
       } else {
         toast.success("Password updated successfully");
@@ -66,7 +77,6 @@ const Profile = () => {
         form.reset();
       }
     } catch (error: any) {
-      console.error("Exception updating password:", error);
       toast.error("Password update failed: " + (error?.message || 'Unknown error'));
     } finally {
       setIsUpdatingPassword(false);
