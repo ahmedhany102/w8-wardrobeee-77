@@ -11,7 +11,7 @@ const Footer = () => {
     store_name: 'W8 for Men',
     address: 'Cairo, Egypt',
     email: 'info@w8store.com',
-    phone: '+20 1501640040',
+    phone: '+20 123 456 7890',
     working_hours: 'Mon-Fri: 9AM-6PM',
     facebook: 'https://www.facebook.com/share/16LEN8zQG3/',
     instagram: 'https://www.instagram.com/a7med0xd/',
