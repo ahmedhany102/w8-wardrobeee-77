@@ -10,7 +10,6 @@ export interface Vendor {
   status: string;
   product_count?: number;
   description?: string;
-  user_id?: string; // ضفنا ده احتياطي
 }
 
 export const useVendors = (searchQuery?: string) => {
@@ -26,8 +25,9 @@ export const useVendors = (searchQuery?: string) => {
     try {
       setLoading(true);
       
+      // التعديل هنا: بنقرأ من vendor_profiles مش من rpc
       let query = supabase
-        .from('vendor_profiles')
+        .from('vendor_profiles') // ده الجدول اللي الفورم بتكتب فيه
         .select('*');
 
       if (searchQuery) {
@@ -38,15 +38,15 @@ export const useVendors = (searchQuery?: string) => {
       
       if (error) throw error;
       
+      // بنعمل Mapping عشان نوحد الأسماء (store_name لـ name)
       const mappedVendors: Vendor[] = (data || []).map((v: any) => ({
         id: v.id,
-        name: v.store_name,
-        slug: v.id, // استخدام ID كـ slug مؤقتاً لضمان العمل
+        name: v.store_name, // بناخد الاسم من store_name
+        slug: v.id,         // مؤقتاً بنستخدم الـ id كـ slug
         logo_url: v.logo_url,
         cover_url: null,
         status: v.status,
         description: v.store_description,
-        user_id: v.user_id,
         product_count: 0
       }));
       
@@ -62,6 +62,7 @@ export const useVendors = (searchQuery?: string) => {
   return { vendors, loading, error, refetch: fetchVendors };
 };
 
+// ... (سيب باقي الدوال زي useVendorBySlug زي ما هي مؤقتاً)
 export const useVendorBySlug = (slug: string | undefined) => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,14 +80,16 @@ export const useVendorBySlug = (slug: string | undefined) => {
     if (!slug) return;
     try {
       setLoading(true);
+      // هنا كمان لازم نقرأ من vendor_profiles عشان صفحة المتجر تفتح
       const { data, error } = await supabase
         .from('vendor_profiles')
         .select('*')
-        .eq('id', slug) // البحث بالـ ID لأننا استخدمناه كـ slug
+        .eq('id', slug) // لأننا استخدمنا الـ id كـ slug فوق
         .single();
       
       if (error) throw error;
       
+      // Mapping لنفس السبب
       const mappedVendor: Vendor = {
         id: data.id,
         name: data.store_name,
@@ -94,8 +97,7 @@ export const useVendorBySlug = (slug: string | undefined) => {
         logo_url: data.logo_url,
         cover_url: null,
         status: data.status,
-        description: data.store_description,
-        user_id: data.user_id
+        description: data.store_description
       };
 
       setVendor(mappedVendor);
@@ -110,6 +112,7 @@ export const useVendorBySlug = (slug: string | undefined) => {
   return { vendor, loading, error };
 };
 
+// ... (باقي الملف سيبه زي ما هو)
 export const useVendorProducts = (vendorId: string | undefined, categoryId?: string | null, searchQuery?: string) => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,10 +132,11 @@ export const useVendorProducts = (vendorId: string | undefined, categoryId?: str
     try {
       setLoading(true);
       
-      // هنا التعديل المهم: بنبحث بـ vendor_id بشكل صريح
       let query = supabase
         .from('products')
         .select('*')
+        // لاحظ: products مربوطة بـ user_id مش vendor_id في الداتا بيز بتاعتك غالباً
+        // لو مظهرتش منتجات، هنحتاج نعدل دي لـ .eq('user_id', vendorId)
         .eq('vendor_id', vendorId) 
         .in('status', ['active', 'approved']);
       
