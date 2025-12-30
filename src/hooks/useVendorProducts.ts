@@ -23,6 +23,7 @@ export interface VendorProduct {
   inventory?: number;
   status?: string;
   user_id?: string;
+  vendor_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -32,6 +33,7 @@ export const useVendorProducts = (statusFilter?: string) => {
   const [products, setProducts] = useState<VendorProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // دالة جلب المنتجات (للبائع)
   const fetchProducts = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -41,22 +43,36 @@ export const useVendorProducts = (statusFilter?: string) => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.rpc('get_vendor_products', {
-        _vendor_id: null,
-        _status_filter: statusFilter || 'all'
-      });
+      // 1. نجيب المتجر الأول
+      const { data: vendor } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('owner_id', user.id)
+        .single();
 
-      if (error) {
-        console.error('Error fetching vendor products:', error);
-        // toast.error('فشل في تحميل المنتجات');
+      if (!vendor) {
+        setProducts([]);
         return;
       }
+
+      // 2. نجيب المنتجات بناءً على vendor_id
+      let query = supabase
+        .from('products')
+        .select('*')
+        .eq('vendor_id', vendor.id);
+
+      if (statusFilter && statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
 
       const formattedProducts = (data || []).map(formatProductForDisplay);
       setProducts(formattedProducts);
     } catch (error) {
-      console.error('Error in fetchProducts:', error);
-      toast.error('حدث خطأ أثناء تحميل المنتجات');
+      console.error('Error fetching vendor products:', error);
     } finally {
       setLoading(false);
     }
@@ -66,6 +82,7 @@ export const useVendorProducts = (statusFilter?: string) => {
     fetchProducts();
   }, [fetchProducts]);
 
+  // دالة إضافة المنتج (الإصلاح الجذري هنا)
   const addProduct = async (productData: ProductFormData): Promise<{ id: string } | null> => {
     if (!user) {
       toast.error('يجب تسجيل الدخول أولاً');
@@ -73,25 +90,26 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
-      // 1. (التصحيح) نجيب رقم المتجر الخاص بالمستخدم عشان نربط المنتج بيه
-      const { data: vendorProfile, error: vendorError } = await supabase
-        .from('vendor_profiles')
+      // 1. لازم نجيب الـ ID بتاع المتجر من جدول vendors
+      const { data: vendor, error: vendorError } = await supabase
+        .from('vendors')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('owner_id', user.id)
         .single();
 
-      if (vendorError || !vendorProfile) {
-        toast.error('لم يتم العثور على متجر لهذا المستخدم. يرجى إنشاء متجر أولاً.');
+      if (vendorError || !vendor) {
+        toast.error('لم يتم العثور على متجر! تأكد من إنشاء متجر أولاً.');
         return null;
       }
 
+      // 2. تجهيز البيانات
       const cleanData = cleanProductDataForInsert(productData, user.id);
       
-      // 2. (التصحيح) نضيف vendor_id ونخلي الحالة active
+      // 3. الإضافة مع vendor_id والحالة active
       const dataWithVendor = { 
         ...cleanData, 
-        vendor_id: vendorProfile.id, // ده اللي كان ناقص وبيخلي المنتج يتوه
-        status: 'active'             // خليناها active عشان يظهر علطول
+        vendor_id: vendor.id, 
+        status: 'active' 
       };
 
       const { data, error } = await supabase
@@ -100,13 +118,9 @@ export const useVendorProducts = (statusFilter?: string) => {
         .select()
         .single();
 
-      if (error) {
-        console.error('Error adding product:', error);
-        toast.error('فشل في إضافة المنتج: ' + error.message);
-        return null;
-      }
+      if (error) throw error;
 
-      // حفظ الألوان والمقاسات
+      // حفظ الألوان والمقاسات (Product Variants)
       const pendingVariants = (window as any).__pendingColorVariants;
       if (pendingVariants && pendingVariants.length > 0 && data?.id) {
         const { ProductVariantService } = await import('@/services/productVariantService');
@@ -117,48 +131,33 @@ export const useVendorProducts = (statusFilter?: string) => {
       toast.success('تم إضافة المنتج للمتجر بنجاح!');
       await fetchProducts();
       return { id: data.id };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in addProduct:', error);
-      toast.error('حدث خطأ أثناء إضافة المنتج');
+      toast.error('حدث خطأ: ' + error.message);
       return null;
     }
   };
 
   const updateProduct = async (productId: string, updates: Partial<ProductFormData>): Promise<boolean> => {
-    if (!user) {
-      toast.error('يجب تسجيل الدخول أولاً');
-      return false;
-    }
-
+    if (!user) return false;
     try {
-      const cleanUpdates: any = {};
-      if (updates.name !== undefined) cleanUpdates.name = updates.name;
-      if (updates.description !== undefined) cleanUpdates.description = updates.description;
-      if (updates.price !== undefined) cleanUpdates.price = Number(updates.price);
-      if (updates.category !== undefined) cleanUpdates.category = updates.category;
-      if (updates.main_image !== undefined) cleanUpdates.main_image = updates.main_image;
-      if (updates.images !== undefined) cleanUpdates.images = updates.images;
-      if (updates.colors !== undefined) cleanUpdates.colors = updates.colors;
-      if (updates.sizes !== undefined) cleanUpdates.sizes = updates.sizes;
-      if (updates.discount !== undefined) cleanUpdates.discount = Number(updates.discount);
-      if (updates.featured !== undefined) cleanUpdates.featured = updates.featured;
-      if (updates.stock !== undefined) cleanUpdates.stock = Number(updates.stock);
-      if (updates.inventory !== undefined) cleanUpdates.inventory = Number(updates.inventory);
+      const cleanUpdates: any = { ...updates, updated_at: new Date().toISOString() };
       
-      cleanUpdates.updated_at = new Date().toISOString();
+      // تنظيف الأرقام
+      if (updates.price) cleanUpdates.price = Number(updates.price);
+      if (updates.stock) cleanUpdates.stock = Number(updates.stock);
+      if (updates.inventory) cleanUpdates.inventory = Number(updates.inventory);
+      if (updates.discount) cleanUpdates.discount = Number(updates.discount);
 
       const { error } = await supabase
         .from('products')
         .update(cleanUpdates)
         .eq('id', productId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id); // التحقق من الملكية
 
-      if (error) {
-        console.error('Error updating product:', error);
-        toast.error('فشل في تحديث المنتج');
-        return false;
-      }
+      if (error) throw error;
 
+      // تحديث الفاريانتس
       const pendingVariants = (window as any).__pendingColorVariants;
       if (pendingVariants && pendingVariants.length > 0) {
         const { ProductVariantService } = await import('@/services/productVariantService');
@@ -166,22 +165,18 @@ export const useVendorProducts = (statusFilter?: string) => {
         delete (window as any).__pendingColorVariants;
       }
 
-      toast.success('تم تحديث المنتج بنجاح');
+      toast.success('تم تحديث المنتج');
       await fetchProducts();
       return true;
     } catch (error) {
-      console.error('Error in updateProduct:', error);
-      toast.error('حدث خطأ أثناء تحديث المنتج');
+      console.error('Update Error:', error);
+      toast.error('فشل التحديث');
       return false;
     }
   };
 
   const deleteProduct = async (productId: string): Promise<boolean> => {
-    if (!user) {
-      toast.error('يجب تسجيل الدخول أولاً');
-      return false;
-    }
-
+    if (!user) return false;
     try {
       const { error } = await supabase
         .from('products')
@@ -189,18 +184,13 @@ export const useVendorProducts = (statusFilter?: string) => {
         .eq('id', productId)
         .eq('user_id', user.id);
 
-      if (error) {
-        console.error('Error deleting product:', error);
-        toast.error('فشل في حذف المنتج');
-        return false;
-      }
-
-      toast.success('تم حذف المنتج بنجاح');
+      if (error) throw error;
+      toast.success('تم حذف المنتج');
       await fetchProducts();
       return true;
     } catch (error) {
-      console.error('Error in deleteProduct:', error);
-      toast.error('حدث خطأ أثناء حذف المنتج');
+      console.error('Delete Error:', error);
+      toast.error('فشل الحذف');
       return false;
     }
   };
@@ -216,7 +206,7 @@ export const useVendorProducts = (statusFilter?: string) => {
 };
 
 // ==========================================
-// Admin hook (موجود كما هو للأمان)
+// Admin Hook (رجعتلك الكود ده كامل عشان لوحة التحكم تشتغل)
 // ==========================================
 export const useAdminProducts = (vendorFilter?: string, statusFilter?: string) => {
   const { user, isAdmin } = useAuth();
@@ -231,23 +221,31 @@ export const useAdminProducts = (vendorFilter?: string, statusFilter?: string) =
 
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase.rpc('get_vendor_products', {
-        _vendor_id: vendorFilter || null,
-        _status_filter: statusFilter || 'all'
-      });
+      // الأدمن بيجيب داتا أشمل، فممكن نستخدم RPC أو كويري عادي
+      // هنا هنستخدم كويري عادي عشان نتجنب مشاكل RPC القديمة
+      let query = supabase
+        .from('products')
+        .select(`
+          *,
+          vendor:vendors(name)
+        `);
 
-      if (error) {
-        console.error('Error fetching admin products:', error);
-        toast.error('فشل في تحميل المنتجات');
-        return;
+      if (vendorFilter) {
+        query = query.eq('vendor_id', vendorFilter);
       }
+      if (statusFilter && statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
 
       const formattedProducts = (data || []).map(formatProductForDisplay);
       setProducts(formattedProducts);
     } catch (error) {
-      console.error('Error in fetchProducts:', error);
-      toast.error('حدث خطأ أثناء تحميل المنتجات');
+      console.error('Admin fetch error:', error);
+      toast.error('فشل تحميل المنتجات للأدمن');
     } finally {
       setLoading(false);
     }
@@ -258,57 +256,37 @@ export const useAdminProducts = (vendorFilter?: string, statusFilter?: string) =
   }, [fetchProducts]);
 
   const updateProductStatus = async (productId: string, newStatus: string): Promise<boolean> => {
-    if (!user || !isAdmin) {
-      toast.error('ليس لديك صلاحية لتغيير حالة المنتج');
-      return false;
-    }
-
+    if (!user || !isAdmin) return false;
     try {
-      const { error } = await supabase.rpc('update_product_status', {
-        _product_id: productId,
-        _new_status: newStatus
-      });
+      const { error } = await supabase
+        .from('products')
+        .update({ status: newStatus })
+        .eq('id', productId);
 
-      if (error) {
-        console.error('Error updating product status:', error);
-        toast.error('فشل في تحديث حالة المنتج');
-        return false;
-      }
-
-      toast.success('تم تحديث حالة المنتج بنجاح');
+      if (error) throw error;
+      toast.success('تم تحديث الحالة');
       await fetchProducts();
       return true;
-    } catch (error) {
-      console.error('Error in updateProductStatus:', error);
-      toast.error('حدث خطأ أثناء تحديث حالة المنتج');
+    } catch (err) {
+      toast.error('فشل التحديث');
       return false;
     }
   };
 
   const deleteProduct = async (productId: string): Promise<boolean> => {
-    if (!user || !isAdmin) {
-      toast.error('ليس لديك صلاحية لحذف المنتج');
-      return false;
-    }
-
+    if (!user || !isAdmin) return false;
     try {
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', productId);
 
-      if (error) {
-        console.error('Error deleting product:', error);
-        toast.error('فشل في حذف المنتج');
-        return false;
-      }
-
-      toast.success('تم حذف المنتج بنجاح');
+      if (error) throw error;
+      toast.success('تم الحذف');
       await fetchProducts();
       return true;
-    } catch (error) {
-      console.error('Error in deleteProduct:', error);
-      toast.error('حدث خطأ أثناء حذف المنتج');
+    } catch (err) {
+      toast.error('فشل الحذف');
       return false;
     }
   };
