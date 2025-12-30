@@ -9,48 +9,25 @@ export interface Vendor {
   cover_url: string | null;
   status: string;
   product_count?: number;
-  description?: string;
 }
 
-export const useVendors = (searchQuery?: string) => {
+export const useVendors = () => {
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVendors();
-  }, [searchQuery]);
+  }, []);
 
   const fetchVendors = async () => {
     try {
       setLoading(true);
-      
-      // التعديل هنا: بنقرأ من vendor_profiles مش من rpc
-      let query = supabase
-        .from('vendor_profiles') // ده الجدول اللي الفورم بتكتب فيه
-        .select('*');
-
-      if (searchQuery) {
-        query = query.ilike('store_name', `%${searchQuery}%`);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_active_vendors');
       
       if (error) throw error;
       
-      // بنعمل Mapping عشان نوحد الأسماء (store_name لـ name)
-      const mappedVendors: Vendor[] = (data || []).map((v: any) => ({
-        id: v.id,
-        name: v.store_name, // بناخد الاسم من store_name
-        slug: v.id,         // مؤقتاً بنستخدم الـ id كـ slug
-        logo_url: v.logo_url,
-        cover_url: null,
-        status: v.status,
-        description: v.store_description,
-        product_count: 0
-      }));
-      
-      setVendors(mappedVendors);
+      setVendors(data || []);
     } catch (err: any) {
       console.error('Error fetching vendors:', err);
       setError(err.message);
@@ -62,7 +39,6 @@ export const useVendors = (searchQuery?: string) => {
   return { vendors, loading, error, refetch: fetchVendors };
 };
 
-// ... (سيب باقي الدوال زي useVendorBySlug زي ما هي مؤقتاً)
 export const useVendorBySlug = (slug: string | undefined) => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,29 +54,19 @@ export const useVendorBySlug = (slug: string | undefined) => {
 
   const fetchVendor = async () => {
     if (!slug) return;
+    
     try {
       setLoading(true);
-      // هنا كمان لازم نقرأ من vendor_profiles عشان صفحة المتجر تفتح
       const { data, error } = await supabase
-        .from('vendor_profiles')
+        .from('vendors')
         .select('*')
-        .eq('id', slug) // لأننا استخدمنا الـ id كـ slug فوق
+        .eq('slug', slug)
+        .eq('status', 'active')
         .single();
       
       if (error) throw error;
       
-      // Mapping لنفس السبب
-      const mappedVendor: Vendor = {
-        id: data.id,
-        name: data.store_name,
-        slug: data.id,
-        logo_url: data.logo_url,
-        cover_url: null,
-        status: data.status,
-        description: data.store_description
-      };
-
-      setVendor(mappedVendor);
+      setVendor(data);
     } catch (err: any) {
       console.error('Error fetching vendor:', err);
       setError(err.message);
@@ -112,7 +78,6 @@ export const useVendorBySlug = (slug: string | undefined) => {
   return { vendor, loading, error };
 };
 
-// ... (باقي الملف سيبه زي ما هو)
 export const useVendorProducts = (vendorId: string | undefined, categoryId?: string | null, searchQuery?: string) => {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,9 +100,7 @@ export const useVendorProducts = (vendorId: string | undefined, categoryId?: str
       let query = supabase
         .from('products')
         .select('*')
-        // لاحظ: products مربوطة بـ user_id مش vendor_id في الداتا بيز بتاعتك غالباً
-        // لو مظهرتش منتجات، هنحتاج نعدل دي لـ .eq('user_id', vendorId)
-        .eq('vendor_id', vendorId) 
+        .eq('vendor_id', vendorId)
         .in('status', ['active', 'approved']);
       
       if (categoryId) {
@@ -182,6 +145,7 @@ export const useVendorCategories = (vendorId: string | undefined) => {
     try {
       setLoading(true);
       
+      // Get unique category IDs from vendor's products
       const { data: products, error } = await supabase
         .from('products')
         .select('category_id')
@@ -198,6 +162,7 @@ export const useVendorCategories = (vendorId: string | undefined) => {
         return;
       }
       
+      // Fetch category details
       const { data: categoriesData, error: catError } = await supabase
         .from('categories')
         .select('*')
