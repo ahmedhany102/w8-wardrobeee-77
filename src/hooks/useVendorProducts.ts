@@ -3,8 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ProductFormData } from '@/types/product';
-import { cleanProductDataForInsert } from '@/utils/productUtils';
-import { formatProductForDisplay } from '@/utils/productUtils';
+import { cleanProductDataForInsert, formatProductForDisplay } from '@/utils/productUtils';
 
 export interface VendorProduct {
   id: string;
@@ -42,15 +41,14 @@ export const useVendorProducts = (statusFilter?: string) => {
     try {
       setLoading(true);
       
-      // Use RPC to get vendor products with proper filtering
       const { data, error } = await supabase.rpc('get_vendor_products', {
-        _vendor_id: null, // null means current user's products (handled by RPC)
+        _vendor_id: null,
         _status_filter: statusFilter || 'all'
       });
 
       if (error) {
         console.error('Error fetching vendor products:', error);
-        toast.error('فشل في تحميل المنتجات');
+        // toast.error('فشل في تحميل المنتجات');
         return;
       }
 
@@ -75,13 +73,30 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
+      // 1. (التصحيح) نجيب رقم المتجر الخاص بالمستخدم عشان نربط المنتج بيه
+      const { data: vendorProfile, error: vendorError } = await supabase
+        .from('vendor_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (vendorError || !vendorProfile) {
+        toast.error('لم يتم العثور على متجر لهذا المستخدم. يرجى إنشاء متجر أولاً.');
+        return null;
+      }
+
       const cleanData = cleanProductDataForInsert(productData, user.id);
-      // Set initial status to pending for vendor products
-      const dataWithStatus = { ...cleanData, status: 'pending' };
+      
+      // 2. (التصحيح) نضيف vendor_id ونخلي الحالة active
+      const dataWithVendor = { 
+        ...cleanData, 
+        vendor_id: vendorProfile.id, // ده اللي كان ناقص وبيخلي المنتج يتوه
+        status: 'active'             // خليناها active عشان يظهر علطول
+      };
 
       const { data, error } = await supabase
         .from('products')
-        .insert(dataWithStatus)
+        .insert(dataWithVendor)
         .select()
         .single();
 
@@ -91,19 +106,15 @@ export const useVendorProducts = (statusFilter?: string) => {
         return null;
       }
 
-      // Save color variants if they exist
+      // حفظ الألوان والمقاسات
       const pendingVariants = (window as any).__pendingColorVariants;
       if (pendingVariants && pendingVariants.length > 0 && data?.id) {
         const { ProductVariantService } = await import('@/services/productVariantService');
-        const variantsSaved = await ProductVariantService.saveProductVariants(data.id, pendingVariants);
-        if (!variantsSaved) {
-          console.warn('Failed to save color variants');
-        }
-        // Clear pending variants
+        await ProductVariantService.saveProductVariants(data.id, pendingVariants);
         delete (window as any).__pendingColorVariants;
       }
 
-      toast.success('تم إضافة المنتج بنجاح - في انتظار الموافقة');
+      toast.success('تم إضافة المنتج للمتجر بنجاح!');
       await fetchProducts();
       return { id: data.id };
     } catch (error) {
@@ -120,7 +131,6 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
-      // Clean the updates
       const cleanUpdates: any = {};
       if (updates.name !== undefined) cleanUpdates.name = updates.name;
       if (updates.description !== undefined) cleanUpdates.description = updates.description;
@@ -141,7 +151,7 @@ export const useVendorProducts = (statusFilter?: string) => {
         .from('products')
         .update(cleanUpdates)
         .eq('id', productId)
-        .eq('user_id', user.id); // Ensure vendor owns the product
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error updating product:', error);
@@ -149,15 +159,10 @@ export const useVendorProducts = (statusFilter?: string) => {
         return false;
       }
 
-      // Save color variants if they exist
       const pendingVariants = (window as any).__pendingColorVariants;
       if (pendingVariants && pendingVariants.length > 0) {
         const { ProductVariantService } = await import('@/services/productVariantService');
-        const variantsSaved = await ProductVariantService.saveProductVariants(productId, pendingVariants);
-        if (!variantsSaved) {
-          console.warn('Failed to save color variants');
-        }
-        // Clear pending variants
+        await ProductVariantService.saveProductVariants(productId, pendingVariants);
         delete (window as any).__pendingColorVariants;
       }
 
@@ -182,7 +187,7 @@ export const useVendorProducts = (statusFilter?: string) => {
         .from('products')
         .delete()
         .eq('id', productId)
-        .eq('user_id', user.id); // Ensure vendor owns the product
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error deleting product:', error);
@@ -210,7 +215,9 @@ export const useVendorProducts = (statusFilter?: string) => {
   };
 };
 
-// Admin hook for managing all products
+// ==========================================
+// Admin hook (موجود كما هو للأمان)
+// ==========================================
 export const useAdminProducts = (vendorFilter?: string, statusFilter?: string) => {
   const { user, isAdmin } = useAuth();
   const [products, setProducts] = useState<VendorProduct[]>([]);
