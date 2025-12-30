@@ -1,148 +1,150 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-export type VendorStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
-
+// 1. حافظت على الانترفيس القديم وزودت عليه الحقول الجديدة عشان التوافق
 export interface VendorProfile {
   id: string;
-  user_id: string;
-  store_name: string;
+  store_name: string;      // الاسم اللي الواجهة متعودة عليه
+  name: string;            // الاسم في الجدول الجديد
   store_description: string | null;
+  description: string | null;
   phone: string | null;
   address: string | null;
   logo_url: string | null;
-  status: VendorStatus;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface VendorProfileWithUser extends VendorProfile {
-  user_email: string;
-  user_name: string;
+  cover_url: string | null;
+  slug: string;
+  status: 'pending' | 'active' | 'rejected' | 'suspended';
+  owner_id: string;
+  product_count?: number;
+  created_at?: string;
 }
 
 export const useVendorProfile = () => {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<VendorProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setProfile(null);
-        return;
-      }
 
-      const { data, error: fetchError } = await supabase
-        .from('vendor_profiles')
+      // التعديل: القراءة من جدول vendors بدلاً من vendor_profiles
+      // بنستخدم owner_id لأنه الربط الصحيح مع المستخدم
+      const { data, error } = await supabase
+        .from('vendors')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('owner_id', user.id)
         .maybeSingle();
 
-      if (fetchError) {
-        console.error('Error fetching vendor profile:', fetchError);
-        setError(fetchError.message);
-        return;
-      }
+      if (error) throw error;
 
-      setProfile(data as VendorProfile | null);
-    } catch (err) {
-      console.error('Error in fetchProfile:', err);
-      setError('Failed to fetch vendor profile');
+      if (data) {
+        // Mapping: تحويل بيانات الجدول الجديد لتناسب الواجهة القديمة
+        const mappedProfile: VendorProfile = {
+          ...data,
+          store_name: data.name, // الداتا بيز فيها name، الواجهة عايزة store_name
+          store_description: data.description,
+          // باقي البيانات زي ما هي
+          id: data.id,
+          phone: data.phone,
+          address: data.address,
+          logo_url: data.logo_url,
+          cover_url: data.cover_url,
+          slug: data.slug,
+          status: data.status,
+          owner_id: data.owner_id
+        };
+        setProfile(mappedProfile);
+      } else {
+        setProfile(null);
+      }
+    } catch (err: any) {
+      console.error('Error fetching vendor profile:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const applyAsVendor = async (storeName: string, storeDescription?: string, phone?: string, address?: string) => {
+  // دالة التقديم (إنشاء المتجر)
+  const applyAsVendor = async (storeName: string, description: string, phone: string, address: string) => {
+    if (!user) {
+      toast.error('يجب تسجيل الدخول أولاً');
+      return false;
+    }
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('يجب تسجيل الدخول أولاً');
-        return false;
-      }
+      // توليد Slug
+      const slug = `${storeName.toLowerCase().replace(/\s+/g, '-')}-${Math.floor(Math.random() * 10000)}`;
 
-      // Check if already has a pending/approved profile
-      const { data: existingProfile } = await supabase
-        .from('vendor_profiles')
-        .select('id, status')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (existingProfile) {
-        if (existingProfile.status === 'pending') {
-          toast.error('لديك طلب قيد المراجعة بالفعل');
-          return false;
-        }
-        if (existingProfile.status === 'approved') {
-          toast.error('أنت بائع معتمد بالفعل');
-          return false;
-        }
-      }
-
+      // التعديل: الإضافة في جدول vendors
       const { data, error } = await supabase
-        .from('vendor_profiles')
+        .from('vendors')
         .insert({
-          user_id: user.id,
-          store_name: storeName,
-          store_description: storeDescription || null,
-          phone: phone || null,
-          address: address || null,
-          status: 'pending'
+          owner_id: user.id,
+          name: storeName,
+          description: description,
+          phone: phone,
+          address: address,
+          slug: slug,
+          status: 'active' // تفعيل فوري عشان يظهر
         })
         .select()
         .single();
 
-      if (error) {
-        console.error('Error applying as vendor:', error);
-        toast.error('فشل في تقديم الطلب: ' + error.message);
-        return false;
-      }
+      if (error) throw error;
 
-      setProfile(data as VendorProfile);
-      toast.success('تم تقديم طلبك بنجاح! سيتم مراجعته قريباً');
+      toast.success('تم إنشاء المتجر بنجاح!');
+      await fetchProfile();
       return true;
-    } catch (err) {
-      console.error('Error in applyAsVendor:', err);
-      toast.error('حدث خطأ أثناء تقديم الطلب');
+
+    } catch (err: any) {
+      console.error('Error creating store:', err);
+      toast.error('فشل إنشاء المتجر: ' + err.message);
       return false;
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<VendorProfile, 'store_name' | 'store_description' | 'phone' | 'address' | 'logo_url'>>) => {
+  // دالة التحديث
+  const updateProfile = async (updates: Partial<VendorProfile>) => {
+    if (!user || !profile) return false;
+
     try {
-      if (!profile) {
-        toast.error('لا يوجد ملف تعريف للتحديث');
-        return false;
-      }
+      const dbUpdates: any = {};
+      // تحويل المسميات للجدول الجديد
+      if (updates.store_name) dbUpdates.name = updates.store_name;
+      if (updates.store_description) dbUpdates.description = updates.store_description;
+      if (updates.phone) dbUpdates.phone = updates.phone;
+      if (updates.address) dbUpdates.address = updates.address;
+      if (updates.logo_url) dbUpdates.logo_url = updates.logo_url;
+      if (updates.cover_url) dbUpdates.cover_url = updates.cover_url;
 
-      const { data, error } = await supabase
-        .from('vendor_profiles')
-        .update(updates)
+      const { error } = await supabase
+        .from('vendors')
+        .update(dbUpdates)
         .eq('id', profile.id)
-        .select()
-        .single();
+        .eq('owner_id', user.id);
 
-      if (error) {
-        console.error('Error updating vendor profile:', error);
-        toast.error('فشل في تحديث الملف: ' + error.message);
-        return false;
-      }
+      if (error) throw error;
 
-      setProfile(data as VendorProfile);
-      toast.success('تم تحديث معلومات المتجر بنجاح');
+      toast.success('تم تحديث بيانات المتجر');
+      await fetchProfile();
       return true;
-    } catch (err) {
-      console.error('Error in updateProfile:', err);
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
       toast.error('حدث خطأ أثناء التحديث');
       return false;
     }
@@ -158,85 +160,63 @@ export const useVendorProfile = () => {
   };
 };
 
-// Admin hook for managing all vendor profiles
+// ==========================================
+// Admin Hook (رجعتلك الكود ده كامل زي ما كان)
+// ==========================================
 export const useAdminVendorProfiles = () => {
-  const [vendors, setVendors] = useState<VendorProfileWithUser[]>([]);
+  const { user } = useAuth(); // مفروض تتأكد هنا إنه أدمن
+  const [vendors, setVendors] = useState<VendorProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchVendors = useCallback(async (statusFilter?: string) => {
+  const fetchVendors = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      // بنجيب كل المتاجر للأدمن
+      const { data, error } = await supabase
+        .from('vendors')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      const { data, error: fetchError } = await supabase
-        .rpc('get_vendor_profiles_with_users', { 
-          status_filter: statusFilter || null 
-        });
+      if (error) throw error;
 
-      if (fetchError) {
-        console.error('Error fetching vendors:', fetchError);
-        setError(fetchError.message);
-        return;
-      }
+      const mappedVendors = (data || []).map((v: any) => ({
+        ...v,
+        store_name: v.name,
+        store_description: v.description
+      }));
 
-      setVendors((data || []) as VendorProfileWithUser[]);
-    } catch (err) {
-      console.error('Error in fetchVendors:', err);
-      setError('Failed to fetch vendors');
+      setVendors(mappedVendors);
+    } catch (err: any) {
+      console.error('Error fetching admin vendors:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const updateVendorStatus = async (vendorProfileId: string, newStatus: VendorStatus) => {
+  // دالة تحديث حالة المتجر للأدمن
+  const updateVendorStatus = async (vendorId: string, status: 'active' | 'rejected' | 'suspended') => {
     try {
-      const { data, error } = await supabase
-        .rpc('update_vendor_status', {
-          target_vendor_profile_id: vendorProfileId,
-          new_status: newStatus
-        });
+      const { error } = await supabase
+        .from('vendors')
+        .update({ status })
+        .eq('id', vendorId);
 
-      if (error) {
-        console.error('Error updating vendor status:', error);
-        toast.error('فشل في تحديث حالة البائع: ' + error.message);
-        return false;
-      }
+      if (error) throw error;
 
-      toast.success(`تم تحديث حالة البائع إلى: ${getStatusLabel(newStatus)}`);
+      toast.success(`تم تغيير حالة المتجر إلى ${status}`);
+      await fetchVendors();
       return true;
-    } catch (err) {
-      console.error('Error in updateVendorStatus:', err);
-      toast.error('حدث خطأ أثناء تحديث الحالة');
+    } catch (err: any) {
+      toast.error('فشل تحديث الحالة');
       return false;
     }
   };
 
-  return {
-    vendors,
-    loading,
-    error,
-    fetchVendors,
-    updateVendorStatus
-  };
-};
+  useEffect(() => {
+    fetchVendors();
+  }, [fetchVendors]);
 
-export const getStatusLabel = (status: VendorStatus): string => {
-  const labels: Record<VendorStatus, string> = {
-    pending: 'قيد المراجعة',
-    approved: 'معتمد',
-    rejected: 'مرفوض',
-    suspended: 'موقوف'
-  };
-  return labels[status] || status;
-};
-
-export const getStatusColor = (status: VendorStatus): string => {
-  const colors: Record<VendorStatus, string> = {
-    pending: 'bg-yellow-500/20 text-yellow-700 dark:text-yellow-400',
-    approved: 'bg-green-500/20 text-green-700 dark:text-green-400',
-    rejected: 'bg-red-500/20 text-red-700 dark:text-red-400',
-    suspended: 'bg-orange-500/20 text-orange-700 dark:text-orange-400'
-  };
-  return colors[status] || 'bg-muted text-muted-foreground';
+  return { vendors, loading, error, fetchVendors, updateVendorStatus };
 };
