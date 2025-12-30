@@ -24,7 +24,6 @@ export interface VendorProduct {
   inventory?: number;
   status?: string;
   user_id?: string;
-  vendor_id?: string; // تأكدنا من وجود هذا الحقل
   created_at?: string;
   updated_at?: string;
 }
@@ -43,8 +42,9 @@ export const useVendorProducts = (statusFilter?: string) => {
     try {
       setLoading(true);
       
+      // Use RPC to get vendor products with proper filtering
       const { data, error } = await supabase.rpc('get_vendor_products', {
-        _vendor_id: null,
+        _vendor_id: null, // null means current user's products (handled by RPC)
         _status_filter: statusFilter || 'all'
       });
 
@@ -68,9 +68,6 @@ export const useVendorProducts = (statusFilter?: string) => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // ============================================================
-  // التعديل الجذري هنا (إصلاح مشكلة عدم ظهور المنتج في المتجر)
-  // ============================================================
   const addProduct = async (productData: ProductFormData): Promise<{ id: string } | null> => {
     if (!user) {
       toast.error('يجب تسجيل الدخول أولاً');
@@ -78,28 +75,9 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
-      // 1. الخطوة الجديدة: لازم نجيب الـ ID بتاع المتجر من جدول vendor_profiles
-      // عشان نربط المنتج بالمتجر، وإلا مش هيظهر في صفحة المتجر
-      const { data: vendorProfile, error: vendorError } = await supabase
-        .from('vendor_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (vendorError || !vendorProfile) {
-        toast.error('عفواً، لا يوجد متجر مرتبط بهذا الحساب. يرجى إنشاء متجر أولاً.');
-        return null;
-      }
-
       const cleanData = cleanProductDataForInsert(productData, user.id);
-      
-      // 2. دمج بيانات المنتج مع vendor_id
-      // تم تغيير الحالة إلى active عشان المنتج يظهر فوراً وتتأكد إنه شغال
-      const dataWithStatus = { 
-        ...cleanData, 
-        vendor_id: vendorProfile.id, // <--- ده السطر اللي كان ناقص
-        status: 'active'             // <--- خليناها active للظهور الفوري
-      };
+      // Set initial status to pending for vendor products
+      const dataWithStatus = { ...cleanData, status: 'pending' };
 
       const { data, error } = await supabase
         .from('products')
@@ -113,7 +91,7 @@ export const useVendorProducts = (statusFilter?: string) => {
         return null;
       }
 
-      // كود حفظ الألوان والمقاسات (زي ما هو)
+      // Save color variants if they exist
       const pendingVariants = (window as any).__pendingColorVariants;
       if (pendingVariants && pendingVariants.length > 0 && data?.id) {
         const { ProductVariantService } = await import('@/services/productVariantService');
@@ -121,10 +99,11 @@ export const useVendorProducts = (statusFilter?: string) => {
         if (!variantsSaved) {
           console.warn('Failed to save color variants');
         }
+        // Clear pending variants
         delete (window as any).__pendingColorVariants;
       }
 
-      toast.success('تم إضافة المنتج للمتجر بنجاح!');
+      toast.success('تم إضافة المنتج بنجاح - في انتظار الموافقة');
       await fetchProducts();
       return { id: data.id };
     } catch (error) {
@@ -141,6 +120,7 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
+      // Clean the updates
       const cleanUpdates: any = {};
       if (updates.name !== undefined) cleanUpdates.name = updates.name;
       if (updates.description !== undefined) cleanUpdates.description = updates.description;
@@ -161,7 +141,7 @@ export const useVendorProducts = (statusFilter?: string) => {
         .from('products')
         .update(cleanUpdates)
         .eq('id', productId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id); // Ensure vendor owns the product
 
       if (error) {
         console.error('Error updating product:', error);
@@ -169,6 +149,7 @@ export const useVendorProducts = (statusFilter?: string) => {
         return false;
       }
 
+      // Save color variants if they exist
       const pendingVariants = (window as any).__pendingColorVariants;
       if (pendingVariants && pendingVariants.length > 0) {
         const { ProductVariantService } = await import('@/services/productVariantService');
@@ -176,6 +157,7 @@ export const useVendorProducts = (statusFilter?: string) => {
         if (!variantsSaved) {
           console.warn('Failed to save color variants');
         }
+        // Clear pending variants
         delete (window as any).__pendingColorVariants;
       }
 
@@ -200,7 +182,7 @@ export const useVendorProducts = (statusFilter?: string) => {
         .from('products')
         .delete()
         .eq('id', productId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id); // Ensure vendor owns the product
 
       if (error) {
         console.error('Error deleting product:', error);
@@ -228,9 +210,7 @@ export const useVendorProducts = (statusFilter?: string) => {
   };
 };
 
-// ============================================================
-// كود الأدمن موجود بالكامل في الأسفل ولم يتم حذفه
-// ============================================================
+// Admin hook for managing all products
 export const useAdminProducts = (vendorFilter?: string, statusFilter?: string) => {
   const { user, isAdmin } = useAuth();
   const [products, setProducts] = useState<VendorProduct[]>([]);
