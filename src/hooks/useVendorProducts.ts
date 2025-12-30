@@ -3,7 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ProductFormData } from '@/types/product';
-import { cleanProductDataForInsert, formatProductForDisplay } from '@/utils/productUtils';
+import { cleanProductDataForInsert } from '@/utils/productUtils';
+import { formatProductForDisplay } from '@/utils/productUtils';
 
 export interface VendorProduct {
   id: string;
@@ -23,7 +24,6 @@ export interface VendorProduct {
   inventory?: number;
   status?: string;
   user_id?: string;
-  vendor_id?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -33,7 +33,6 @@ export const useVendorProducts = (statusFilter?: string) => {
   const [products, setProducts] = useState<VendorProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // دالة جلب المنتجات (للبائع)
   const fetchProducts = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -43,36 +42,23 @@ export const useVendorProducts = (statusFilter?: string) => {
     try {
       setLoading(true);
       
-      // 1. نجيب المتجر الأول
-      const { data: vendor } = await supabase
-        .from('vendors')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single();
+      // Use RPC to get vendor products with proper filtering
+      const { data, error } = await supabase.rpc('get_vendor_products', {
+        _vendor_id: null, // null means current user's products (handled by RPC)
+        _status_filter: statusFilter || 'all'
+      });
 
-      if (!vendor) {
-        setProducts([]);
+      if (error) {
+        console.error('Error fetching vendor products:', error);
+        toast.error('فشل في تحميل المنتجات');
         return;
       }
-
-      // 2. نجيب المنتجات بناءً على vendor_id
-      let query = supabase
-        .from('products')
-        .select('*')
-        .eq('vendor_id', vendor.id);
-
-      if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) throw error;
 
       const formattedProducts = (data || []).map(formatProductForDisplay);
       setProducts(formattedProducts);
     } catch (error) {
-      console.error('Error fetching vendor products:', error);
+      console.error('Error in fetchProducts:', error);
+      toast.error('حدث خطأ أثناء تحميل المنتجات');
     } finally {
       setLoading(false);
     }
@@ -82,7 +68,6 @@ export const useVendorProducts = (statusFilter?: string) => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // دالة إضافة المنتج (الإصلاح الجذري هنا)
   const addProduct = async (productData: ProductFormData): Promise<{ id: string } | null> => {
     if (!user) {
       toast.error('يجب تسجيل الدخول أولاً');
@@ -90,107 +75,127 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
-      // 1. لازم نجيب الـ ID بتاع المتجر من جدول vendors
-      const { data: vendor, error: vendorError } = await supabase
-        .from('vendors')
-        .select('id')
-        .eq('owner_id', user.id)
-        .single();
-
-      if (vendorError || !vendor) {
-        toast.error('لم يتم العثور على متجر! تأكد من إنشاء متجر أولاً.');
-        return null;
-      }
-
-      // 2. تجهيز البيانات
       const cleanData = cleanProductDataForInsert(productData, user.id);
-      
-      // 3. الإضافة مع vendor_id والحالة active
-      const dataWithVendor = { 
-        ...cleanData, 
-        vendor_id: vendor.id, 
-        status: 'active' 
-      };
+      // Set initial status to pending for vendor products
+      const dataWithStatus = { ...cleanData, status: 'pending' };
 
       const { data, error } = await supabase
         .from('products')
-        .insert(dataWithVendor)
+        .insert(dataWithStatus)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding product:', error);
+        toast.error('فشل في إضافة المنتج: ' + error.message);
+        return null;
+      }
 
-      // حفظ الألوان والمقاسات (Product Variants)
+      // Save color variants if they exist
       const pendingVariants = (window as any).__pendingColorVariants;
       if (pendingVariants && pendingVariants.length > 0 && data?.id) {
         const { ProductVariantService } = await import('@/services/productVariantService');
-        await ProductVariantService.saveProductVariants(data.id, pendingVariants);
+        const variantsSaved = await ProductVariantService.saveProductVariants(data.id, pendingVariants);
+        if (!variantsSaved) {
+          console.warn('Failed to save color variants');
+        }
+        // Clear pending variants
         delete (window as any).__pendingColorVariants;
       }
 
-      toast.success('تم إضافة المنتج للمتجر بنجاح!');
+      toast.success('تم إضافة المنتج بنجاح - في انتظار الموافقة');
       await fetchProducts();
       return { id: data.id };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error in addProduct:', error);
-      toast.error('حدث خطأ: ' + error.message);
+      toast.error('حدث خطأ أثناء إضافة المنتج');
       return null;
     }
   };
 
   const updateProduct = async (productId: string, updates: Partial<ProductFormData>): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      toast.error('يجب تسجيل الدخول أولاً');
+      return false;
+    }
+
     try {
-      const cleanUpdates: any = { ...updates, updated_at: new Date().toISOString() };
+      // Clean the updates
+      const cleanUpdates: any = {};
+      if (updates.name !== undefined) cleanUpdates.name = updates.name;
+      if (updates.description !== undefined) cleanUpdates.description = updates.description;
+      if (updates.price !== undefined) cleanUpdates.price = Number(updates.price);
+      if (updates.category !== undefined) cleanUpdates.category = updates.category;
+      if (updates.main_image !== undefined) cleanUpdates.main_image = updates.main_image;
+      if (updates.images !== undefined) cleanUpdates.images = updates.images;
+      if (updates.colors !== undefined) cleanUpdates.colors = updates.colors;
+      if (updates.sizes !== undefined) cleanUpdates.sizes = updates.sizes;
+      if (updates.discount !== undefined) cleanUpdates.discount = Number(updates.discount);
+      if (updates.featured !== undefined) cleanUpdates.featured = updates.featured;
+      if (updates.stock !== undefined) cleanUpdates.stock = Number(updates.stock);
+      if (updates.inventory !== undefined) cleanUpdates.inventory = Number(updates.inventory);
       
-      // تنظيف الأرقام
-      if (updates.price) cleanUpdates.price = Number(updates.price);
-      if (updates.stock) cleanUpdates.stock = Number(updates.stock);
-      if (updates.inventory) cleanUpdates.inventory = Number(updates.inventory);
-      if (updates.discount) cleanUpdates.discount = Number(updates.discount);
+      cleanUpdates.updated_at = new Date().toISOString();
 
       const { error } = await supabase
         .from('products')
         .update(cleanUpdates)
         .eq('id', productId)
-        .eq('user_id', user.id); // التحقق من الملكية
+        .eq('user_id', user.id); // Ensure vendor owns the product
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating product:', error);
+        toast.error('فشل في تحديث المنتج');
+        return false;
+      }
 
-      // تحديث الفاريانتس
+      // Save color variants if they exist
       const pendingVariants = (window as any).__pendingColorVariants;
       if (pendingVariants && pendingVariants.length > 0) {
         const { ProductVariantService } = await import('@/services/productVariantService');
-        await ProductVariantService.saveProductVariants(productId, pendingVariants);
+        const variantsSaved = await ProductVariantService.saveProductVariants(productId, pendingVariants);
+        if (!variantsSaved) {
+          console.warn('Failed to save color variants');
+        }
+        // Clear pending variants
         delete (window as any).__pendingColorVariants;
       }
 
-      toast.success('تم تحديث المنتج');
+      toast.success('تم تحديث المنتج بنجاح');
       await fetchProducts();
       return true;
     } catch (error) {
-      console.error('Update Error:', error);
-      toast.error('فشل التحديث');
+      console.error('Error in updateProduct:', error);
+      toast.error('حدث خطأ أثناء تحديث المنتج');
       return false;
     }
   };
 
   const deleteProduct = async (productId: string): Promise<boolean> => {
-    if (!user) return false;
+    if (!user) {
+      toast.error('يجب تسجيل الدخول أولاً');
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', productId)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id); // Ensure vendor owns the product
 
-      if (error) throw error;
-      toast.success('تم حذف المنتج');
+      if (error) {
+        console.error('Error deleting product:', error);
+        toast.error('فشل في حذف المنتج');
+        return false;
+      }
+
+      toast.success('تم حذف المنتج بنجاح');
       await fetchProducts();
       return true;
     } catch (error) {
-      console.error('Delete Error:', error);
-      toast.error('فشل الحذف');
+      console.error('Error in deleteProduct:', error);
+      toast.error('حدث خطأ أثناء حذف المنتج');
       return false;
     }
   };
@@ -205,9 +210,7 @@ export const useVendorProducts = (statusFilter?: string) => {
   };
 };
 
-// ==========================================
-// Admin Hook (رجعتلك الكود ده كامل عشان لوحة التحكم تشتغل)
-// ==========================================
+// Admin hook for managing all products
 export const useAdminProducts = (vendorFilter?: string, statusFilter?: string) => {
   const { user, isAdmin } = useAuth();
   const [products, setProducts] = useState<VendorProduct[]>([]);
@@ -221,31 +224,23 @@ export const useAdminProducts = (vendorFilter?: string, statusFilter?: string) =
 
     try {
       setLoading(true);
-      // الأدمن بيجيب داتا أشمل، فممكن نستخدم RPC أو كويري عادي
-      // هنا هنستخدم كويري عادي عشان نتجنب مشاكل RPC القديمة
-      let query = supabase
-        .from('products')
-        .select(`
-          *,
-          vendor:vendors(name)
-        `);
+      
+      const { data, error } = await supabase.rpc('get_vendor_products', {
+        _vendor_id: vendorFilter || null,
+        _status_filter: statusFilter || 'all'
+      });
 
-      if (vendorFilter) {
-        query = query.eq('vendor_id', vendorFilter);
+      if (error) {
+        console.error('Error fetching admin products:', error);
+        toast.error('فشل في تحميل المنتجات');
+        return;
       }
-      if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) throw error;
 
       const formattedProducts = (data || []).map(formatProductForDisplay);
       setProducts(formattedProducts);
     } catch (error) {
-      console.error('Admin fetch error:', error);
-      toast.error('فشل تحميل المنتجات للأدمن');
+      console.error('Error in fetchProducts:', error);
+      toast.error('حدث خطأ أثناء تحميل المنتجات');
     } finally {
       setLoading(false);
     }
@@ -256,37 +251,57 @@ export const useAdminProducts = (vendorFilter?: string, statusFilter?: string) =
   }, [fetchProducts]);
 
   const updateProductStatus = async (productId: string, newStatus: string): Promise<boolean> => {
-    if (!user || !isAdmin) return false;
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ status: newStatus })
-        .eq('id', productId);
+    if (!user || !isAdmin) {
+      toast.error('ليس لديك صلاحية لتغيير حالة المنتج');
+      return false;
+    }
 
-      if (error) throw error;
-      toast.success('تم تحديث الحالة');
+    try {
+      const { error } = await supabase.rpc('update_product_status', {
+        _product_id: productId,
+        _new_status: newStatus
+      });
+
+      if (error) {
+        console.error('Error updating product status:', error);
+        toast.error('فشل في تحديث حالة المنتج');
+        return false;
+      }
+
+      toast.success('تم تحديث حالة المنتج بنجاح');
       await fetchProducts();
       return true;
-    } catch (err) {
-      toast.error('فشل التحديث');
+    } catch (error) {
+      console.error('Error in updateProductStatus:', error);
+      toast.error('حدث خطأ أثناء تحديث حالة المنتج');
       return false;
     }
   };
 
   const deleteProduct = async (productId: string): Promise<boolean> => {
-    if (!user || !isAdmin) return false;
+    if (!user || !isAdmin) {
+      toast.error('ليس لديك صلاحية لحذف المنتج');
+      return false;
+    }
+
     try {
       const { error } = await supabase
         .from('products')
         .delete()
         .eq('id', productId);
 
-      if (error) throw error;
-      toast.success('تم الحذف');
+      if (error) {
+        console.error('Error deleting product:', error);
+        toast.error('فشل في حذف المنتج');
+        return false;
+      }
+
+      toast.success('تم حذف المنتج بنجاح');
       await fetchProducts();
       return true;
-    } catch (err) {
-      toast.error('فشل الحذف');
+    } catch (error) {
+      console.error('Error in deleteProduct:', error);
+      toast.error('حدث خطأ أثناء حذف المنتج');
       return false;
     }
   };
