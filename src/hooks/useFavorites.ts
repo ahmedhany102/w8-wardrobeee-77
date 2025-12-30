@@ -10,6 +10,8 @@ interface Favorite {
   created_at: string;
 }
 
+
+
 export const useFavorites = () => {
   const { user } = useAuth();
   const [favorites, setFavorites] = useState<Favorite[]>([]);
