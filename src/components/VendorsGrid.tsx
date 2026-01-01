@@ -14,7 +14,7 @@ const VendorsGrid: React.FC = () => {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 rounded-lg" />
+          <Skeleton key={i} className="h-56 rounded-xl" />
         ))}
       </div>
     );
@@ -23,60 +23,57 @@ const VendorsGrid: React.FC = () => {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
       {vendors.map((vendor) => (
-        <div
+        <Card
           key={vendor.id}
-          className="relative"
+          className="cursor-pointer hover:shadow-lg transition"
           onClick={() => navigate(`/store/${vendor.slug}`)}
         >
-          {/* ===== LOGO (OUTSIDE CARD – NO CROPPING) ===== */}
-          <div className="absolute -top-6 right-4 z-30">
-            <div className="w-16 h-16 rounded-full bg-white border shadow-md flex items-center justify-center">
+          {/* Cover */}
+          <div className="h-28 w-full rounded-t-xl overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/10">
+            {vendor.cover_url && (
+              <img
+                src={vendor.cover_url}
+                alt={vendor.name}
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
+
+          <CardContent className="pt-4 text-center">
+            {/* LOGO – HERE IS THE FIX */}
+            <div className="mx-auto mb-3 w-16 h-16 rounded-full bg-white border shadow flex items-center justify-center overflow-hidden">
               {vendor.logo_url ? (
                 <img
                   src={vendor.logo_url}
                   alt={vendor.name}
-                  className="w-full h-full object-contain p-1"
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <Store className="w-6 h-6 text-primary" />
               )}
             </div>
-          </div>
 
-          {/* ===== CARD ===== */}
-          <Card className="pt-6 cursor-pointer hover:shadow-lg transition">
-            {/* Cover */}
-            <div className="h-24 w-full rounded-t-lg overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/10">
-              {vendor.cover_url && (
-                <img
-                  src={vendor.cover_url}
-                  alt={vendor.name}
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
+            {/* Store Name */}
+            <h3 className="font-semibold text-sm mb-1 line-clamp-1">
+              {vendor.name}
+            </h3>
 
-            {/* Content */}
-            <CardContent className="pt-8 pb-4 text-right">
-              <h3 className="font-semibold text-sm mb-1 line-clamp-1">
-                {vendor.name}
-              </h3>
+            {/* Product Count */}
+            <p className="text-xs text-muted-foreground mb-3">
+              {vendor.product_count ?? 0} منتج
+            </p>
 
-              <p className="text-xs text-muted-foreground mb-3">
-                {vendor.product_count ?? 0} منتج
-              </p>
-
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full flex items-center justify-center gap-1 text-xs"
-              >
-                زيارة المتجر
-                <ArrowLeft className="w-3 h-3" />
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            {/* Button */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full flex items-center justify-center gap-1 text-xs"
+            >
+              زيارة المتجر
+              <ArrowLeft className="w-3 h-3" />
+            </Button>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
