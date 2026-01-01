@@ -87,9 +87,8 @@ const StorePage = () => {
 
   return (
     <Layout>
-      {/* Hero Banner Section */}
-      <div className="relative w-full h-56 md:h-72 lg:h-80 overflow-hidden">
-        {/* Cover Image */}
+      {/* Store Cover */}
+      <div className="relative w-full h-48 md:h-64 bg-gradient-to-br from-primary/30 to-primary/10 overflow-hidden">
         {vendor.cover_url ? (
           <img 
             src={vendor.cover_url} 
@@ -97,57 +96,53 @@ const StorePage = () => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-primary/20 to-secondary/30" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
         )}
         
-        {/* Dark Overlay for better text visibility */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20" />
-
-        {/* Hero Content - Centered on banner */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-          {/* Logo */}
-          <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white border-4 border-white/30 shadow-2xl flex items-center justify-center overflow-hidden mb-4">
-            {vendor.logo_url ? (
-              <img 
-                src={vendor.logo_url} 
-                alt={vendor.name}
-                className="w-full h-full object-contain p-1"
-              />
-            ) : (
-              <Store className="w-10 h-10 md:w-12 md:h-12 text-primary" />
-            )}
-          </div>
-          
-          {/* Store Name */}
-          <h1 className="text-2xl md:text-4xl font-bold text-white drop-shadow-lg mb-2">
-            {vendor.name}
-          </h1>
-          
-          {/* Description */}
-          {vendor.description && (
-            <p className="text-white/80 text-sm md:text-base max-w-xl line-clamp-2 drop-shadow mb-2">
-              {vendor.description}
-            </p>
-          )}
-          
-          {/* Product Count Badge */}
-          <div className="bg-white/20 backdrop-blur-sm text-white text-xs md:text-sm px-4 py-1.5 rounded-full">
-            {products.length} منتج متاح
-          </div>
-        </div>
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
 
         {/* Share Button */}
         <Button
           variant="secondary"
           size="icon"
-          className="absolute top-4 left-4 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-0"
+          className="absolute top-4 left-4"
           onClick={handleShare}
         >
           <Share2 className="w-4 h-4" />
         </Button>
       </div>
       
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4">
+        {/* Store Header - Overlapping the cover */}
+        {/* التعديل هنا: ضفنا z-10 عشان يطلع فوق البانر */}
+        <div className="relative z-10 -mt-16 mb-8 flex flex-col sm:flex-row items-center sm:items-end gap-4">
+          
+          {/* Vendor Logo */}
+          {/* التعديل هنا: ضفنا shrink-0 عشان ميتفعصش */}
+          <div className="shrink-0 w-28 h-28 rounded-full bg-card border-4 border-background shadow-lg flex items-center justify-center overflow-hidden">
+            {vendor.logo_url ? (
+              <img 
+                src={vendor.logo_url} 
+                alt={vendor.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Store className="w-12 h-12 text-primary" />
+            )}
+          </div>
+          
+          {/* Vendor Info */}
+          <div className="text-center sm:text-right pb-2 flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold">{vendor.name}</h1>
+            {vendor.description && (
+              <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{vendor.description}</p>
+            )}
+            <p className="text-muted-foreground text-sm mt-1">
+              {products.length} منتج متاح
+            </p>
+          </div>
+        </div>
         
         {/* Store Controls Row */}
         <div className="mb-8 space-y-4">
