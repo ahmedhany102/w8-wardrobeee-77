@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useCategories } from "@/hooks/useCategories";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,21 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Trash2, Edit } from "lucide-react";
+import { z } from "zod";
+import DOMPurify from "dompurify";
+
+// Zod validation schema for categories
+const categorySchema = z.object({
+  name: z.string()
+    .min(1, "Name is required")
+    .max(100, "Name must be less than 100 characters")
+    .transform(val => DOMPurify.sanitize(val.trim())),
+  slug: z.string()
+    .max(100, "Slug must be less than 100 characters")
+    .regex(/^[a-z0-9-]*$/, "Slug can only contain lowercase letters, numbers, and hyphens")
+    .optional()
+    .transform(val => val ? val.trim() : val)
+});
 
 const CategoryCRUD = () => {
   const { categories, refetch, loading } = useCategories();
@@ -25,11 +39,28 @@ const CategoryCRUD = () => {
     setEditModal(false);
   };
 
+  const generateSlug = (name: string): string => {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  };
+
   const handleAdd = async () => {
-    if (!name) return toast.error("Name required");
-    const slugVal = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    // Validate with Zod schema
+    const parseResult = categorySchema.safeParse({ 
+      name, 
+      slug: slug || undefined 
+    });
+    
+    if (!parseResult.success) {
+      const firstError = parseResult.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
+    
+    const validated = parseResult.data;
+    const slugVal = validated.slug || generateSlug(validated.name);
+    
     const { error } = await supabase.from("categories").insert([
-      { name, slug: slugVal }
+      { name: validated.name, slug: slugVal }
     ]);
     if (error) toast.error(error.message);
     else {
@@ -41,9 +72,24 @@ const CategoryCRUD = () => {
 
   const handleEdit = async () => {
     if (!editCat?.id) return;
-    const slugVal = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    
+    // Validate with Zod schema
+    const parseResult = categorySchema.safeParse({ 
+      name, 
+      slug: slug || undefined 
+    });
+    
+    if (!parseResult.success) {
+      const firstError = parseResult.error.errors[0];
+      toast.error(firstError.message);
+      return;
+    }
+    
+    const validated = parseResult.data;
+    const slugVal = validated.slug || generateSlug(validated.name);
+    
     const { error } = await supabase.from("categories")
-      .update({ name, slug: slugVal })
+      .update({ name: validated.name, slug: slugVal })
       .eq("id", editCat.id);
     if (error) toast.error(error.message);
     else {
