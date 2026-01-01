@@ -61,7 +61,7 @@ const Index = () => {
         )}
 
         {/* Product Catalog */}
-        <h2 className="text-2xl font-bold mb-6">تصفح منتجاتنا</h2>
+        <h2 className="text-2xl font-bold mb-6">تصفح منتجاتنا و متاجرنا</h2>
         <ProductCatalog />
       </div>
     </Layout>
