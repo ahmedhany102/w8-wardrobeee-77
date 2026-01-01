@@ -75,12 +75,12 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
-      // Get the vendor_id from vendors table using owner_id = user.id
+      // Get the vendor_id from vendor_profiles table using user_id = user.id
       const { data: vendorData, error: vendorError } = await supabase
-        .from('vendors')
+        .from('vendor_profiles')
         .select('id')
-        .eq('owner_id', user.id)
-        .eq('status', 'active')
+        .eq('user_id', user.id)
+        .eq('status', 'approved')
         .maybeSingle();
 
       if (vendorError) {
@@ -90,16 +90,29 @@ export const useVendorProducts = (statusFilter?: string) => {
       }
 
       if (!vendorData) {
-        toast.error('يجب أن تكون بائعاً نشطاً لإضافة منتجات');
+        toast.error('يجب أن تكون بائعاً معتمداً لإضافة منتجات');
         return null;
       }
 
       const cleanData = cleanProductDataForInsert(productData, user.id);
-      // Set initial status to active for vendor products and include vendor_id
+      
+      // Look up category_id from category name if provided
+      let categoryId = null;
+      if (cleanData.category) {
+        const { data: categoryData } = await supabase
+          .from('categories')
+          .select('id')
+          .eq('name', cleanData.category)
+          .maybeSingle();
+        categoryId = categoryData?.id || null;
+      }
+      
+      // Set initial status to 'pending' for vendor products - requires admin approval
       const dataWithVendor = { 
         ...cleanData, 
-        status: 'active',
-        vendor_id: vendorData.id 
+        status: 'pending',
+        vendor_id: vendorData.id,
+        category_id: categoryId
       };
 
       const { data, error } = await supabase

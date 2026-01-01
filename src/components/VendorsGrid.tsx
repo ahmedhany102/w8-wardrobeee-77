@@ -54,24 +54,46 @@ const VendorsGrid: React.FC = () => {
       {vendors.map((vendor) => (
         <Card 
           key={vendor.id} 
-          className="overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer group"
+          className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
           onClick={() => navigate(`/store/${vendor.slug}`)}
         >
-          <CardContent className="p-4">
-            <div className="flex flex-col items-center text-center">
-              {/* Vendor Logo */}
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center mb-3 overflow-hidden border-2 border-primary/20 group-hover:border-primary/40 transition-colors">
-                {vendor.logo_url ? (
-                  <img 
-                    src={vendor.logo_url} 
-                    alt={vendor.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <Store className="w-6 h-6 text-primary" />
-                )}
-              </div>
-              
+          {/* Cover Image */}
+          <div className="relative h-24 w-full bg-gradient-to-br from-primary/20 to-secondary/10 overflow-hidden">
+            {vendor.cover_url ? (
+              <img 
+                src={vendor.cover_url} 
+                alt={`${vendor.name} cover`}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/5" />
+            )}
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+            
+            {/* Logo overlapping cover */}
+            <div className="absolute -bottom-6 right-3 w-14 h-14 rounded-full bg-card border-3 border-background shadow-md flex items-center justify-center overflow-hidden">
+              {vendor.logo_url ? (
+                <img 
+                  src={vendor.logo_url} 
+                  alt={vendor.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = '';
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <Store className="w-6 h-6 text-primary" />
+              )}
+            </div>
+          </div>
+          
+          <CardContent className="pt-8 pb-4 px-3">
+            <div className="flex flex-col text-right">
               {/* Vendor Name */}
               <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors line-clamp-1">
                 {vendor.name}
