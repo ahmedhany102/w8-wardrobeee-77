@@ -10,12 +10,14 @@ const VendorsGrid: React.FC = () => {
   const { vendors, loading, error } = useVendors();
   const navigate = useNavigate();
 
+  /* ================= Loading ================= */
   if (loading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {Array.from({ length: 10 }).map((_, i) => (
           <Card key={i}>
             <CardContent className="p-4 flex flex-col items-center">
+              <Skeleton className="w-full h-24 rounded-md mb-6" />
               <Skeleton className="w-16 h-16 rounded-full mb-3" />
               <Skeleton className="h-4 w-24 mb-2" />
               <Skeleton className="h-3 w-16 mb-3" />
@@ -27,6 +29,7 @@ const VendorsGrid: React.FC = () => {
     );
   }
 
+  /* ================= Error ================= */
   if (error) {
     return (
       <div className="text-center py-8">
@@ -35,7 +38,8 @@ const VendorsGrid: React.FC = () => {
     );
   }
 
-  if (vendors.length === 0) {
+  /* ================= Empty ================= */
+  if (!vendors || vendors.length === 0) {
     return (
       <div className="text-center py-12">
         <Store className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
@@ -47,31 +51,31 @@ const VendorsGrid: React.FC = () => {
     );
   }
 
+  /* ================= Grid ================= */
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {vendors.map((vendor) => (
         <Card
           key={vendor.id}
-          className="hover:shadow-lg transition-all duration-300 cursor-pointer group"
+          className="relative hover:shadow-lg transition-all duration-300 cursor-pointer group"
           onClick={() => navigate(`/store/${vendor.slug}`)}
         >
-          {/* ================= Cover Image ================= */}
-          <div className="relative h-24 w-full overflow-hidden rounded-t-lg bg-gradient-to-br from-primary/20 to-secondary/10">
+          {/* ================= Cover ================= */}
+          <div className="relative h-24 w-full rounded-t-lg overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/10">
             {vendor.cover_url ? (
               <img
                 src={vendor.cover_url}
                 alt={`${vendor.name} cover`}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-cover"
               />
             ) : (
               <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/5" />
             )}
+          </div>
 
-            {/* Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
-
-            {/* ================= Vendor Logo ================= */}
-            <div className="absolute -bottom-7 right-3 w-16 h-16 rounded-full bg-white border-2 border-background shadow-md flex items-center justify-center z-10">
+          {/* ================= Logo (FIXED – NOT CROPPED) ================= */}
+          <div className="absolute top-16 right-4 z-20">
+            <div className="w-16 h-16 rounded-full bg-white border-2 border-background shadow-md flex items-center justify-center">
               {vendor.logo_url ? (
                 <img
                   src={vendor.logo_url}
@@ -84,28 +88,29 @@ const VendorsGrid: React.FC = () => {
             </div>
           </div>
 
-          {/* ================= Card Content ================= */}
-          <CardContent className="pt-10 pb-4 px-3">
-            <div className="flex flex-col text-right">
-              <h3 className="font-semibold text-sm mb-1 group-hover:text-primary transition-colors line-clamp-1">
-                {vendor.name}
-              </h3>
+          {/* ================= Content ================= */}
+          <CardContent className="pt-10 pb-4 px-3 text-right">
+            {/* Vendor Name */}
+            <h3 className="font-semibold text-sm mb-1 line-clamp-1 group-hover:text-primary transition-colors">
+              {vendor.name}
+            </h3>
 
-              {typeof vendor.product_count === 'number' && (
-                <p className="text-xs text-muted-foreground mb-3">
-                  {vendor.product_count} منتج
-                </p>
-              )}
+            {/* Product Count */}
+            <p className="text-xs text-muted-foreground mb-3">
+              {typeof vendor.product_count === 'number'
+                ? `${vendor.product_count} منتج`
+                : '0 منتج'}
+            </p>
 
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full gap-1 text-xs group-hover:gap-2 transition-all"
-              >
-                <span>زيارة المتجر</span>
-                <ArrowLeft className="w-3 h-3" />
-              </Button>
-            </div>
+            {/* Visit Store */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full text-xs flex items-center justify-center gap-1 group-hover:gap-2 transition-all"
+            >
+              <span>زيارة المتجر</span>
+              <ArrowLeft className="w-3 h-3" />
+            </Button>
           </CardContent>
         </Card>
       ))}
