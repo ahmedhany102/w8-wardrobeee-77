@@ -74,9 +74,34 @@ export const useVendorOrders = (statusFilter?: string) => {
   };
 };
 
+export interface VendorOrderInfo {
+  order_id: string;
+  order_number: string;
+  order_status: string;
+  payment_status: string;
+  order_date: string;
+  total_amount: number;
+  customer_info: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    address?: {
+      street?: string;
+      city?: string;
+      zipCode?: string;
+    };
+  };
+  payment_info: {
+    method?: string;
+  };
+  coupon_info?: any;
+  notes?: string;
+}
+
 export const useVendorOrderDetails = (orderId: string) => {
   const { user } = useAuth();
   const [items, setItems] = useState<VendorOrderItem[]>([]);
+  const [orderInfo, setOrderInfo] = useState<VendorOrderInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchItems = useCallback(async () => {
@@ -87,6 +112,17 @@ export const useVendorOrderDetails = (orderId: string) => {
 
     try {
       setLoading(true);
+      
+      // Fetch order info for full details (address, payment, etc.)
+      const { data: orderData, error: orderError } = await supabase.rpc('get_vendor_order_info', {
+        _order_id: orderId
+      });
+
+      if (orderError) {
+        console.error('Error fetching order info:', orderError);
+      } else if (orderData && orderData.length > 0) {
+        setOrderInfo(orderData[0] as VendorOrderInfo);
+      }
       
       const { data, error } = await supabase.rpc('get_vendor_order_items', {
         _order_id: orderId,
@@ -137,6 +173,7 @@ export const useVendorOrderDetails = (orderId: string) => {
 
   return {
     items,
+    orderInfo,
     loading,
     updateItemStatus,
     refetch: fetchItems

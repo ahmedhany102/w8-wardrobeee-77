@@ -69,22 +69,22 @@ export const useSupabaseOrders = () => {
         throw new Error(errorMsg);
       }
 
-      // Fetch vendor_id for each product
+      // Fetch vendor_id (vendors.id) for each product
       const productIds = orderData.items.map(item => item.productId);
       const { data: products, error: productsError } = await supabase
         .from('products')
-        .select('id, user_id, main_image, image_url')
+        .select('id, vendor_id, main_image, image_url')
         .in('id', productIds);
 
       if (productsError) {
         console.error('Error fetching product vendors:', productsError);
       }
 
-      // Create a map of product_id -> vendor_id
+      // Create a map of product_id -> vendor_id (vendors.id)
       const productVendorMap: Record<string, { vendor_id: string; image: string }> = {};
       (products || []).forEach(p => {
         productVendorMap[p.id] = {
-          vendor_id: p.user_id,
+          vendor_id: p.vendor_id, // This is vendors.id, NOT user_id
           image: p.main_image || p.image_url || ''
         };
       });

@@ -1023,6 +1023,21 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_vendor_order_info: {
+        Args: { _order_id: string }
+        Returns: {
+          coupon_info: Json
+          customer_info: Json
+          notes: string
+          order_date: string
+          order_id: string
+          order_number: string
+          order_status: string
+          payment_info: Json
+          payment_status: string
+          total_amount: number
+        }[]
+      }
       get_vendor_order_items: {
         Args: { _order_id: string; _vendor_id?: string }
         Returns: {
