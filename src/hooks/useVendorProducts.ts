@@ -156,7 +156,9 @@ export const useVendorProducts = (statusFilter?: string) => {
         delete (window as any).__pendingColorVariants;
       }
 
-      toast.success('تم إضافة المنتج بنجاح');
+      toast.success('تم إضافة المنتج بنجاح', {
+        description: 'المنتج في انتظار موافقة الإدارة قبل النشر.'
+      });
       await fetchProducts();
       return { id: data.id };
     } catch (error) {
