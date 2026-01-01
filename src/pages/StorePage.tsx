@@ -88,7 +88,6 @@ const StorePage = () => {
   return (
     <Layout>
       {/* 1. Store Cover (Banner) - Layer 0 */}
-      {/* التعديل: ضفنا z-0 عشان نضمن إنه في الطبقة السفلية */}
       <div className="relative z-0 w-full h-48 md:h-64 bg-gradient-to-br from-primary/30 to-primary/10 overflow-hidden">
         {vendor.cover_url ? (
           <img 
@@ -115,20 +114,20 @@ const StorePage = () => {
       </div>
       
       {/* 2. Container (Holds Content) - Layer 10 */}
-      {/* التعديل: ضفنا relative و z-10 للكونتينر نفسه عشان يرفع كل اللي جواه فوق البانر */}
       <div className="relative z-10 container mx-auto px-4">
         
-        {/* 3. Store Header - Layer 20 (Implicitly on top because parent is z-10) */}
+        {/* 3. Store Header */}
         <div className="relative -mt-16 mb-8 flex flex-col sm:flex-row items-center sm:items-end gap-4">
           
           {/* Vendor Logo */}
-          {/* التعديل: استخدمنا bg-background بدل bg-card لضمان عدم الشفافية */}
           <div className="shrink-0 w-28 h-28 rounded-full bg-background border-4 border-background shadow-lg flex items-center justify-center overflow-hidden z-20">
             {vendor.logo_url ? (
               <img 
                 src={vendor.logo_url} 
                 alt={vendor.name}
-                className="w-full h-full object-cover"
+                // التعديل هنا: object-contain بدل object-cover
+                // وضفنا p-1 عشان الصورة تاخد راحتها وماتلزقش في الحواف
+                className="w-full h-full object-contain p-1"
               />
             ) : (
               <Store className="w-12 h-12 text-primary" />
