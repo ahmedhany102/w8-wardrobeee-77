@@ -75,22 +75,22 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
-      // First, get the vendor_id from vendor_profiles for this user
-      const { data: vendorProfile, error: vendorError } = await supabase
-        .from('vendor_profiles')
+      // Get the vendor_id from vendors table using owner_id = user.id
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('vendors')
         .select('id')
-        .eq('user_id', user.id)
-        .eq('status', 'approved')
+        .eq('owner_id', user.id)
+        .eq('status', 'active')
         .maybeSingle();
 
       if (vendorError) {
-        console.error('Error fetching vendor profile:', vendorError);
+        console.error('Error fetching vendor:', vendorError);
         toast.error('فشل في التحقق من حساب البائع');
         return null;
       }
 
-      if (!vendorProfile) {
-        toast.error('يجب أن تكون بائعاً معتمداً لإضافة منتجات');
+      if (!vendorData) {
+        toast.error('يجب أن تكون بائعاً نشطاً لإضافة منتجات');
         return null;
       }
 
@@ -99,7 +99,7 @@ export const useVendorProducts = (statusFilter?: string) => {
       const dataWithVendor = { 
         ...cleanData, 
         status: 'active',
-        vendor_id: vendorProfile.id 
+        vendor_id: vendorData.id 
       };
 
       const { data, error } = await supabase
