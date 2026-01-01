@@ -75,15 +75,15 @@ const VendorsGrid: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
             
             {/* Logo overlapping cover */}
-            <div className="absolute -bottom-6 right-3 w-14 h-14 rounded-full bg-card border-3 border-background shadow-md flex items-center justify-center overflow-hidden">
+            <div className="absolute -bottom-6 right-3 w-14 h-14 rounded-full bg-card border-2 border-background shadow-md flex items-center justify-center overflow-hidden">
               {vendor.logo_url ? (
                 <img 
                   src={vendor.logo_url} 
                   alt={vendor.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-white"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '';
                     (e.target as HTMLImageElement).style.display = 'none';
+                    (e.target as HTMLImageElement).parentElement!.innerHTML = '<svg class="w-6 h-6 text-primary" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
                   }}
                 />
               ) : (
