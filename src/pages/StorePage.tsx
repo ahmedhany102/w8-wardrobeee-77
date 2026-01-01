@@ -87,8 +87,9 @@ const StorePage = () => {
 
   return (
     <Layout>
-      {/* Store Cover */}
-      <div className="relative w-full h-48 md:h-64 bg-gradient-to-br from-primary/30 to-primary/10 overflow-hidden">
+      {/* 1. Store Cover (Banner) - Layer 0 */}
+      {/* التعديل: ضفنا z-0 عشان نضمن إنه في الطبقة السفلية */}
+      <div className="relative z-0 w-full h-48 md:h-64 bg-gradient-to-br from-primary/30 to-primary/10 overflow-hidden">
         {vendor.cover_url ? (
           <img 
             src={vendor.cover_url} 
@@ -113,14 +114,16 @@ const StorePage = () => {
         </Button>
       </div>
       
-      <div className="container mx-auto px-4">
-        {/* Store Header - Overlapping the cover */}
-        {/* التعديل هنا: ضفنا z-10 عشان يطلع فوق البانر */}
-        <div className="relative z-10 -mt-16 mb-8 flex flex-col sm:flex-row items-center sm:items-end gap-4">
+      {/* 2. Container (Holds Content) - Layer 10 */}
+      {/* التعديل: ضفنا relative و z-10 للكونتينر نفسه عشان يرفع كل اللي جواه فوق البانر */}
+      <div className="relative z-10 container mx-auto px-4">
+        
+        {/* 3. Store Header - Layer 20 (Implicitly on top because parent is z-10) */}
+        <div className="relative -mt-16 mb-8 flex flex-col sm:flex-row items-center sm:items-end gap-4">
           
           {/* Vendor Logo */}
-          {/* التعديل هنا: ضفنا shrink-0 عشان ميتفعصش */}
-          <div className="shrink-0 w-28 h-28 rounded-full bg-card border-4 border-background shadow-lg flex items-center justify-center overflow-hidden">
+          {/* التعديل: استخدمنا bg-background بدل bg-card لضمان عدم الشفافية */}
+          <div className="shrink-0 w-28 h-28 rounded-full bg-background border-4 border-background shadow-lg flex items-center justify-center overflow-hidden z-20">
             {vendor.logo_url ? (
               <img 
                 src={vendor.logo_url} 
