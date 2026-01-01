@@ -110,13 +110,20 @@ export const useVendorBySlug = (slug: string | undefined) => {
         return;
       }
       
-      // Map to Vendor interface
+      // Fetch vendor_profiles to get logo/cover images (they're stored there)
+      const { data: profileData } = await supabase
+        .from('vendor_profiles')
+        .select('logo_url, cover_url')
+        .eq('user_id', data.owner_id)
+        .maybeSingle();
+      
+      // Map to Vendor interface, prioritizing vendor_profiles images
       const mappedVendor: Vendor = {
         id: data.id,
         name: data.name,
         slug: data.slug,
-        logo_url: data.logo_url,
-        cover_url: data.cover_url,
+        logo_url: profileData?.logo_url || data.logo_url,
+        cover_url: profileData?.cover_url || data.cover_url,
         status: data.status,
         description: data.description,
         owner_id: data.owner_id
