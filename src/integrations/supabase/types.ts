@@ -773,10 +773,12 @@ export type Database = {
       vendor_profiles: {
         Row: {
           address: string | null
+          cover_url: string | null
           created_at: string
           id: string
           logo_url: string | null
           phone: string | null
+          slug: string | null
           status: string
           store_description: string | null
           store_name: string
@@ -785,10 +787,12 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          cover_url?: string | null
           created_at?: string
           id?: string
           logo_url?: string | null
           phone?: string | null
+          slug?: string | null
           status?: string
           store_description?: string | null
           store_name: string
@@ -797,10 +801,12 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          cover_url?: string | null
           created_at?: string
           id?: string
           logo_url?: string | null
           phone?: string | null
+          slug?: string | null
           status?: string
           store_description?: string | null
           store_name?: string
@@ -940,7 +946,7 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: boolean
       }
-      generate_vendor_slug: { Args: { vendor_name: string }; Returns: string }
+      generate_vendor_slug: { Args: { p_store_name: string }; Returns: string }
       get_active_vendors: {
         Args: never
         Returns: {

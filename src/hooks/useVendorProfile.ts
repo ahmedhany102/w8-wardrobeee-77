@@ -12,6 +12,8 @@ export interface VendorProfile {
   phone: string | null;
   address: string | null;
   logo_url: string | null;
+  cover_url: string | null;
+  slug: string | null;
   status: VendorStatus;
   created_at: string;
   updated_at: string;
@@ -89,6 +91,17 @@ export const useVendorProfile = () => {
         }
       }
 
+      // Generate slug from store name using the database function
+      const { data: slugData, error: slugError } = await supabase
+        .rpc('generate_vendor_slug', { p_store_name: storeName });
+
+      if (slugError) {
+        console.error('Error generating slug:', slugError);
+        // Fallback to a simple slug generation
+      }
+
+      const slug = slugData || storeName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
       const { data, error } = await supabase
         .from('vendor_profiles')
         .insert({
@@ -97,6 +110,7 @@ export const useVendorProfile = () => {
           store_description: storeDescription || null,
           phone: phone || null,
           address: address || null,
+          slug: slug,
           status: 'pending'
         })
         .select()
@@ -118,7 +132,7 @@ export const useVendorProfile = () => {
     }
   };
 
-  const updateProfile = async (updates: Partial<Pick<VendorProfile, 'store_name' | 'store_description' | 'phone' | 'address' | 'logo_url'>>) => {
+  const updateProfile = async (updates: Partial<Pick<VendorProfile, 'store_name' | 'store_description' | 'phone' | 'address' | 'logo_url' | 'cover_url'>>) => {
     try {
       if (!profile) {
         toast.error('لا يوجد ملف تعريف للتحديث');

@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import { useVendorBySlug, useVendorProducts, useVendorCategories } from '@/hooks/useVendors';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProductCard from '@/components/ProductCard';
-import { Store, Search, Package, ArrowRight } from 'lucide-react';
+import { Store, Search, Package, ArrowRight, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const StorePage = () => {
   const { vendorSlug } = useParams<{ vendorSlug: string }>();
@@ -24,20 +23,33 @@ const StorePage = () => {
   );
   const { categories } = useVendorCategories(vendor?.id);
 
-  // Handle add to cart - this would need to be integrated with your cart system
   const handleAddToCart = async (product: any, size: string, quantity?: number) => {
-    // Navigate to product details for full selection
     navigate(`/product/${product.id}`);
+  };
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: vendor?.name,
+          text: `تفقد متجر ${vendor?.name}`,
+          url: url
+        });
+      } catch (err) {
+        // User cancelled or error
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success('تم نسخ رابط المتجر');
+    }
   };
 
   if (vendorLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-6">
-          {/* Cover Skeleton */}
           <Skeleton className="w-full h-48 md:h-64 rounded-lg mb-6" />
-          
-          {/* Header Skeleton */}
           <div className="flex items-center gap-4 mb-8">
             <Skeleton className="w-24 h-24 rounded-full" />
             <div>
@@ -45,8 +57,6 @@ const StorePage = () => {
               <Skeleton className="h-4 w-32" />
             </div>
           </div>
-          
-          {/* Products Grid Skeleton */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <Skeleton key={i} className="h-64 rounded-lg" />
@@ -91,6 +101,16 @@ const StorePage = () => {
         
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+
+        {/* Share Button */}
+        <Button
+          variant="secondary"
+          size="icon"
+          className="absolute top-4 left-4"
+          onClick={handleShare}
+        >
+          <Share2 className="w-4 h-4" />
+        </Button>
       </div>
       
       <div className="container mx-auto px-4">
@@ -110,9 +130,12 @@ const StorePage = () => {
           </div>
           
           {/* Vendor Info */}
-          <div className="text-center sm:text-right pb-2">
+          <div className="text-center sm:text-right pb-2 flex-1">
             <h1 className="text-2xl md:text-3xl font-bold">{vendor.name}</h1>
-            <p className="text-muted-foreground">
+            {vendor.description && (
+              <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{vendor.description}</p>
+            )}
+            <p className="text-muted-foreground text-sm mt-1">
               {products.length} منتج متاح
             </p>
           </div>

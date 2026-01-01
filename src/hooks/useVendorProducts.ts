@@ -75,13 +75,36 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
+      // First, get the vendor_id from vendor_profiles for this user
+      const { data: vendorProfile, error: vendorError } = await supabase
+        .from('vendor_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'approved')
+        .maybeSingle();
+
+      if (vendorError) {
+        console.error('Error fetching vendor profile:', vendorError);
+        toast.error('فشل في التحقق من حساب البائع');
+        return null;
+      }
+
+      if (!vendorProfile) {
+        toast.error('يجب أن تكون بائعاً معتمداً لإضافة منتجات');
+        return null;
+      }
+
       const cleanData = cleanProductDataForInsert(productData, user.id);
-      // Set initial status to pending for vendor products
-      const dataWithStatus = { ...cleanData, status: 'pending' };
+      // Set initial status to active for vendor products and include vendor_id
+      const dataWithVendor = { 
+        ...cleanData, 
+        status: 'active',
+        vendor_id: vendorProfile.id 
+      };
 
       const { data, error } = await supabase
         .from('products')
-        .insert(dataWithStatus)
+        .insert(dataWithVendor)
         .select()
         .single();
 
@@ -103,7 +126,7 @@ export const useVendorProducts = (statusFilter?: string) => {
         delete (window as any).__pendingColorVariants;
       }
 
-      toast.success('تم إضافة المنتج بنجاح - في انتظار الموافقة');
+      toast.success('تم إضافة المنتج بنجاح');
       await fetchProducts();
       return { id: data.id };
     } catch (error) {
