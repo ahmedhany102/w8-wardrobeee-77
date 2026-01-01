@@ -75,22 +75,39 @@ export const useVendorProducts = (statusFilter?: string) => {
     }
 
     try {
-      // Get the vendor_id from vendor_profiles table using user_id = user.id
-      const { data: vendorData, error: vendorError } = await supabase
+      // First check if vendor is approved in vendor_profiles
+      const { data: profileData, error: profileError } = await supabase
         .from('vendor_profiles')
-        .select('id')
+        .select('status')
         .eq('user_id', user.id)
-        .eq('status', 'approved')
         .maybeSingle();
 
-      if (vendorError) {
-        console.error('Error fetching vendor:', vendorError);
+      if (profileError) {
+        console.error('Error fetching vendor profile:', profileError);
         toast.error('فشل في التحقق من حساب البائع');
         return null;
       }
 
-      if (!vendorData) {
+      if (!profileData || profileData.status !== 'approved') {
         toast.error('يجب أن تكون بائعاً معتمداً لإضافة منتجات');
+        return null;
+      }
+
+      // Get the vendor_id from vendors table (the correct FK reference)
+      const { data: vendorData, error: vendorError } = await supabase
+        .from('vendors')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (vendorError) {
+        console.error('Error fetching vendor:', vendorError);
+        toast.error('فشل في التحقق من متجرك');
+        return null;
+      }
+
+      if (!vendorData) {
+        toast.error('لم يتم العثور على متجرك. يرجى التواصل مع الدعم.');
         return null;
       }
 

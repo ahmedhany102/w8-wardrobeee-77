@@ -26,31 +26,29 @@ export const useVendors = (searchQuery?: string) => {
     try {
       setLoading(true);
       
-      // Use vendor_profiles table which has logo and cover images
-      let query = supabase
-        .from('vendor_profiles')
-        .select('*')
-        .eq('status', 'approved'); // Only show approved vendors
-
-      if (searchQuery) {
-        query = query.ilike('store_name', `%${searchQuery}%`);
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
+      // Use get_active_vendors RPC which returns vendors with product counts
+      const { data, error } = await supabase.rpc('get_active_vendors');
       
       if (error) throw error;
       
-      // Map vendor_profiles fields to Vendor interface
-      const mappedVendors: Vendor[] = (data || []).map((v: any) => ({
+      let filteredData = data || [];
+      
+      // Apply search filter if provided
+      if (searchQuery) {
+        filteredData = filteredData.filter((v: any) => 
+          v.name?.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      
+      // Map to Vendor interface
+      const mappedVendors: Vendor[] = filteredData.map((v: any) => ({
         id: v.id,
-        name: v.store_name,
-        slug: v.slug || v.id,
+        name: v.name,
+        slug: v.slug,
         logo_url: v.logo_url,
         cover_url: v.cover_url,
         status: v.status,
-        description: v.store_description,
-        owner_id: v.user_id,
-        product_count: 0
+        product_count: v.product_count || 0
       }));
       
       setVendors(mappedVendors);
@@ -84,21 +82,21 @@ export const useVendorBySlug = (slug: string | undefined) => {
     try {
       setLoading(true);
       
-      // Try to find by slug in vendor_profiles table
+      // Try to find by slug in vendors table
       let { data, error } = await supabase
-        .from('vendor_profiles')
+        .from('vendors')
         .select('*')
         .eq('slug', slug)
-        .eq('status', 'approved')
+        .eq('status', 'active')
         .maybeSingle();
       
       // If not found by slug, try by id (backwards compatibility)
       if (!data && !error) {
         const { data: dataById, error: errorById } = await supabase
-          .from('vendor_profiles')
+          .from('vendors')
           .select('*')
           .eq('id', slug)
-          .eq('status', 'approved')
+          .eq('status', 'active')
           .maybeSingle();
         
         data = dataById;
@@ -115,13 +113,13 @@ export const useVendorBySlug = (slug: string | undefined) => {
       // Map to Vendor interface
       const mappedVendor: Vendor = {
         id: data.id,
-        name: data.store_name,
-        slug: data.slug || data.id,
+        name: data.name,
+        slug: data.slug,
         logo_url: data.logo_url,
         cover_url: data.cover_url,
         status: data.status,
-        description: data.store_description,
-        owner_id: data.user_id
+        description: data.description,
+        owner_id: data.owner_id
       };
 
       setVendor(mappedVendor);
