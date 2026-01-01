@@ -998,6 +998,32 @@ export type Database = {
           vendor_store_name: string
         }[]
       }
+      get_products_with_vendor: {
+        Args: { _category_id?: string; _limit?: number; _search_query?: string }
+        Returns: {
+          category: string
+          category_id: string
+          colors: Json
+          created_at: string
+          description: string
+          discount: number
+          featured: boolean
+          id: string
+          image_url: string
+          images: Json
+          inventory: number
+          main_image: string
+          name: string
+          price: number
+          sizes: Json
+          status: string
+          stock: number
+          vendor_id: string
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
+        }[]
+      }
       get_user_highest_role: { Args: { _user_id: string }; Returns: string }
       get_user_orders: {
         Args: { user_uuid: string }

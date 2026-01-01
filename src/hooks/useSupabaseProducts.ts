@@ -40,12 +40,14 @@ export const useSupabaseProducts = () => {
         setProducts([]);
       });
       
-      console.log('🔄 Fetching products with public access...');
+      console.log('🔄 Fetching products with vendor info...');
       
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
+      // Use RPC to get products with vendor info, filtering to only approved products
+      const { data, error } = await supabase.rpc('get_products_with_vendor', {
+        _category_id: null,
+        _search_query: null,
+        _limit: 1000
+      });
       
       LoadingFallback.clearTimeout('product-fetch');
       
@@ -129,7 +131,11 @@ export const useSupabaseProducts = () => {
           discount: Number(product.discount) || 0,
           stock: Number(product.stock) || 0,
           inventory: Number(product.inventory) || 0,
-          category_id: product.category_id
+          category_id: product.category_id,
+          // Include vendor info from RPC
+          vendor_name: product.vendor_name || null,
+          vendor_slug: product.vendor_slug || null,
+          vendor_logo_url: product.vendor_logo_url || null
         };
       });
       

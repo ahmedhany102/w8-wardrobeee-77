@@ -4,15 +4,19 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button";
 import { Product } from '@/models/Product';
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Heart } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ShoppingCart, Heart, Store } from 'lucide-react';
 import { toast } from 'sonner';
 import CartDatabase from "@/models/CartDatabase";
 import { ProductVariant } from '@/hooks/useProductVariants';
 import { useFavorites } from '@/hooks/useFavorites';
 
 interface ProductCardProps {
-  product: Product;
+  product: Product & { 
+    vendor_name?: string; 
+    vendor_slug?: string;
+    vendor_logo_url?: string;
+  };
   onAddToCart?: (product: Product, size: string, quantity?: number) => void;
   className?: string;
   variants?: ProductVariant[];
@@ -172,9 +176,21 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
       </CardHeader>
 
       <CardContent className="p-3 pb-2">
-        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-green-700 transition-colors">
+        <h3 className="font-semibold text-sm mb-1 line-clamp-2 group-hover:text-primary transition-colors">
           {product.name}
         </h3>
+        
+        {/* Vendor link */}
+        {product.vendor_name && product.vendor_slug && (
+          <Link 
+            to={`/store/${product.vendor_slug}`}
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors mb-2"
+          >
+            <Store className="w-3 h-3" />
+            <span>بواسطة: {product.vendor_name}</span>
+          </Link>
+        )}
         
         {/* Price section */}
         <div className="flex items-center gap-2 mb-2">
