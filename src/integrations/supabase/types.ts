@@ -811,34 +811,43 @@ export type Database = {
       }
       vendors: {
         Row: {
+          address: string | null
           cover_url: string | null
           created_at: string
+          description: string | null
           id: string
           logo_url: string | null
           name: string
           owner_id: string
+          phone: string | null
           slug: string
           status: string
           updated_at: string
         }
         Insert: {
+          address?: string | null
           cover_url?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           logo_url?: string | null
           name: string
           owner_id: string
+          phone?: string | null
           slug: string
           status?: string
           updated_at?: string
         }
         Update: {
+          address?: string | null
           cover_url?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           logo_url?: string | null
           name?: string
           owner_id?: string
+          phone?: string | null
           slug?: string
           status?: string
           updated_at?: string
