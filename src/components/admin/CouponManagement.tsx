@@ -9,6 +9,33 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useSupabaseCoupons } from "@/hooks/useSupabaseCoupons";
 import { supabase } from "@/integrations/supabase/client";
+import { z } from "zod";
+import DOMPurify from "dompurify";
+
+// Zod validation schema for coupons
+const couponSchema = z.object({
+  code: z.string()
+    .min(3, "Code must be at least 3 characters")
+    .max(50, "Code must be less than 50 characters")
+    .regex(/^[A-Z0-9_-]+$/i, "Code can only contain letters, numbers, underscores, and hyphens")
+    .transform(val => DOMPurify.sanitize(val.toUpperCase().trim())),
+  discount_kind: z.enum(['percent', 'fixed']),
+  discount_value: z.number()
+    .positive("Discount value must be positive"),
+  expiration_date: z.string().optional(),
+  usage_limit: z.number().int().positive().optional(),
+  minimum_amount: z.number().min(0, "Minimum amount cannot be negative").default(0),
+  active: z.boolean().default(true)
+}).refine(data => {
+  // Additional validation: percentage must be 1-100
+  if (data.discount_kind === 'percent') {
+    return data.discount_value >= 1 && data.discount_value <= 100;
+  }
+  return true;
+}, {
+  message: "Percentage discount must be between 1 and 100",
+  path: ["discount_value"]
+});
 
 interface Coupon {
   id: string;
@@ -99,26 +126,40 @@ const CouponManagement = () => {
 
   const handleAddCoupon = async () => {
     try {
-      if (!couponFormData.code.trim()) {
-        toast.error('Please enter a coupon code');
+      // Validate with Zod schema
+      const parseResult = couponSchema.safeParse({
+        code: couponFormData.code,
+        discount_kind: couponFormData.discount_kind,
+        discount_value: couponFormData.discount_value,
+        expiration_date: couponFormData.expiration_date || undefined,
+        usage_limit: couponFormData.usage_limit || undefined,
+        minimum_amount: couponFormData.minimum_amount,
+        active: couponFormData.active
+      });
+
+      if (!parseResult.success) {
+        const firstError = parseResult.error.errors[0];
+        toast.error(firstError.message);
         return;
       }
 
+      const validated = parseResult.data;
+      
       const insertData: any = {
-        code: couponFormData.code.toUpperCase().trim(),
-        discount_kind: couponFormData.discount_kind,
-        discount_value: couponFormData.discount_value,
-        minimum_amount: couponFormData.minimum_amount,
-        active: couponFormData.active,
+        code: validated.code,
+        discount_kind: validated.discount_kind,
+        discount_value: validated.discount_value,
+        minimum_amount: validated.minimum_amount,
+        active: validated.active,
         used_count: 0
       };
 
-      if (couponFormData.expiration_date) {
-        insertData.expiration_date = couponFormData.expiration_date;
+      if (validated.expiration_date) {
+        insertData.expiration_date = validated.expiration_date;
       }
 
-      if (couponFormData.usage_limit) {
-        insertData.usage_limit = couponFormData.usage_limit;
+      if (validated.usage_limit) {
+        insertData.usage_limit = validated.usage_limit;
       }
 
       const { data, error } = await supabase
@@ -143,20 +184,39 @@ const CouponManagement = () => {
   const handleEditCoupon = async () => {
     if (!editCoupon) return;
     try {
-      const updateData: any = {
-        code: couponFormData.code.toUpperCase().trim(),
+      // Validate with Zod schema
+      const parseResult = couponSchema.safeParse({
+        code: couponFormData.code,
         discount_kind: couponFormData.discount_kind,
         discount_value: couponFormData.discount_value,
+        expiration_date: couponFormData.expiration_date || undefined,
+        usage_limit: couponFormData.usage_limit || undefined,
         minimum_amount: couponFormData.minimum_amount,
         active: couponFormData.active
-      };
+      });
 
-      if (couponFormData.expiration_date) {
-        updateData.expiration_date = couponFormData.expiration_date;
+      if (!parseResult.success) {
+        const firstError = parseResult.error.errors[0];
+        toast.error(firstError.message);
+        return;
       }
 
-      if (couponFormData.usage_limit) {
-        updateData.usage_limit = couponFormData.usage_limit;
+      const validated = parseResult.data;
+      
+      const updateData: any = {
+        code: validated.code,
+        discount_kind: validated.discount_kind,
+        discount_value: validated.discount_value,
+        minimum_amount: validated.minimum_amount,
+        active: validated.active
+      };
+
+      if (validated.expiration_date) {
+        updateData.expiration_date = validated.expiration_date;
+      }
+
+      if (validated.usage_limit) {
+        updateData.usage_limit = validated.usage_limit;
       }
 
       const { data, error } = await supabase
