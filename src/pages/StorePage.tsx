@@ -106,12 +106,12 @@ const StorePage = () => {
         {/* Hero Content - Centered on banner */}
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
           {/* Logo */}
-          <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-card border-4 border-white/20 shadow-2xl flex items-center justify-center overflow-hidden mb-4">
+          <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white border-4 border-white/30 shadow-2xl flex items-center justify-center overflow-hidden mb-4">
             {vendor.logo_url ? (
               <img 
                 src={vendor.logo_url} 
                 alt={vendor.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain p-1"
               />
             ) : (
               <Store className="w-10 h-10 md:w-12 md:h-12 text-primary" />
