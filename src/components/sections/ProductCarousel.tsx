@@ -1,11 +1,13 @@
 import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ArrowLeft, Flame, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowLeft, Flame, Star, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SectionProduct } from '@/types/section';
+import { toast } from 'sonner';
+import CartDatabase from '@/models/CartDatabase';
 
 interface ProductCarouselProps {
   title: string;
@@ -45,6 +47,27 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
     e.stopPropagation();
     if (slug) {
       navigate(`/store/${slug}`);
+    }
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent, product: SectionProduct) => {
+    e.stopPropagation();
+    try {
+      const cartDb = CartDatabase.getInstance();
+      const productForCart = {
+        id: product.id,
+        name: product.name,
+        price: product.discount 
+          ? product.price - (product.price * product.discount / 100)
+          : product.price,
+        mainImage: product.image_url,
+        inventory: 1
+      };
+      await cartDb.addToCart(productForCart as any, '', '', 1);
+      toast.success('تم إضافة المنتج إلى السلة');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('فشل في إضافة المنتج');
     }
   };
 
@@ -220,6 +243,17 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
                   </button>
                 )}
               </CardContent>
+              
+              <CardFooter className="p-3 pt-0">
+                <Button
+                  onClick={(e) => handleAddToCart(e, product)}
+                  className="w-full text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                  size="sm"
+                >
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  أضف للسلة
+                </Button>
+              </CardFooter>
             </Card>
           );
         })}
