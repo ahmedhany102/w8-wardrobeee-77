@@ -2,6 +2,7 @@ import React from 'react';
 import { Flame, Star, Clock, Tag } from 'lucide-react';
 import { Section } from '@/types/section';
 import AdCarousel from '@/components/AdCarousel';
+import MidPageAds from '@/components/MidPageAds';
 import CategoryGrid from './CategoryGrid';
 import ProductCarousel from './ProductCarousel';
 import { useBestSellers, useHotDeals, useLastViewed, useCategoryProducts, useSectionProducts } from '@/hooks/useSections';
@@ -120,6 +121,9 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, vendorId, on
     
     case 'manual':
       return <ManualSection section={section} />;
+    
+    case 'mid_page_ads':
+      return <MidPageAds className="my-6" />;
     
     default:
       return null;

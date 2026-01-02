@@ -117,9 +117,11 @@ export type Database = {
           name: string
           parent_id: string | null
           product_count: number | null
+          scope: string
           slug: string
           sort_order: number | null
           updated_at: string | null
+          vendor_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -130,9 +132,11 @@ export type Database = {
           name: string
           parent_id?: string | null
           product_count?: number | null
+          scope?: string
           slug: string
           sort_order?: number | null
           updated_at?: string | null
+          vendor_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -143,9 +147,11 @@ export type Database = {
           name?: string
           parent_id?: string | null
           product_count?: number | null
+          scope?: string
           slug?: string
           sort_order?: number | null
           updated_at?: string | null
+          vendor_id?: string | null
         }
         Relationships: [
           {
@@ -153,6 +159,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -614,6 +627,7 @@ export type Database = {
           image_url: string | null
           images: Json | null
           inventory: number | null
+          is_best_seller: boolean | null
           main_image: string | null
           name: string | null
           price: number | null
@@ -637,6 +651,7 @@ export type Database = {
           image_url?: string | null
           images?: Json | null
           inventory?: number | null
+          is_best_seller?: boolean | null
           main_image?: string | null
           name?: string | null
           price?: number | null
@@ -660,6 +675,7 @@ export type Database = {
           image_url?: string | null
           images?: Json | null
           inventory?: number | null
+          is_best_seller?: boolean | null
           main_image?: string | null
           name?: string | null
           price?: number | null
@@ -1263,6 +1279,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_vendor_categories: {
+        Args: { _vendor_id: string }
+        Returns: {
+          description: string
+          id: string
+          image_url: string
+          name: string
+          product_count: number
+          scope: string
+          slug: string
+        }[]
+      }
       get_vendor_order_info: {
         Args: { _order_id: string }
         Returns: {
@@ -1322,6 +1350,7 @@ export type Database = {
           image_url: string | null
           images: Json | null
           inventory: number | null
+          is_best_seller: boolean | null
           main_image: string | null
           name: string | null
           price: number | null
@@ -1354,6 +1383,7 @@ export type Database = {
           image_url: string | null
           images: Json | null
           inventory: number | null
+          is_best_seller: boolean | null
           main_image: string | null
           name: string | null
           price: number | null

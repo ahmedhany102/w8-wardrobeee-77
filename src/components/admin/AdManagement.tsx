@@ -229,15 +229,6 @@ const AdManagement = () => {
               </div>
 
               <div>
-                <Label htmlFor="redirectUrl">Click Redirect URL (Optional)</Label>
-                <Input
-                  id="redirectUrl"
-                  value={redirectUrl}
-                  onChange={(e) => setRedirectUrl(e.target.value)}
-                  placeholder="https://example.com (where users go when they click the banner)"
-                />
-              </div>
-              <div>
                 <Label htmlFor="position">Display Position</Label>
                 <Input
                   id="position"
@@ -245,8 +236,14 @@ const AdManagement = () => {
                   value={position}
                   onChange={(e) => setPosition(parseInt(e.target.value) || 0)}
                   min="0"
-                  placeholder="0 = first, 1 = second, etc."
+                  placeholder="0 = first in carousel"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  <strong>Position Guide:</strong><br />
+                  0-9 = Hero Carousel (top of page)<br />
+                  10-19 = Mid-Page Left Ad<br />
+                  20-29 = Mid-Page Right Ad
+                </p>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch

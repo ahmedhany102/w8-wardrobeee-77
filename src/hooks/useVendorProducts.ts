@@ -129,7 +129,8 @@ export const useVendorProducts = (statusFilter?: string) => {
         ...cleanData, 
         status: 'pending',
         vendor_id: vendorData.id,
-        category_id: categoryId
+        category_id: categoryId || cleanData.category, // Use category as fallback if it's already a UUID
+        is_best_seller: (productData as any).is_best_seller || false
       };
 
       const { data, error } = await supabase
@@ -180,7 +181,7 @@ export const useVendorProducts = (statusFilter?: string) => {
       if (updates.name !== undefined) cleanUpdates.name = updates.name;
       if (updates.description !== undefined) cleanUpdates.description = updates.description;
       if (updates.price !== undefined) cleanUpdates.price = Number(updates.price);
-      if (updates.category !== undefined) cleanUpdates.category = updates.category;
+      if (updates.category !== undefined) cleanUpdates.category_id = updates.category; // Save to category_id
       if (updates.main_image !== undefined) cleanUpdates.main_image = updates.main_image;
       if (updates.images !== undefined) cleanUpdates.images = updates.images;
       if (updates.colors !== undefined) cleanUpdates.colors = updates.colors;
@@ -189,6 +190,7 @@ export const useVendorProducts = (statusFilter?: string) => {
       if (updates.featured !== undefined) cleanUpdates.featured = updates.featured;
       if (updates.stock !== undefined) cleanUpdates.stock = Number(updates.stock);
       if (updates.inventory !== undefined) cleanUpdates.inventory = Number(updates.inventory);
+      if ((updates as any).is_best_seller !== undefined) cleanUpdates.is_best_seller = (updates as any).is_best_seller;
       
       cleanUpdates.updated_at = new Date().toISOString();
 

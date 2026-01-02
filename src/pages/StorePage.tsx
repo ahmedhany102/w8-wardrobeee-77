@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ProductCard from '@/components/ProductCard';
 import { Store, Search, Package, ArrowRight, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useBestSellers, useLastViewed } from '@/hooks/useSections';
+import { ProductCarousel } from '@/components/sections';
 
 const StorePage = () => {
   const { vendorSlug } = useParams<{ vendorSlug: string }>();
@@ -22,6 +24,10 @@ const StorePage = () => {
     searchQuery
   );
   const { categories } = useVendorCategories(vendor?.id);
+  
+  // Vendor-specific sections
+  const { products: bestSellers, loading: bestSellersLoading } = useBestSellers(vendor?.id, 12);
+  const { products: lastViewed, loading: lastViewedLoading } = useLastViewed(vendor?.id, 10);
 
   const handleAddToCart = async (product: any, size: string, quantity?: number) => {
     navigate(`/product/${product.id}`);
@@ -185,7 +191,35 @@ const StorePage = () => {
           )}
         </div>
         
+        {/* Best Seller Section - Only show when no filters active */}
+        {!searchQuery && !selectedCategory && bestSellers.length > 0 && (
+          <div className="mb-8">
+            <ProductCarousel
+              title="Best Sellers"
+              products={bestSellers}
+              loading={bestSellersLoading}
+            />
+          </div>
+        )}
+        
+        {/* Last Viewed Section - Only show when no filters active */}
+        {!searchQuery && !selectedCategory && lastViewed.length > 0 && (
+          <div className="mb-8">
+            <ProductCarousel
+              title="Recently Viewed"
+              products={lastViewed}
+              loading={lastViewedLoading}
+            />
+          </div>
+        )}
+        
         {/* Products Grid */}
+        <div className="mb-4">
+          <h2 className="text-xl font-bold mb-4">
+            {selectedCategory ? categories.find(c => c.id === selectedCategory)?.name || 'Products' : 'All Products'}
+          </h2>
+        </div>
+        
         {productsLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -197,13 +231,13 @@ const StorePage = () => {
             <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-lg font-semibold mb-2">
               {searchQuery || selectedCategory 
-                ? 'لا توجد منتجات مطابقة' 
-                : 'لا توجد منتجات في هذا المتجر'}
+                ? 'No matching products' 
+                : 'No products in this store yet'}
             </h2>
             <p className="text-muted-foreground mb-4">
               {searchQuery || selectedCategory 
-                ? 'جرب تغيير معايير البحث'
-                : 'سيتم إضافة منتجات قريباً'}
+                ? 'Try changing your search criteria'
+                : 'Products will be added soon'}
             </p>
             {(searchQuery || selectedCategory) && (
               <Button 
@@ -213,7 +247,7 @@ const StorePage = () => {
                   setSelectedCategory(null);
                 }}
               >
-                إزالة الفلاتر
+                Clear Filters
               </Button>
             )}
           </div>
