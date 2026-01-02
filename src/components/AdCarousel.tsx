@@ -17,8 +17,8 @@ const AdCarousel: React.FC = () => {
   const { ads, loading } = useSupabaseAds();
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
 
-  // Filter only active ads
-  const activeAds = ads.filter(ad => ad.is_active);
+  // Filter only active hero ads (position 0-9)
+  const activeAds = ads.filter(ad => ad.is_active && (ad.position === null || ad.position === undefined || ad.position < 10));
 
   // Auto-rotate ads every 5 seconds if multiple ads exist
   useEffect(() => {
