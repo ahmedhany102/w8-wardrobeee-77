@@ -9,8 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCategories } from "@/hooks/useCategories";
 import { toast } from "sonner";
-import { Trash2, Plus, Edit, Eye, EyeOff } from "lucide-react";
+import { Trash2, Plus, Edit, Eye, EyeOff, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import ImageUploader from "@/components/admin/ImageUploader";
 
 // SHORTEN: File now refactored for no black screens and always up-to-date categories
 const CategoryManagement = () => {
@@ -25,6 +26,7 @@ const CategoryManagement = () => {
   const [parentId, setParentId] = useState<string>("");
   const [isActive, setIsActive] = useState(true);
   const [sortOrder, setSortOrder] = useState(0);
+  const [imageUrl, setImageUrl] = useState<string>("");
 
   const resetForm = () => {
     setName("");
@@ -32,6 +34,7 @@ const CategoryManagement = () => {
     setParentId("none");
     setIsActive(true);
     setSortOrder(0);
+    setImageUrl("");
   };
 
   // Generate slug when name changes
@@ -52,7 +55,8 @@ const CategoryManagement = () => {
         is_active: isActive,
         sort_order: sortOrder,
         description: "",
-        image_url: null
+        image_url: imageUrl || null,
+        scope: 'global'
       }]);
     if (error) {
       toast.error('Failed to add category: ' + error.message);
@@ -78,8 +82,7 @@ const CategoryManagement = () => {
         parent_id: parentId === "none" ? null : parentId || null,
         is_active: isActive,
         sort_order: sortOrder,
-        description: "",
-        image_url: null
+        image_url: imageUrl || null
       })
       .eq('id', editingCategory.id);
 
@@ -114,6 +117,7 @@ const CategoryManagement = () => {
     setParentId(category.parent_id || "none");
     setIsActive(category.is_active);
     setSortOrder(category.sort_order || 0);
+    setImageUrl(category.image_url || "");
     setShowEditDialog(true);
   };
 
@@ -173,6 +177,13 @@ const CategoryManagement = () => {
               <div>
                 <Label htmlFor="sortOrder">Sort Order</Label>
                 <Input id="sortOrder" type="number" value={sortOrder} onChange={e => setSortOrder(parseInt(e.target.value) || 0)} min="0" />
+              </div>
+              <div>
+                <Label>Category Image</Label>
+                <ImageUploader
+                  value={imageUrl ? [imageUrl] : []}
+                  onChange={(urls) => setImageUrl(urls[0] || "")}
+                />
               </div>
               <div className="flex items-center space-x-2">
                 <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
@@ -270,6 +281,13 @@ const CategoryManagement = () => {
                 value={sortOrder}
                 onChange={e => setSortOrder(parseInt(e.target.value) || 0)}
                 min="0"
+              />
+            </div>
+            <div>
+              <Label>Category Image</Label>
+              <ImageUploader
+                value={imageUrl ? [imageUrl] : []}
+                onChange={(urls) => setImageUrl(urls[0] || "")}
               />
             </div>
             <div className="flex items-center space-x-2">

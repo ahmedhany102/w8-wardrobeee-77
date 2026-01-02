@@ -1,7 +1,7 @@
 export interface Section {
   id: string;
   title: string;
-  type: 'hero_carousel' | 'category_grid' | 'best_seller' | 'hot_deals' | 'last_viewed' | 'category_products' | 'manual' | 'vendor_highlights';
+  type: 'hero_carousel' | 'category_grid' | 'best_seller' | 'hot_deals' | 'last_viewed' | 'category_products' | 'manual' | 'vendor_highlights' | 'mid_page_ads';
   scope: 'global' | 'vendor';
   vendor_id: string | null;
   sort_order: number;

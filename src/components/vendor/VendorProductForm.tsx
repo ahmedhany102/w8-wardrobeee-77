@@ -38,11 +38,11 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
   onCancel,
   loading = false,
 }) => {
-  const [formData, setFormData] = useState<ProductFormData>({
+  const [formData, setFormData] = useState<ProductFormData & { is_best_seller?: boolean }>({
     name: initialData?.name || '',
     description: initialData?.description || '',
     price: initialData?.price || 0,
-    category: initialData?.category || '',
+    category: initialData?.category_id || initialData?.category || '', // Use category_id first
     main_image: initialData?.main_image || initialData?.image_url || '',
     images: initialData?.images || [],
     colors: initialData?.colors || [],
@@ -51,6 +51,7 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
     featured: initialData?.featured || false,
     stock: initialData?.stock || initialData?.inventory || 0,
     inventory: initialData?.inventory || initialData?.stock || 0,
+    is_best_seller: (initialData as any)?.is_best_seller || false,
   });
 
   const [colorVariants, setColorVariants] = useState<ColorVariant[]>([]);
@@ -192,11 +193,20 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
 
           <div className="flex items-center gap-2">
             <Switch
+              id="is_best_seller"
+              checked={formData.is_best_seller}
+              onCheckedChange={(checked) => handleChange('is_best_seller' as keyof ProductFormData, checked)}
+            />
+            <Label htmlFor="is_best_seller">Best Seller</Label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Switch
               id="featured"
               checked={formData.featured}
               onCheckedChange={(checked) => handleChange('featured', checked)}
             />
-            <Label htmlFor="featured">منتج مميز</Label>
+            <Label htmlFor="featured">Featured Product</Label>
           </div>
 
           <div className="space-y-2">
