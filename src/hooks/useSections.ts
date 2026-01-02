@@ -123,7 +123,7 @@ export function useHotDeals(vendorId?: string, limit: number = 12) {
   return { products, loading };
 }
 
-export function useLastViewed(limit: number = 10) {
+export function useLastViewed(vendorId?: string, limit: number = 10) {
   const [products, setProducts] = useState<SectionProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -140,6 +140,7 @@ export function useLastViewed(limit: number = 10) {
         const { data, error } = await supabase
           .rpc('get_last_viewed_products', {
             _user_id: user.id,
+            _vendor_id: vendorId || null,
             _limit: limit
           });
 
@@ -154,7 +155,7 @@ export function useLastViewed(limit: number = 10) {
     };
 
     fetchProducts();
-  }, [limit]);
+  }, [vendorId, limit]);
 
   return { products, loading };
 }

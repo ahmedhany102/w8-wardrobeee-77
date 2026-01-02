@@ -27,12 +27,12 @@ const BestSellerSection: React.FC<{ config: Section['config']; vendorId?: string
   
   return (
     <ProductCarousel
-      title="الأكثر مبيعاً"
+      title="Best Sellers"
       products={products}
       loading={loading}
       variant="best_seller"
       icon={<Star className="w-5 h-5" fill="currentColor" />}
-      showMoreLink="/products?filter=best_seller"
+      showMoreLink={vendorId ? undefined : "/products?filter=best_seller"}
     />
   );
 };
@@ -42,26 +42,26 @@ const HotDealsSection: React.FC<{ config: Section['config']; vendorId?: string }
   
   return (
     <ProductCarousel
-      title="عروض حصرية 🔥"
+      title="Hot Deals 🔥"
       products={products}
       loading={loading}
       variant="hot_deals"
       icon={<Flame className="w-5 h-5" />}
-      showMoreLink="/products?filter=hot_deals"
+      showMoreLink={vendorId ? undefined : "/products?filter=hot_deals"}
     />
   );
 };
 
-const LastViewedSection: React.FC<{ config: Section['config'] }> = ({ config }) => {
+const LastViewedSection: React.FC<{ config: Section['config']; vendorId?: string }> = ({ config, vendorId }) => {
   const { user } = useAuth();
-  const { products, loading } = useLastViewed(config.limit || 10);
+  const { products, loading } = useLastViewed(vendorId, config.limit || 10);
   
   // Don't show if not logged in or no products
   if (!user || (!loading && products.length === 0)) return null;
   
   return (
     <ProductCarousel
-      title="شاهدت مؤخراً"
+      title="Recently Viewed"
       products={products}
       loading={loading}
       icon={<Clock className="w-5 h-5" />}
@@ -76,11 +76,11 @@ const CategoryProductsSection: React.FC<{ config: Section['config']; vendorId?: 
   
   return (
     <ProductCarousel
-      title="منتجات الفئة"
+      title="Category Products"
       products={products}
       loading={loading}
       icon={<Tag className="w-5 h-5" />}
-      showMoreLink={`/category/${config.category_id}`}
+      showMoreLink={vendorId ? undefined : `/category/${config.category_id}`}
     />
   );
 };
@@ -113,7 +113,7 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, vendorId, on
       return <HotDealsSection config={section.config} vendorId={vendorId} />;
     
     case 'last_viewed':
-      return <LastViewedSection config={section.config} />;
+      return <LastViewedSection config={section.config} vendorId={vendorId} />;
     
     case 'category_products':
       return <CategoryProductsSection config={section.config} vendorId={vendorId} />;
