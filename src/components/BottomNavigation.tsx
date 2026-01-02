@@ -54,7 +54,7 @@ const BottomNavigation: React.FC = () => {
           }`}
         >
           <Home className="w-5 h-5" />
-          <span className="text-xs">الرئيسية</span>
+          <span className="text-xs">Home</span>
         </Link>
         
         <Link 
@@ -69,7 +69,7 @@ const BottomNavigation: React.FC = () => {
               {cartItemCount}
             </span>
           )}
-          <span className="text-xs">العربة</span>
+          <span className="text-xs">Cart</span>
         </Link>
         
         {user && (
@@ -80,7 +80,7 @@ const BottomNavigation: React.FC = () => {
             }`}
           >
             <Heart className="w-5 h-5" />
-            <span className="text-xs">المفضلة</span>
+            <span className="text-xs">Favorites</span>
           </Link>
         )}
         
@@ -93,7 +93,7 @@ const BottomNavigation: React.FC = () => {
             }`}
           >
             <Store className="w-5 h-5" />
-            <span className="text-xs">متجري</span>
+            <span className="text-xs">My Store</span>
           </Link>
         )}
         
@@ -104,7 +104,7 @@ const BottomNavigation: React.FC = () => {
           }`}
         >
           <User className="w-5 h-5" />
-          <span className="text-xs">حسابي</span>
+          <span className="text-xs">Account</span>
         </Link>
         
         <Link 
@@ -114,7 +114,7 @@ const BottomNavigation: React.FC = () => {
           }`}
         >
           <Package className="w-5 h-5" />
-          <span className="text-xs">طلباتي</span>
+          <span className="text-xs">Orders</span>
         </Link>
       </div>
     </div>

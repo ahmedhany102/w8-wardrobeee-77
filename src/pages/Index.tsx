@@ -31,8 +31,8 @@ const Index = () => {
         {/* Greeting Section */}
         {user && (
           <div className="mb-6">
-            <h2 className="text-xl font-bold mb-2">أهلاً بك {user.name}!</h2>
-            <p className="text-muted-foreground">نتمنى لك تجربة تسوق ممتعة</p>
+            <h2 className="text-xl font-bold mb-2">Welcome back, {user.name}!</h2>
+            <p className="text-muted-foreground">We hope you enjoy your shopping experience</p>
           </div>
         )}
 
@@ -41,15 +41,15 @@ const Index = () => {
           <TabsList className="grid w-full grid-cols-3 max-w-md">
             <TabsTrigger value="home" className="flex items-center gap-2">
               <ShoppingBag className="w-4 h-4" />
-              الرئيسية
+              Home
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-2">
               <ShoppingBag className="w-4 h-4" />
-              المنتجات
+              Products
             </TabsTrigger>
             <TabsTrigger value="vendors" className="flex items-center gap-2">
               <Store className="w-4 h-4" />
-              المتاجر
+              Stores
             </TabsTrigger>
           </TabsList>
 
@@ -65,7 +65,7 @@ const Index = () => {
 
           <TabsContent value="vendors" className="mt-6">
             {/* Vendors Grid */}
-            <h2 className="text-2xl font-bold mb-6">تصفح المتاجر</h2>
+            <h2 className="text-2xl font-bold mb-6">Browse Stores</h2>
             <VendorsGrid />
           </TabsContent>
         </Tabs>

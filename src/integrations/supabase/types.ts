@@ -1117,20 +1117,35 @@ export type Database = {
           vendor_slug: string
         }[]
       }
-      get_last_viewed_products: {
-        Args: { _limit?: number; _user_id: string }
-        Returns: {
-          discount: number
-          id: string
-          image_url: string
-          name: string
-          price: number
-          rating: number
-          vendor_logo_url: string
-          vendor_name: string
-          vendor_slug: string
-        }[]
-      }
+      get_last_viewed_products:
+        | {
+            Args: { _limit?: number; _user_id: string }
+            Returns: {
+              discount: number
+              id: string
+              image_url: string
+              name: string
+              price: number
+              rating: number
+              vendor_logo_url: string
+              vendor_name: string
+              vendor_slug: string
+            }[]
+          }
+        | {
+            Args: { _limit?: number; _user_id: string; _vendor_id?: string }
+            Returns: {
+              discount: number
+              id: string
+              image_url: string
+              name: string
+              price: number
+              rating: number
+              vendor_logo_url: string
+              vendor_name: string
+              vendor_slug: string
+            }[]
+          }
       get_product_variant_options: {
         Args: { p_product_id: string }
         Returns: {
