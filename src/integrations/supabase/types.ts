@@ -572,6 +572,35 @@ export type Database = {
           },
         ]
       }
+      product_views: {
+        Row: {
+          id: string
+          product_id: string
+          user_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          user_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          user_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_views_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string | null
@@ -742,6 +771,92 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      section_products: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string
+          section_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id: string
+          section_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string
+          section_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "section_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "section_products_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sections: {
+        Row: {
+          config: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          scope: string
+          sort_order: number
+          title: string
+          type: string
+          updated_at: string | null
+          vendor_id: string | null
+        }
+        Insert: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          scope?: string
+          sort_order?: number
+          title: string
+          type: string
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Update: {
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          scope?: string
+          sort_order?: number
+          title?: string
+          type?: string
+          updated_at?: string | null
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sections_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
@@ -959,7 +1074,63 @@ export type Database = {
           status: string
         }[]
       }
+      get_best_seller_products: {
+        Args: { _limit?: number; _vendor_id?: string }
+        Returns: {
+          discount: number
+          id: string
+          image_url: string
+          name: string
+          price: number
+          rating: number
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
+        }[]
+      }
+      get_category_products: {
+        Args: { _category_id: string; _limit?: number; _vendor_id?: string }
+        Returns: {
+          discount: number
+          id: string
+          image_url: string
+          name: string
+          price: number
+          rating: number
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
+        }[]
+      }
       get_current_user_role: { Args: never; Returns: string }
+      get_hot_deals_products: {
+        Args: { _limit?: number; _vendor_id?: string }
+        Returns: {
+          discount: number
+          id: string
+          image_url: string
+          name: string
+          price: number
+          rating: number
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
+        }[]
+      }
+      get_last_viewed_products: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: {
+          discount: number
+          id: string
+          image_url: string
+          name: string
+          price: number
+          rating: number
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
+        }[]
+      }
       get_product_variant_options: {
         Args: { p_product_id: string }
         Returns: {
@@ -1022,6 +1193,34 @@ export type Database = {
           vendor_logo_url: string
           vendor_name: string
           vendor_slug: string
+        }[]
+      }
+      get_section_products: {
+        Args: { _limit?: number; _section_id: string }
+        Returns: {
+          discount: number
+          id: string
+          image_url: string
+          name: string
+          price: number
+          rating: number
+          sort_order: number
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
+        }[]
+      }
+      get_sections_by_scope: {
+        Args: { _scope?: string; _vendor_id?: string }
+        Returns: {
+          config: Json
+          id: string
+          is_active: boolean
+          scope: string
+          sort_order: number
+          title: string
+          type: string
+          vendor_id: string
         }[]
       }
       get_user_highest_role: { Args: { _user_id: string }; Returns: string }
@@ -1185,6 +1384,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_vendor_admin: { Args: { _user_id: string }; Returns: boolean }
+      track_product_view: { Args: { _product_id: string }; Returns: boolean }
       update_order_item_status: {
         Args: { _item_id: string; _new_status: string }
         Returns: boolean
