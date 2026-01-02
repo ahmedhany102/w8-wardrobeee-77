@@ -140,9 +140,9 @@ export function useLastViewed(vendorId?: string, limit: number = 10) {
         const { data, error } = await supabase
           .rpc('get_last_viewed_products', {
             _user_id: user.id,
-            _vendor_id: vendorId || null,
-            _limit: limit
-          });
+            _limit: limit,
+            ...(vendorId ? { _vendor_id: vendorId } : {})
+          } as any);
 
         if (error) throw error;
         setProducts((data as SectionProduct[]) || []);

@@ -108,7 +108,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
               onClick={() => navigate(showMoreLink)}
               className="flex items-center gap-1"
             >
-              عرض المزيد
+              Show More
               <ArrowLeft className="w-4 h-4" />
             </Button>
           )}
@@ -169,7 +169,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
                 {/* Discount Badge */}
                 {product.discount && product.discount > 0 && (
                   <Badge className="absolute top-2 right-2 bg-red-500 text-white text-xs">
-                    {product.discount}% خصم
+                    {product.discount}% OFF
                   </Badge>
                 )}
 
@@ -177,7 +177,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
                 {variant === 'best_seller' && (
                   <Badge className="absolute top-2 left-2 bg-amber-500 text-white text-xs flex items-center gap-1">
                     <Star className="w-3 h-3" fill="currentColor" />
-                    الأكثر مبيعاً
+                    Best Seller
                   </Badge>
                 )}
               </div>
@@ -201,11 +201,11 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
                 {/* Price */}
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-bold text-primary">
-                    {finalPrice.toFixed(0)} ج.م
+                    ${finalPrice.toFixed(2)}
                   </span>
                   {product.discount && product.discount > 0 && (
                     <span className="text-xs text-muted-foreground line-through">
-                      {product.price.toFixed(0)}
+                      ${product.price.toFixed(2)}
                     </span>
                   )}
                 </div>
@@ -216,7 +216,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
                     onClick={(e) => handleVendorClick(e, product.vendor_slug)}
                     className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
                   >
-                    بواسطة: {product.vendor_name}
+                    By: {product.vendor_name}
                   </button>
                 )}
               </CardContent>
