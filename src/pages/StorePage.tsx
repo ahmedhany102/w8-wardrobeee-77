@@ -8,8 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ProductCard from '@/components/ProductCard';
 import { Store, Search, Package, ArrowRight, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { DynamicSections } from '@/components/sections';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const StorePage = () => {
   const { vendorSlug } = useParams<{ vendorSlug: string }>();
@@ -17,7 +15,6 @@ const StorePage = () => {
   const { vendor, loading: vendorLoading, error: vendorError } = useVendorBySlug(vendorSlug);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'home' | 'products'>('home');
   
   const { products, loading: productsLoading } = useVendorProducts(
     vendor?.id,
@@ -36,7 +33,7 @@ const StorePage = () => {
       try {
         await navigator.share({
           title: vendor?.name,
-          text: `Check out ${vendor?.name}`,
+          text: `تفقد متجر ${vendor?.name}`,
           url: url
         });
       } catch (err) {
@@ -44,7 +41,7 @@ const StorePage = () => {
       }
     } else {
       await navigator.clipboard.writeText(url);
-      toast.success('Store link copied');
+      toast.success('تم نسخ رابط المتجر');
     }
   };
 
@@ -75,13 +72,13 @@ const StorePage = () => {
       <Layout>
         <div className="container mx-auto px-4 py-12 text-center">
           <Store className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <h1 className="text-2xl font-bold mb-2">Store Not Found</h1>
+          <h1 className="text-2xl font-bold mb-2">المتجر غير موجود</h1>
           <p className="text-muted-foreground mb-6">
-            Sorry, we couldn't find this store
+            عذراً، لم نتمكن من العثور على هذا المتجر
           </p>
           <Button onClick={() => navigate('/vendors')}>
             <ArrowRight className="w-4 h-4 ml-2" />
-            Back to Stores
+            العودة للمتاجر
           </Button>
         </div>
       </Layout>
@@ -128,6 +125,8 @@ const StorePage = () => {
               <img 
                 src={vendor.logo_url} 
                 alt={vendor.name}
+                // التعديل هنا: object-contain بدل object-cover
+                // وضفنا p-1 عشان الصورة تاخد راحتها وماتلزقش في الحواف
                 className="w-full h-full object-contain p-1"
               />
             ) : (
@@ -142,108 +141,93 @@ const StorePage = () => {
               <p className="text-muted-foreground text-sm mt-1 line-clamp-2">{vendor.description}</p>
             )}
             <p className="text-muted-foreground text-sm mt-1">
-              {products.length} products available
+              {products.length} منتج متاح
             </p>
           </div>
         </div>
         
-        {/* Tab Navigation for Store */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mb-6">
-          <TabsList className="grid w-full grid-cols-2 max-w-xs">
-            <TabsTrigger value="home">Home</TabsTrigger>
-            <TabsTrigger value="products">All Products</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="home" className="mt-6">
-            {/* Dynamic Sections for Vendor Store */}
-            <DynamicSections scope="vendor" vendorId={vendor.id} />
-          </TabsContent>
-
-          <TabsContent value="products" className="mt-6">
-            {/* Store Controls Row */}
-            <div className="mb-8 space-y-4">
-              {/* Search Input */}
-              <div className="relative max-w-md">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  type="text"
-                  placeholder={`Search in ${vendor.name}...`}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-10"
-                />
-              </div>
-              
-              {/* Category Filters */}
-              {categories.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedCategory === null ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(null)}
-                  >
-                    <Package className="w-4 h-4 ml-1" />
-                    All
-                  </Button>
-                  {categories.map((category) => (
-                    <Button
-                      key={category.id}
-                      variant={selectedCategory === category.id ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedCategory(category.id)}
-                    >
-                      {category.name}
-                    </Button>
-                  ))}
-                </div>
-              )}
+        {/* Store Controls Row */}
+        <div className="mb-8 space-y-4">
+          {/* Search Input */}
+          <div className="relative max-w-md">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder={`ابحث داخل متجر ${vendor.name}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+          
+          {/* Category Filters */}
+          {categories.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedCategory === null ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedCategory(null)}
+              >
+                <Package className="w-4 h-4 ml-1" />
+                الكل
+              </Button>
+              {categories.map((category) => (
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory(category.id)}
+                >
+                  {category.name}
+                </Button>
+              ))}
             </div>
-            
-            {/* Products Grid */}
-            {productsLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <Skeleton key={i} className="h-64 rounded-lg" />
-                ))}
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h2 className="text-lg font-semibold mb-2">
-                  {searchQuery || selectedCategory 
-                    ? 'No matching products' 
-                    : 'No products in this store'}
-                </h2>
-                <p className="text-muted-foreground mb-4">
-                  {searchQuery || selectedCategory 
-                    ? 'Try changing your search criteria'
-                    : 'Products will be added soon'}
-                </p>
-                {(searchQuery || selectedCategory) && (
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSelectedCategory(null);
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 pb-8">
-                {products.map((product) => (
-                  <ProductCard 
-                    key={product.id} 
-                    product={product}
-                    onAddToCart={handleAddToCart}
-                  />
-                ))}
-              </div>
+          )}
+        </div>
+        
+        {/* Products Grid */}
+        {productsLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-64 rounded-lg" />
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-12">
+            <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+            <h2 className="text-lg font-semibold mb-2">
+              {searchQuery || selectedCategory 
+                ? 'لا توجد منتجات مطابقة' 
+                : 'لا توجد منتجات في هذا المتجر'}
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              {searchQuery || selectedCategory 
+                ? 'جرب تغيير معايير البحث'
+                : 'سيتم إضافة منتجات قريباً'}
+            </p>
+            {(searchQuery || selectedCategory) && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory(null);
+                }}
+              >
+                إزالة الفلاتر
+              </Button>
             )}
-          </TabsContent>
-        </Tabs>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 pb-8">
+            {products.map((product) => (
+              <ProductCard 
+                key={product.id} 
+                product={product}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </Layout>
   );

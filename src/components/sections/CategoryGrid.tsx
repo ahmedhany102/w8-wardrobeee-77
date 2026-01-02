@@ -13,7 +13,7 @@ interface CategoryGridProps {
 }
 
 const CategoryGrid: React.FC<CategoryGridProps> = ({
-  title = 'Browse Categories',
+  title = 'تصفح الفئات',
   limit = 12,
   onCategorySelect
 }) => {
