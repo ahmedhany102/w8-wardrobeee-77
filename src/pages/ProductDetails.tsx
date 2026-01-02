@@ -13,6 +13,7 @@ import { useCartIntegration } from '@/hooks/useCartIntegration';
 import { ProductVariantSelectorV2 } from '@/components/ProductVariantSelectorV2';
 import { ProductReviews } from '@/components/reviews/ProductReviews';
 import { Separator } from '@/components/ui/separator';
+import { trackProductView } from '@/hooks/useSections';
 
 interface Product {
   id: string;
@@ -111,6 +112,9 @@ const ProductDetails = () => {
 
         setProduct(formattedProduct);
         setActiveImage(formattedProduct.main_image || formattedProduct.images?.[0] || '/placeholder.svg');
+        
+        // Track product view for personalization
+        trackProductView(id);
         
       } catch (error: any) {
         LoadingFallback.clearTimeout('product-details');
