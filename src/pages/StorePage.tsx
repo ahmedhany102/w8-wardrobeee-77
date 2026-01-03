@@ -10,6 +10,7 @@ import { Store, Search, Package, ArrowRight, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useBestSellers, useLastViewed } from '@/hooks/useSections';
 import { ProductCarousel } from '@/components/sections';
+import { useVendorAds } from '@/hooks/useVendorAds';
 
 const StorePage = () => {
   const { vendorSlug } = useParams<{ vendorSlug: string }>();
@@ -28,6 +29,9 @@ const StorePage = () => {
   // Vendor-specific sections
   const { products: bestSellers, loading: bestSellersLoading } = useBestSellers(vendor?.id, 12);
   const { products: lastViewed, loading: lastViewedLoading } = useLastViewed(vendor?.id, 10);
+  
+  // Vendor ads
+  const { ads: vendorAds } = useVendorAds(vendor?.id);
 
   const handleAddToCart = async (product: any, size: string, quantity?: number) => {
     navigate(`/product/${product.id}`);
@@ -190,6 +194,27 @@ const StorePage = () => {
             </div>
           )}
         </div>
+        
+        {/* Vendor Ads - Top Banner */}
+        {!searchQuery && !selectedCategory && vendorAds.length > 0 && (
+          <div className="mb-8 space-y-4">
+            {vendorAds.map((ad) => (
+              <a 
+                key={ad.id}
+                href={ad.redirect_url || '#'}
+                target={ad.redirect_url ? '_blank' : undefined}
+                rel="noopener noreferrer"
+                className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+              >
+                <img 
+                  src={ad.image_url} 
+                  alt={ad.title || 'Store advertisement'}
+                  className="w-full h-32 md:h-48 object-cover"
+                />
+              </a>
+            ))}
+          </div>
+        )}
         
         {/* Best Seller Section - Only show when no filters active */}
         {!searchQuery && !selectedCategory && bestSellers.length > 0 && (

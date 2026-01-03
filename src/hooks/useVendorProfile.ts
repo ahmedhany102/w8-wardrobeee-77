@@ -139,6 +139,7 @@ export const useVendorProfile = () => {
         return false;
       }
 
+      // Update vendor_profiles table
       const { data, error } = await supabase
         .from('vendor_profiles')
         .update(updates)
@@ -150,6 +151,30 @@ export const useVendorProfile = () => {
         console.error('Error updating vendor profile:', error);
         toast.error('فشل في تحديث الملف: ' + error.message);
         return false;
+      }
+
+      // Also update vendors table to keep in sync
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const vendorUpdates: Record<string, any> = {};
+        if (updates.store_name !== undefined) vendorUpdates.name = updates.store_name;
+        if (updates.store_description !== undefined) vendorUpdates.description = updates.store_description;
+        if (updates.phone !== undefined) vendorUpdates.phone = updates.phone;
+        if (updates.address !== undefined) vendorUpdates.address = updates.address;
+        if (updates.logo_url !== undefined) vendorUpdates.logo_url = updates.logo_url;
+        if (updates.cover_url !== undefined) vendorUpdates.cover_url = updates.cover_url;
+
+        if (Object.keys(vendorUpdates).length > 0) {
+          const { error: vendorError } = await supabase
+            .from('vendors')
+            .update(vendorUpdates)
+            .eq('owner_id', user.id);
+
+          if (vendorError) {
+            console.error('Error syncing vendors table:', vendorError);
+            // Don't fail the whole operation, just log the error
+          }
+        }
       }
 
       setProfile(data as VendorProfile);
