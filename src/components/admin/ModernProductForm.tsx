@@ -28,6 +28,8 @@ export const ModernProductForm: React.FC<{
   const [mainImage, setMainImage] = useState(initialData.main_image || "");
   const [discount, setDiscount] = useState(initialData.discount || 0);
   const [hasDiscount, setHasDiscount] = useState(!!initialData.discount);
+  const [isBestSeller, setIsBestSeller] = useState((initialData as any).is_best_seller || false);
+  const [isHotDeal, setIsHotDeal] = useState((initialData as any).is_hot_deal || false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   
@@ -211,7 +213,7 @@ export const ModernProductForm: React.FC<{
         }
       }
 
-      const productData: Omit<Product, "id"> = {
+      const productData: any = {
         name: name.trim(),
         description: description.trim(),
         price: basePrice,
@@ -222,6 +224,8 @@ export const ModernProductForm: React.FC<{
         stock: variants.reduce((sum, v) => sum + v.options.reduce((s, o) => s + o.stock, 0), 0),
         inventory: variants.reduce((sum, v) => sum + v.options.reduce((s, o) => s + o.stock, 0), 0),
         featured: false,
+        is_best_seller: isBestSeller,
+        is_hot_deal: isHotDeal,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -432,6 +436,33 @@ export const ModernProductForm: React.FC<{
                 />
               </div>
             )}
+          </div>
+
+          {/* Best Seller & Hot Deal Toggles (Admin only) */}
+          <div className="space-y-3 border-t pt-4">
+            <Label className="text-lg font-semibold">تصنيفات خاصة</Label>
+            <div className="flex flex-wrap gap-6">
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="isBestSeller" 
+                  checked={isBestSeller} 
+                  onChange={(e) => setIsBestSeller(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="isBestSeller" className="cursor-pointer">⭐ الأكثر مبيعاً (Best Seller)</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="isHotDeal" 
+                  checked={isHotDeal} 
+                  onChange={(e) => setIsHotDeal(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <Label htmlFor="isHotDeal" className="cursor-pointer">🔥 عرض ساخن (Hot Deal)</Label>
+              </div>
+            </div>
           </div>
 
           {/* Error Message */}
