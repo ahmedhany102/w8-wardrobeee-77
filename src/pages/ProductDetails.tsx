@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import Layout from '@/components/Layout';
-import { Plus, Minus, ShoppingCart, Loader2, Store } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Loader2, Store, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { formatProductForDisplay } from '@/utils/productUtils';
@@ -14,6 +14,8 @@ import { ProductVariantSelectorV2 } from '@/components/ProductVariantSelectorV2'
 import { ProductReviews } from '@/components/reviews/ProductReviews';
 import { Separator } from '@/components/ui/separator';
 import { trackProductView } from '@/hooks/useSections';
+import { useSimilarProducts, useMoreFromVendor } from '@/hooks/useProductRecommendations';
+import RecommendationCarousel from '@/components/sections/RecommendationCarousel';
 
 interface Product {
   id: string;
@@ -31,6 +33,8 @@ interface Product {
   inventory?: number;
   vendor_store_name?: string;
   vendor_logo_url?: string;
+  vendor_slug?: string;
+  vendor_id?: string;
   [key: string]: any;
 }
 
@@ -46,6 +50,7 @@ interface VariantSelection {
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToCart } = useCartIntegration();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,6 +58,7 @@ const ProductDetails = () => {
   const [activeImage, setActiveImage] = useState<string>('');
   const [addingToCart, setAddingToCart] = useState(false);
   const [hasVariants, setHasVariants] = useState(false);
+  const [vendorId, setVendorId] = useState<string | null>(null);
   const [variantSelection, setVariantSelection] = useState<VariantSelection>({
     colorVariantId: null,
     color: null,
@@ -61,6 +67,14 @@ const ProductDetails = () => {
     stock: 0,
     image: null
   });
+
+  // Check if user came from a vendor store
+  const isFromVendorStore = location.pathname.includes('/store/') || 
+    (location.state as any)?.fromVendor === true;
+
+  // Fetch recommendations
+  const { products: similarProducts, loading: similarLoading } = useSimilarProducts(id, 8);
+  const { products: moreFromVendor, loading: moreFromVendorLoading } = useMoreFromVendor(id, vendorId || undefined, 8);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -99,6 +113,7 @@ const ProductDetails = () => {
 
           const formattedProduct = formatProductForDisplay(data);
           setProduct(formattedProduct);
+          setVendorId(data.vendor_id || null);
           setActiveImage(formattedProduct.main_image || formattedProduct.images?.[0] || '/placeholder.svg');
           return;
         }
@@ -107,10 +122,12 @@ const ProductDetails = () => {
         const formattedProduct = {
           ...formatProductForDisplay(productData),
           vendor_store_name: productData.vendor_store_name,
-          vendor_logo_url: productData.vendor_logo_url
+          vendor_logo_url: productData.vendor_logo_url,
+          vendor_id: (productData as any).vendor_id
         };
 
         setProduct(formattedProduct);
+        setVendorId((productData as any).vendor_id || null);
         setActiveImage(formattedProduct.main_image || formattedProduct.images?.[0] || '/placeholder.svg');
         
         // Track product view for personalization
@@ -446,6 +463,43 @@ const ProductDetails = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Recommendations Section */}
+        <div className="mt-12">
+          <Separator className="mb-8" />
+          
+          {/* Similar Products */}
+          {similarProducts.length > 0 && (
+            <RecommendationCarousel
+              title="منتجات مشابهة"
+              products={similarProducts}
+              loading={similarLoading}
+              icon={<Sparkles className="w-5 h-5" />}
+              showMoreLink={isFromVendorStore ? undefined : "/recommendations/similar"}
+            />
+          )}
+          
+          {/* More From This Store */}
+          {moreFromVendor.length > 0 && vendorId && (
+            <>
+              <Separator className="my-6" />
+              <RecommendationCarousel
+                title="المزيد من هذا المتجر"
+                products={moreFromVendor}
+                loading={moreFromVendorLoading}
+                icon={<Store className="w-5 h-5" />}
+                showMoreAction={() => {
+                  // Find vendor slug from products
+                  const vendorSlug = moreFromVendor[0]?.vendor_slug || product?.vendor_slug;
+                  if (vendorSlug) {
+                    navigate(`/store/${vendorSlug}`);
+                  }
+                }}
+                showMoreLabel="زيارة المتجر"
+              />
+            </>
+          )}
         </div>
 
         {/* Reviews Section */}
