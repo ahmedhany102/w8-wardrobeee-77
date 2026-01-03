@@ -195,26 +195,32 @@ const StorePage = () => {
           )}
         </div>
         
-        {/* Vendor Ads - Top Banner */}
-        {!searchQuery && !selectedCategory && vendorAds.length > 0 && (
-          <div className="mb-8 space-y-4">
-            {vendorAds.map((ad) => (
-              <a 
-                key={ad.id}
-                href={ad.redirect_url || '#'}
-                target={ad.redirect_url ? '_blank' : undefined}
-                rel="noopener noreferrer"
-                className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-              >
-                <img 
-                  src={ad.image_url} 
-                  alt={ad.title || 'Store advertisement'}
-                  className="w-full h-32 md:h-48 object-cover"
-                />
-              </a>
-            ))}
-          </div>
-        )}
+        {/* Vendor Ads - Position-Based Rendering */}
+        {!searchQuery && !selectedCategory && (() => {
+          // Separate ads by position: top (0-9) vs mid (10+)
+          const topAds = vendorAds.filter(ad => ad.position < 10);
+          const midAds = vendorAds.filter(ad => ad.position >= 10);
+          
+          return topAds.length > 0 ? (
+            <div className="mb-8 space-y-4">
+              {topAds.map((ad) => (
+                <a 
+                  key={ad.id}
+                  href={ad.redirect_url || '#'}
+                  target={ad.redirect_url ? '_blank' : undefined}
+                  rel="noopener noreferrer"
+                  className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                >
+                  <img 
+                    src={ad.image_url} 
+                    alt={ad.title || 'Store advertisement'}
+                    className="w-full h-32 md:h-48 object-cover"
+                  />
+                </a>
+              ))}
+            </div>
+          ) : null;
+        })()}
         
         {/* Best Seller Section - Only show when no filters active */}
         {!searchQuery && !selectedCategory && bestSellers.length > 0 && (
@@ -237,6 +243,32 @@ const StorePage = () => {
             />
           </div>
         )}
+        
+        {/* Vendor Mid-Page Ads - Rendered BETWEEN sections */}
+        {!searchQuery && !selectedCategory && (() => {
+          const midAds = vendorAds.filter(ad => ad.position >= 10);
+          if (midAds.length === 0) return null;
+          
+          return (
+            <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {midAds.map((ad) => (
+                <a 
+                  key={ad.id}
+                  href={ad.redirect_url || '#'}
+                  target={ad.redirect_url ? '_blank' : undefined}
+                  rel="noopener noreferrer"
+                  className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                >
+                  <img 
+                    src={ad.image_url} 
+                    alt={ad.title || 'Store advertisement'}
+                    className="w-full h-40 md:h-48 object-cover"
+                  />
+                </a>
+              ))}
+            </div>
+          );
+        })()}
         
         {/* Products Grid */}
         <div className="mb-4">

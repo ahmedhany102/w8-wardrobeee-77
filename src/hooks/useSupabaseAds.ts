@@ -26,11 +26,14 @@ export const useSupabaseAds = () => {
   const fetchAds = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Fetching ads from database...');
+      console.log('🔄 Fetching Super Admin ads (global) from database...');
 
+      // CRITICAL: Only fetch ads where vendor_id IS NULL (Super Admin ads)
+      // Vendor ads are strictly scoped to their store pages only
       const { data, error } = await supabase
         .from('ads')
         .select('*')
+        .is('vendor_id', null)
         .order('position', { ascending: true });
 
       if (error) {
