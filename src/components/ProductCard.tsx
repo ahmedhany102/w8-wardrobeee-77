@@ -48,11 +48,23 @@ const ProductCard = ({ product, className = '', variants = [] }: ProductCardProp
     "/placeholder.svg";
   
   // Check if product is out of stock - Fix availability logic
-  const isOutOfStock = variants.length > 0 
-    ? variants.every(v => v.stock <= 0)
-    : (Array.isArray(product.sizes) && product.sizes.length > 0
-        ? product.sizes.every(s => !s || s.stock <= 0) 
-        : ((product.inventory || 0) === 0 && (product.stock || 0) === 0));
+  // Priority: variants > sizes > direct stock/inventory fields
+  const checkStockAvailability = () => {
+    // If variants exist, check variant stock
+    if (variants.length > 0) {
+      return variants.every(v => v.stock <= 0);
+    }
+    // If sizes exist, check size stock
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      return product.sizes.every(s => !s || s.stock <= 0);
+    }
+    // Check direct stock and inventory fields (support both naming conventions)
+    const stockValue = product.stock ?? (product as any).stock ?? 0;
+    const inventoryValue = product.inventory ?? (product as any).inventory ?? 0;
+    // Product is in stock if either stock or inventory > 0
+    return stockValue <= 0 && inventoryValue <= 0;
+  };
+  const isOutOfStock = checkStockAvailability();
   
   // Calculate price (base price + variant adjustment)
   const basePrice = product.price || 0;

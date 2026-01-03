@@ -1116,9 +1116,11 @@ export type Database = {
           discount: number
           id: string
           image_url: string
+          inventory: number
           name: string
           price: number
           rating: number
+          stock: number
           vendor_logo_url: string
           vendor_name: string
           vendor_slug: string
@@ -1130,9 +1132,11 @@ export type Database = {
           discount: number
           id: string
           image_url: string
+          inventory: number
           name: string
           price: number
           rating: number
+          stock: number
           vendor_logo_url: string
           vendor_name: string
           vendor_slug: string
@@ -1145,9 +1149,11 @@ export type Database = {
           discount: number
           id: string
           image_url: string
+          inventory: number
           name: string
           price: number
           rating: number
+          stock: number
           vendor_logo_url: string
           vendor_name: string
           vendor_slug: string
@@ -1252,10 +1258,12 @@ export type Database = {
           discount: number
           id: string
           image_url: string
+          inventory: number
           name: string
           price: number
           rating: number
           sort_order: number
+          stock: number
           vendor_logo_url: string
           vendor_name: string
           vendor_slug: string

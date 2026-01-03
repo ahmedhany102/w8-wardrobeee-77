@@ -12,6 +12,7 @@ import { VendorStatusBanner } from '@/components/vendor/VendorStatusBanner';
 import { VendorProductsTab } from '@/components/vendor/VendorProductsTab';
 import { VendorOrdersTab } from '@/components/vendor/VendorOrdersTab';
 import VendorAdsManagement from '@/components/vendor/VendorAdsManagement';
+import VendorAnalytics from '@/components/vendor/VendorAnalytics';
 import { useVendorProducts } from '@/hooks/useVendorProducts';
 import { useVendorOrders } from '@/hooks/useVendorOrders';
 
@@ -156,19 +157,16 @@ const VendorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <Card>
-              <CardHeader>
-                <CardTitle>التحليلات</CardTitle>
-                <CardDescription>إحصائيات أداء متجرك</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
+            {vendorId ? (
+              <VendorAnalytics vendorId={vendorId} />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
                   <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>لا توجد بيانات كافية</p>
-                  <p className="text-sm">ستظهر التحليلات بعد إضافة منتجات وتلقي طلبات</p>
-                </div>
-              </CardContent>
-            </Card>
+                  <p className="text-muted-foreground">جاري التحميل...</p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="settings">
