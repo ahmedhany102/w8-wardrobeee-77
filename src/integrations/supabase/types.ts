@@ -25,6 +25,7 @@ export type Database = {
           redirect_url: string | null
           title: string | null
           updated_at: string
+          vendor_id: string | null
         }
         Insert: {
           created_at?: string
@@ -36,6 +37,7 @@ export type Database = {
           redirect_url?: string | null
           title?: string | null
           updated_at?: string
+          vendor_id?: string | null
         }
         Update: {
           created_at?: string
@@ -47,8 +49,17 @@ export type Database = {
           redirect_url?: string | null
           title?: string | null
           updated_at?: string
+          vendor_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ads_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cart_items: {
         Row: {
@@ -628,6 +639,7 @@ export type Database = {
           images: Json | null
           inventory: number | null
           is_best_seller: boolean | null
+          is_hot_deal: boolean | null
           main_image: string | null
           name: string | null
           price: number | null
@@ -652,6 +664,7 @@ export type Database = {
           images?: Json | null
           inventory?: number | null
           is_best_seller?: boolean | null
+          is_hot_deal?: boolean | null
           main_image?: string | null
           name?: string | null
           price?: number | null
@@ -676,6 +689,7 @@ export type Database = {
           images?: Json | null
           inventory?: number | null
           is_best_seller?: boolean | null
+          is_hot_deal?: boolean | null
           main_image?: string | null
           name?: string | null
           price?: number | null
@@ -1279,6 +1293,18 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_vendor_ads: {
+        Args: { _vendor_id: string }
+        Returns: {
+          ad_position: number
+          description: string
+          id: string
+          image_url: string
+          is_active: boolean
+          redirect_url: string
+          title: string
+        }[]
+      }
       get_vendor_categories: {
         Args: { _vendor_id: string }
         Returns: {
@@ -1351,6 +1377,7 @@ export type Database = {
           images: Json | null
           inventory: number | null
           is_best_seller: boolean | null
+          is_hot_deal: boolean | null
           main_image: string | null
           name: string | null
           price: number | null
@@ -1384,6 +1411,7 @@ export type Database = {
           images: Json | null
           inventory: number | null
           is_best_seller: boolean | null
+          is_hot_deal: boolean | null
           main_image: string | null
           name: string | null
           price: number | null

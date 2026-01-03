@@ -1,6 +1,5 @@
 import React from 'react';
 import Layout from '@/components/Layout';
-import { DynamicSections } from '@/components/sections';
 import ProductCatalog from '@/components/ProductCatalog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader } from '@/components/ui/loader';
@@ -8,9 +7,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Store, ShoppingBag } from 'lucide-react';
 import VendorsGrid from '@/components/VendorsGrid';
 
+// Import section components directly for fixed layout
+import AdCarousel from '@/components/AdCarousel';
+import CategoryGrid from '@/components/sections/CategoryGrid';
+import MidPageAds from '@/components/MidPageAds';
+import { ProductCarousel } from '@/components/sections';
+import { useBestSellers, useHotDeals, useLastViewed } from '@/hooks/useSections';
+import { Star, Flame, Clock } from 'lucide-react';
+
 const Index = () => {
   const { user, loading } = useAuth();
   const [activeTab, setActiveTab] = React.useState<'home' | 'products' | 'vendors'>('home');
+
+  // Fetch section data
+  const { products: bestSellers, loading: bestSellersLoading } = useBestSellers(undefined, 12);
+  const { products: hotDeals, loading: hotDealsLoading } = useHotDeals(undefined, 12);
+  const { products: lastViewed, loading: lastViewedLoading } = useLastViewed(undefined, 10);
 
   // Show loading state while maintaining layout to prevent CLS
   if (loading) {
@@ -54,8 +66,59 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="home" className="mt-6">
-            {/* Dynamic Sections Engine */}
-            <DynamicSections scope="global" />
+            {/* Fixed Homepage Layout - Explicit Section Order */}
+            <div className="space-y-6">
+              {/* 1. Hero Banner / Ad Carousel */}
+              <section>
+                <AdCarousel />
+              </section>
+
+              {/* 2. Categories Grid */}
+              <section>
+                <CategoryGrid limit={10} />
+              </section>
+
+              {/* 3. Best Sellers */}
+              <section>
+                <ProductCarousel
+                  title="Best Sellers"
+                  products={bestSellers}
+                  loading={bestSellersLoading}
+                  variant="best_seller"
+                  icon={<Star className="w-5 h-5" fill="currentColor" />}
+                  showMoreLink="/best-sellers"
+                />
+              </section>
+
+              {/* 4. Mid-Page Ads (2 side-by-side) */}
+              <section>
+                <MidPageAds className="my-4" />
+              </section>
+
+              {/* 5. Hot Deals */}
+              <section>
+                <ProductCarousel
+                  title="Hot Deals 🔥"
+                  products={hotDeals}
+                  loading={hotDealsLoading}
+                  variant="hot_deals"
+                  icon={<Flame className="w-5 h-5" />}
+                  showMoreLink="/hot-deals"
+                />
+              </section>
+
+              {/* 6. Last Viewed (only for logged-in users) */}
+              {user && lastViewed.length > 0 && (
+                <section>
+                  <ProductCarousel
+                    title="Recently Viewed"
+                    products={lastViewed}
+                    loading={lastViewedLoading}
+                    icon={<Clock className="w-5 h-5" />}
+                  />
+                </section>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="products" className="mt-6">

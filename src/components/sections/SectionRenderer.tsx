@@ -33,7 +33,7 @@ const BestSellerSection: React.FC<{ config: Section['config']; vendorId?: string
       loading={loading}
       variant="best_seller"
       icon={<Star className="w-5 h-5" fill="currentColor" />}
-      showMoreLink={vendorId ? undefined : "/products?filter=best_seller"}
+      showMoreLink={vendorId ? undefined : "/best-sellers"}
     />
   );
 };
@@ -48,10 +48,11 @@ const HotDealsSection: React.FC<{ config: Section['config']; vendorId?: string }
       loading={loading}
       variant="hot_deals"
       icon={<Flame className="w-5 h-5" />}
-      showMoreLink={vendorId ? undefined : "/products?filter=hot_deals"}
+      showMoreLink={vendorId ? undefined : "/hot-deals"}
     />
   );
 };
+
 
 const LastViewedSection: React.FC<{ config: Section['config']; vendorId?: string }> = ({ config, vendorId }) => {
   const { user } = useAuth();
