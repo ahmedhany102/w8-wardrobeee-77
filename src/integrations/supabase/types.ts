@@ -851,6 +851,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           scope: string
+          slug: string | null
           sort_order: number
           title: string
           type: string
@@ -863,6 +864,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           scope?: string
+          slug?: string | null
           sort_order?: number
           title: string
           type: string
@@ -875,6 +877,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           scope?: string
+          slug?: string | null
           sort_order?: number
           title?: string
           type?: string
@@ -1097,6 +1100,11 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: boolean
       }
+      delete_vendor_ad: {
+        Args: { p_ad_id: string; p_vendor_id: string }
+        Returns: boolean
+      }
+      generate_section_slug: { Args: { p_title: string }; Returns: string }
       generate_vendor_slug: { Args: { p_store_name: string }; Returns: string }
       get_active_vendors: {
         Args: never
@@ -1282,6 +1290,22 @@ export type Database = {
           vendor_id: string
         }[]
       }
+      get_similar_products: {
+        Args: { _limit?: number; _product_id: string }
+        Returns: {
+          discount: number
+          id: string
+          image_url: string
+          inventory: number
+          name: string
+          price: number
+          rating: number
+          stock: number
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
+        }[]
+      }
       get_user_highest_role: { Args: { _user_id: string }; Returns: string }
       get_user_orders: {
         Args: { user_uuid: string }
@@ -1344,6 +1368,22 @@ export type Database = {
           product_count: number
           scope: string
           slug: string
+        }[]
+      }
+      get_vendor_more_products: {
+        Args: { _limit?: number; _product_id: string; _vendor_id: string }
+        Returns: {
+          discount: number
+          id: string
+          image_url: string
+          inventory: number
+          name: string
+          price: number
+          rating: number
+          stock: number
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
         }[]
       }
       get_vendor_order_info: {

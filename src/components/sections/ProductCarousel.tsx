@@ -167,6 +167,15 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
             ? product.price - (product.price * product.discount / 100)
             : product.price;
 
+          // Check stock availability using SAME logic as ProductCard/ProductDetails
+          const checkStockAvailability = () => {
+            const stockValue = (product as any).stock ?? 0;
+            const inventoryValue = (product as any).inventory ?? 0;
+            // Product is out of stock if BOTH stock and inventory are <= 0
+            return stockValue <= 0 && inventoryValue <= 0;
+          };
+          const isOutOfStock = checkStockAvailability();
+
           return (
             <Card
               key={product.id}
@@ -202,6 +211,13 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
                     <Star className="w-3 h-3" fill="currentColor" />
                     الأكثر مبيعاً
                   </Badge>
+                )}
+
+                {/* Out of Stock Overlay */}
+                {isOutOfStock && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <span className="text-white font-bold">غير متوفر</span>
+                  </div>
                 )}
               </div>
 
@@ -247,11 +263,12 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
               <CardFooter className="p-3 pt-0">
                 <Button
                   onClick={(e) => handleAddToCart(e, product)}
-                  className="w-full text-sm bg-primary hover:bg-primary/90 text-primary-foreground"
+                  className={`w-full text-sm ${isOutOfStock ? 'bg-muted text-muted-foreground cursor-not-allowed' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}`}
                   size="sm"
+                  disabled={isOutOfStock}
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  أضف للسلة
+                  {isOutOfStock ? 'غير متوفر' : 'أضف للسلة'}
                 </Button>
               </CardFooter>
             </Card>

@@ -23,7 +23,7 @@ const CategoryGridSection: React.FC<{ config: Section['config']; onCategorySelec
   return <CategoryGrid limit={config.limit || 10} onCategorySelect={onCategorySelect} />;
 };
 
-const BestSellerSection: React.FC<{ config: Section['config']; vendorId?: string }> = ({ config, vendorId }) => {
+const BestSellerSection: React.FC<{ config: Section['config']; vendorId?: string; sectionSlug?: string }> = ({ config, vendorId, sectionSlug }) => {
   const { products, loading } = useBestSellers(vendorId, config.limit || 12);
   
   return (
@@ -95,6 +95,7 @@ const ManualSection: React.FC<{ section: Section }> = ({ section }) => {
       title={section.title}
       products={products}
       loading={loading}
+      showMoreLink={section.slug ? `/section/${section.slug}` : `/section/${section.id}`}
     />
   );
 };

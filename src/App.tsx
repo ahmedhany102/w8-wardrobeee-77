@@ -24,6 +24,7 @@ import Vendors from './pages/Vendors';
 import StorePage from './pages/StorePage';
 import BestSellers from './pages/BestSellers';
 import HotDeals from './pages/HotDeals';
+import SectionPage from './pages/SectionPage';
 
 import { Toaster } from '@/components/ui/toaster';
 import { Toaster as SonnerToaster } from 'sonner';
@@ -63,6 +64,7 @@ function App() {
                 <Route path="/store/:vendorSlug" element={<StorePage />} />
                 <Route path="/best-sellers" element={<BestSellers />} />
                 <Route path="/hot-deals" element={<HotDeals />} />
+                <Route path="/section/:id" element={<SectionPage />} />
 
                 {/* Protected routes */}
                 <Route element={<RequireAuth adminOnly={false} />}>

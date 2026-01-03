@@ -6,6 +6,7 @@ export interface Section {
   vendor_id: string | null;
   sort_order: number;
   is_active: boolean;
+  slug?: string;
   config: {
     limit?: number;
     category_id?: string;
@@ -20,6 +21,8 @@ export interface SectionProduct {
   discount: number | null;
   image_url: string | null;
   rating: number | null;
+  stock?: number | null;
+  inventory?: number | null;
   vendor_name: string | null;
   vendor_slug: string | null;
   vendor_logo_url: string | null;

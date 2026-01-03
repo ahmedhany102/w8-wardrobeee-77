@@ -93,6 +93,8 @@ const BestSellers = () => {
                   main_image: product.image_url,
                   image_url: product.image_url,
                   rating: product.rating,
+                  stock: (product as any).stock,
+                  inventory: (product as any).inventory,
                 }}
                 onAddToCart={handleAddToCart}
               />

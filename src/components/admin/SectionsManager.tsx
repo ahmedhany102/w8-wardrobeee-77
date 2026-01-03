@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, GripVertical, Package, Star, Flame, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Edit2, GripVertical, Package, Star, Flame, Eye, EyeOff, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Section {
@@ -221,6 +221,31 @@ const SectionsManager: React.FC = () => {
     }
   };
 
+  const handleMoveSection = async (sectionId: string, direction: 'up' | 'down') => {
+    const currentIndex = sections.findIndex(s => s.id === sectionId);
+    if (currentIndex === -1) return;
+    
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sections.length) return;
+
+    try {
+      const currentSection = sections[currentIndex];
+      const targetSection = sections[targetIndex];
+
+      // Swap sort_order values
+      await Promise.all([
+        supabase.from('sections').update({ sort_order: targetSection.sort_order }).eq('id', currentSection.id),
+        supabase.from('sections').update({ sort_order: currentSection.sort_order }).eq('id', targetSection.id)
+      ]);
+
+      toast.success('Section order updated');
+      fetchSections();
+    } catch (error: any) {
+      console.error('Error moving section:', error);
+      toast.error('Failed to move section');
+    }
+  };
+
   const openEditDialog = (section: Section) => {
     setEditingSection(section);
     setTitle(section.title);
@@ -385,8 +410,26 @@ const SectionsManager: React.FC = () => {
             <Card key={section.id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  <div className="cursor-grab text-muted-foreground">
-                    <GripVertical className="w-5 h-5" />
+                  {/* Reorder buttons */}
+                  <div className="flex flex-col gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      disabled={index === 0}
+                      onClick={() => handleMoveSection(section.id, 'up')}
+                    >
+                      <ArrowUp className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6"
+                      disabled={index === sections.length - 1}
+                      onClick={() => handleMoveSection(section.id, 'down')}
+                    >
+                      <ArrowDown className="w-4 h-4" />
+                    </Button>
                   </div>
                   <div className="flex items-center gap-2 text-primary">
                     {getTypeIcon(section.type)}
@@ -400,14 +443,26 @@ const SectionsManager: React.FC = () => {
                         {section.is_active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                         {section.is_active ? 'Active' : 'Hidden'}
                       </span>
+                      <span>•</span>
+                      <span className="text-xs">Order: {section.sort_order}</span>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     {section.type === 'manual' && (
-                      <Button variant="outline" size="sm" onClick={() => openProductsDialog(section)}>
-                        <Package className="w-4 h-4 mr-1" />
-                        Products
-                      </Button>
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => openProductsDialog(section)}>
+                          <Package className="w-4 h-4 mr-1" />
+                          Products
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => window.open(`/section/${(section as any).slug || section.id}`, '_blank')}
+                          title="Preview Section Page"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </Button>
+                      </>
                     )}
                     <Button variant="outline" size="icon" onClick={() => openEditDialog(section)}>
                       <Edit2 className="w-4 h-4" />
