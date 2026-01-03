@@ -150,7 +150,8 @@ const VendorAdsManagement: React.FC<VendorAdsManagementProps> = ({ vendorId }) =
           position: positionValue,
           is_active: isActive
         })
-        .eq('id', editingAd.id);
+        .eq('id', editingAd.id)
+        .eq('vendor_id', vendorId);
 
       if (error) throw error;
 
@@ -172,7 +173,8 @@ const VendorAdsManagement: React.FC<VendorAdsManagementProps> = ({ vendorId }) =
       const { error } = await supabase
         .from('ads')
         .delete()
-        .eq('id', adId);
+        .eq('id', adId)
+        .eq('vendor_id', vendorId);
 
       if (error) throw error;
 
