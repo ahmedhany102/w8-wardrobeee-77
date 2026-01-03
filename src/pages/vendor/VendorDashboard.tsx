@@ -155,14 +155,6 @@ const VendorDashboard = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="products">
-            <VendorProductsTab isApproved={isApproved} />
-          </TabsContent>
-
-          <TabsContent value="orders">
-            <VendorOrdersTab isApproved={isApproved} />
-          </TabsContent>
-
           <TabsContent value="analytics">
             <Card>
               <CardHeader>

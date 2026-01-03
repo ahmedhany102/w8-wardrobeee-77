@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 interface Coupon {
   id: string;
   code: string;
-  discount_kind: 'percent' | 'fixed';
+  discount_kind: 'percentage' | 'fixed';
   discount_value: number;
   expiration_date?: string;
   usage_limit?: number;
@@ -46,7 +46,7 @@ export const useSupabaseCoupons = () => {
       const typedCoupons = (data || []).map(coupon => ({
         id: coupon.id,
         code: coupon.code,
-        discount_kind: coupon.discount_kind as 'percent' | 'fixed',
+        discount_kind: coupon.discount_kind as 'percentage' | 'fixed',
         discount_value: coupon.discount_value,
         expiration_date: coupon.expiration_date,
         usage_limit: coupon.usage_limit,
@@ -95,7 +95,7 @@ export const useSupabaseCoupons = () => {
       const coupon: Coupon = {
         id: data.id,
         code: data.code,
-        discount_kind: data.discount_kind as 'percent' | 'fixed',
+        discount_kind: data.discount_kind as 'percentage' | 'fixed',
         discount_value: data.discount_value,
         expiration_date: data.expiration_date,
         usage_limit: data.usage_limit,
@@ -169,7 +169,7 @@ export const useSupabaseCoupons = () => {
       
       // Calculate discount amount for display
       let discountAmount = 0;
-      if (coupon.discount_kind === 'percent') {
+      if (coupon.discount_kind === 'percentage') {
         discountAmount = orderTotal * (coupon.discount_value / 100);
       } else if (coupon.discount_kind === 'fixed') {
         discountAmount = Math.min(coupon.discount_value, orderTotal);

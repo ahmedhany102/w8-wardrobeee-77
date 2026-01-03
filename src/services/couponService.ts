@@ -57,9 +57,10 @@ export class CouponService {
         };
       }
 
-      // Calculate discount
+      // Calculate discount (support both 'percent'/'percentage')
       let discountAmount = 0;
-      if (coupon.discount_kind === 'percent') {
+      const kind = String(coupon.discount_kind || '').toLowerCase();
+      if (kind === 'percent' || kind === 'percentage') {
         discountAmount = (orderTotal * coupon.discount_value) / 100;
       } else {
         discountAmount = coupon.discount_value;
