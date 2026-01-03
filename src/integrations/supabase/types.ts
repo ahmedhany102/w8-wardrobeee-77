@@ -918,6 +918,7 @@ export type Database = {
       vendor_profiles: {
         Row: {
           address: string | null
+          commission_rate: number | null
           cover_url: string | null
           created_at: string
           id: string
@@ -932,6 +933,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          commission_rate?: number | null
           cover_url?: string | null
           created_at?: string
           id?: string
@@ -946,6 +948,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          commission_rate?: number | null
           cover_url?: string | null
           created_at?: string
           id?: string
@@ -963,6 +966,7 @@ export type Database = {
       vendors: {
         Row: {
           address: string | null
+          commission_rate: number | null
           cover_url: string | null
           created_at: string
           description: string | null
@@ -977,6 +981,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          commission_rate?: number | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
@@ -991,6 +996,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          commission_rate?: number | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
@@ -1305,6 +1311,21 @@ export type Database = {
           title: string
         }[]
       }
+      get_vendor_analytics: {
+        Args: { _vendor_id?: string }
+        Returns: {
+          commission_rate: number
+          month_revenue: number
+          platform_commission: number
+          today_revenue: number
+          total_orders: number
+          total_revenue: number
+          vendor_id: string
+          vendor_name: string
+          vendor_payout: number
+          week_revenue: number
+        }[]
+      }
       get_vendor_categories: {
         Args: { _vendor_id: string }
         Returns: {
@@ -1447,6 +1468,15 @@ export type Database = {
           user_name: string
         }[]
       }
+      get_vendor_top_products: {
+        Args: { _limit?: number; _vendor_id: string }
+        Returns: {
+          product_id: string
+          product_name: string
+          total_revenue: number
+          total_sold: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1468,6 +1498,10 @@ export type Database = {
       }
       update_user_status: {
         Args: { new_status: string; target_user_id: string }
+        Returns: boolean
+      }
+      update_vendor_commission: {
+        Args: { _commission_rate: number; _vendor_id: string }
         Returns: boolean
       }
       update_vendor_status: {

@@ -16,7 +16,9 @@ import UsersPanel from "@/components/admin/UsersPanel";
 import CategoryManagement from "@/components/admin/CategoryManagement";
 import AdminDashboardStats from "@/components/AdminDashboardStats";
 import { ReviewsManagement } from "@/components/admin/ReviewsManagement";
-import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree, Star, Store, ShoppingCart } from "lucide-react";
+import SectionsManager from "@/components/admin/SectionsManager";
+import RevenueAnalytics from "@/components/admin/RevenueAnalytics";
+import { Home, LogOut, Package, Settings, Ticket, Users, FolderTree, Star, Store, ShoppingCart, LayoutGrid, BarChart3 } from "lucide-react";
 import { useSupabaseProducts, useSupabaseUsers, useSupabaseOrders } from "@/hooks/useSupabaseData";
 import AdminVendors from "@/pages/admin/AdminVendors";
 
@@ -91,6 +93,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <FolderTree className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">الأقسام</span>
             </TabsTrigger>
+            <TabsTrigger value="sections" onClick={() => setCurrentTab("sections")}>
+              <LayoutGrid className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">السيكشنز</span>
+            </TabsTrigger>
             <TabsTrigger value="products" onClick={() => navigate("/admin/products")}>
               <Package className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">المنتجات</span>
@@ -127,6 +133,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
               <Store className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">البائعين</span>
             </TabsTrigger>
+            <TabsTrigger value="analytics" onClick={() => setCurrentTab("analytics")}>
+              <BarChart3 className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">الإيرادات</span>
+            </TabsTrigger>
             <TabsTrigger value="users" onClick={() => navigate("/admin/users")}>
               <Users className="w-4 h-4 mr-2" />
               <span className="hidden sm:inline">المستخدمين</span>
@@ -151,6 +161,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
           <TabsContent value="categories">
             <CategoryManagement />
+          </TabsContent>
+
+          <TabsContent value="sections">
+            <SectionsManager />
           </TabsContent>
 
           <TabsContent value="products">
@@ -187,6 +201,10 @@ const Admin = ({ activeTab = "dashboard" }) => {
 
           <TabsContent value="vendors">
             <AdminVendors />
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <RevenueAnalytics />
           </TabsContent>
           
           <TabsContent value="users">
