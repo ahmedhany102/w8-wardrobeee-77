@@ -17,7 +17,21 @@ export function useSections(scope: 'global' | 'vendor' = 'global', vendorId?: st
           });
 
         if (error) throw error;
-        setSections((data as Section[]) || []);
+        
+        // Map data to Section type with proper defaults
+        const mappedSections: Section[] = (data || []).map((s: any) => ({
+          id: s.id,
+          title: s.title || '',
+          type: s.type || 'manual',
+          scope: s.scope || 'global',
+          vendor_id: s.vendor_id || null,
+          sort_order: s.sort_order || 0,
+          is_active: s.is_active ?? true,
+          slug: s.slug || null,
+          config: s.config || {}
+        }));
+        
+        setSections(mappedSections);
       } catch (err) {
         console.error('Error fetching sections:', err);
         setSections([]);
