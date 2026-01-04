@@ -11,6 +11,7 @@ export interface Section {
     limit?: number;
     category_id?: string;
     auto?: boolean;
+    background_color?: string;
   };
 }
 

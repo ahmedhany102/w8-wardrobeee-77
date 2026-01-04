@@ -195,13 +195,12 @@ const StorePage = () => {
           )}
         </div>
         
-        {/* Vendor Ads - Position-Based Rendering */}
+        {/* Vendor Ads - Top Position (0-9) */}
         {!searchQuery && !selectedCategory && (() => {
-          // Separate ads by position: top (0-9) vs mid (10+)
           const topAds = vendorAds.filter(ad => ad.position < 10);
-          const midAds = vendorAds.filter(ad => ad.position >= 10);
+          if (topAds.length === 0) return null;
           
-          return topAds.length > 0 ? (
+          return (
             <div className="mb-8 space-y-4">
               {topAds.map((ad) => (
                 <a 
@@ -219,7 +218,7 @@ const StorePage = () => {
                 </a>
               ))}
             </div>
-          ) : null;
+          );
         })()}
         
         {/* Best Seller Section - Only show when no filters active */}
@@ -233,20 +232,9 @@ const StorePage = () => {
           </div>
         )}
         
-        {/* Last Viewed Section - Only show when no filters active */}
-        {!searchQuery && !selectedCategory && lastViewed.length > 0 && (
-          <div className="mb-8">
-            <ProductCarousel
-              title="Recently Viewed"
-              products={lastViewed}
-              loading={lastViewedLoading}
-            />
-          </div>
-        )}
-        
-        {/* Vendor Mid-Page Ads - Rendered BETWEEN sections */}
+        {/* Vendor Mid-Page Ads - Position 10-19 (between Best Sellers and Last Viewed) */}
         {!searchQuery && !selectedCategory && (() => {
-          const midAds = vendorAds.filter(ad => ad.position >= 10);
+          const midAds = vendorAds.filter(ad => ad.position >= 10 && ad.position < 20);
           if (midAds.length === 0) return null;
           
           return (
@@ -269,6 +257,17 @@ const StorePage = () => {
             </div>
           );
         })()}
+        
+        {/* Last Viewed Section - Only show when no filters active */}
+        {!searchQuery && !selectedCategory && lastViewed.length > 0 && (
+          <div className="mb-8">
+            <ProductCarousel
+              title="Recently Viewed"
+              products={lastViewed}
+              loading={lastViewedLoading}
+            />
+          </div>
+        )}
         
         {/* Products Grid */}
         <div className="mb-4">

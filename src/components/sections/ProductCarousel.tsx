@@ -16,6 +16,7 @@ interface ProductCarouselProps {
   showMoreLink?: string;
   variant?: 'default' | 'hot_deals' | 'best_seller';
   icon?: React.ReactNode;
+  backgroundColor?: string;
 }
 
 const ProductCarousel: React.FC<ProductCarouselProps> = ({
@@ -24,7 +25,8 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
   loading = false,
   showMoreLink,
   variant = 'default',
-  icon
+  icon,
+  backgroundColor
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -91,22 +93,35 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
   if (products.length === 0) return null;
 
   const getVariantStyles = () => {
+    // If a custom background color is provided, use it
+    if (backgroundColor) {
+      return {
+        headerBg: '',
+        headerStyle: { backgroundColor },
+        headerText: 'text-white',
+        badge: 'bg-primary text-primary-foreground'
+      };
+    }
+    
     switch (variant) {
       case 'hot_deals':
         return {
           headerBg: 'bg-gradient-to-r from-red-500 to-orange-500',
+          headerStyle: {},
           headerText: 'text-white',
           badge: 'bg-red-500 text-white'
         };
       case 'best_seller':
         return {
           headerBg: 'bg-gradient-to-r from-amber-500 to-yellow-500',
+          headerStyle: {},
           headerText: 'text-white',
           badge: 'bg-amber-500 text-white'
         };
       default:
         return {
           headerBg: 'bg-transparent',
+          headerStyle: {},
           headerText: 'text-foreground',
           badge: 'bg-primary text-primary-foreground'
         };
@@ -117,8 +132,10 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
 
   return (
     <div className="mb-8">
-      {/* Header */}
-      <div className={`flex items-center justify-between mb-4 p-3 rounded-lg ${styles.headerBg}`}>
+      <div 
+        className={`flex items-center justify-between mb-4 p-3 rounded-lg ${styles.headerBg}`}
+        style={styles.headerStyle}
+      >
         <div className={`flex items-center gap-2 ${styles.headerText}`}>
           {icon}
           <h2 className="text-lg md:text-xl font-bold">{title}</h2>
