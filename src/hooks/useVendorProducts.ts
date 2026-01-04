@@ -113,23 +113,16 @@ export const useVendorProducts = (statusFilter?: string) => {
 
       const cleanData = cleanProductDataForInsert(productData, user.id);
       
-      // Look up category_id from category name if provided
-      let categoryId = null;
-      if (cleanData.category) {
-        const { data: categoryData } = await supabase
-          .from('categories')
-          .select('id')
-          .eq('name', cleanData.category)
-          .maybeSingle();
-        categoryId = categoryData?.id || null;
-      }
+      // The category field from HierarchicalCategorySelector is already a UUID (the child category ID)
+      // We use it directly as category_id - no name lookup needed
+      const categoryId = cleanData.category || null;
       
       // Set initial status to 'pending' for vendor products - requires admin approval
       const dataWithVendor = { 
         ...cleanData, 
         status: 'pending',
         vendor_id: vendorData.id,
-        category_id: categoryId || cleanData.category, // Use category as fallback if it's already a UUID
+        category_id: categoryId, // Use category directly as it's already the child category UUID
         is_best_seller: (productData as any).is_best_seller || false
       };
 

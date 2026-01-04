@@ -69,39 +69,52 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
   const hasHotDeals = sections.some(s => s.type === 'hot_deals');
   const hasLastViewed = sections.some(s => s.type === 'last_viewed');
 
-  // Filter sections to show in the dynamic area (excluding the ones we render separately)
-  const dynamicSections = sections.filter(s => 
-    !['hero_carousel', 'category_grid'].includes(s.type)
+  // Get sections that display products/content (excluding fixed position elements)
+  const productSections = sections.filter(s => 
+    !['hero_carousel', 'category_grid', 'mid_page_ads'].includes(s.type)
   );
+
+  // Sections to show BEFORE mid-page ads (max 1)
+  const sectionsBeforeAds = productSections.slice(0, 1);
+  // Sections to show AFTER mid-page ads
+  const sectionsAfterAds = productSections.slice(1);
 
   return (
     <div className="space-y-6">
-      {/* 1. ALWAYS render Hero Banner if not explicitly added as section */}
-      {!hasHeroSection && (
+      {/* 1. ALWAYS render Hero Banner first */}
+      {!hasHeroSection ? (
         <section>
           <AdCarousel />
         </section>
+      ) : (
+        sections.filter(s => s.type === 'hero_carousel').map(section => (
+          <SectionRenderer
+            key={section.id}
+            section={section}
+            vendorId={vendorId}
+            onCategorySelect={onCategorySelect}
+          />
+        ))
       )}
-      
-      {/* Render hero_carousel section if configured */}
-      {hasHeroSection && sections.filter(s => s.type === 'hero_carousel').map(section => (
-        <SectionRenderer
-          key={section.id}
-          section={section}
-          vendorId={vendorId}
-          onCategorySelect={onCategorySelect}
-        />
-      ))}
 
-      {/* 2. ALWAYS render Categories Grid if not explicitly added as section */}
-      {!hasCategorySection && (
+      {/* 2. ALWAYS render Categories Grid */}
+      {!hasCategorySection ? (
         <section>
           <CategoryGrid limit={10} onCategorySelect={onCategorySelect} />
         </section>
+      ) : (
+        sections.filter(s => s.type === 'category_grid').map(section => (
+          <SectionRenderer
+            key={section.id}
+            section={section}
+            vendorId={vendorId}
+            onCategorySelect={onCategorySelect}
+          />
+        ))
       )}
-      
-      {/* Render category_grid section if configured */}
-      {hasCategorySection && sections.filter(s => s.type === 'category_grid').map(section => (
+
+      {/* 3. ONE section BEFORE mid-page ads (if exists) */}
+      {sectionsBeforeAds.map(section => (
         <SectionRenderer
           key={section.id}
           section={section}
@@ -110,29 +123,8 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
         />
       ))}
 
-      {/* 3. Render dynamic sections in order (excluding hero and categories) */}
-      {dynamicSections.map((section, index) => {
-        // Insert mid-page ads after 2nd section if not explicitly configured
-        const shouldInsertAds = !hasMidPageAds && index === 1;
-        
-        return (
-          <React.Fragment key={section.id}>
-            <SectionRenderer
-              section={section}
-              vendorId={vendorId}
-              onCategorySelect={onCategorySelect}
-            />
-            {shouldInsertAds && (
-              <section>
-                <MidPageAds className="my-4" />
-              </section>
-            )}
-          </React.Fragment>
-        );
-      })}
-
-      {/* 4. Show fallback sections if not configured in DB */}
-      {!hasBestSellers && bestSellers.length > 0 && dynamicSections.length === 0 && (
+      {/* 4. Auto best sellers before ads if no sections defined */}
+      {!hasBestSellers && bestSellers.length > 0 && sectionsBeforeAds.length === 0 && (
         <section>
           <ProductCarousel
             title="Best Sellers"
@@ -145,14 +137,34 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
         </section>
       )}
 
-      {/* Mid-page ads fallback (if no sections at all) */}
-      {dynamicSections.length === 0 && !hasMidPageAds && (
+      {/* 5. MID-PAGE ADS - FIXED POSITION (always in the middle) */}
+      {hasMidPageAds ? (
+        sections.filter(s => s.type === 'mid_page_ads').map(section => (
+          <SectionRenderer
+            key={section.id}
+            section={section}
+            vendorId={vendorId}
+            onCategorySelect={onCategorySelect}
+          />
+        ))
+      ) : (
         <section>
           <MidPageAds className="my-4" />
         </section>
       )}
 
-      {!hasHotDeals && hotDeals.length > 0 && dynamicSections.length === 0 && (
+      {/* 6. ALL remaining sections AFTER mid-page ads */}
+      {sectionsAfterAds.map(section => (
+        <SectionRenderer
+          key={section.id}
+          section={section}
+          vendorId={vendorId}
+          onCategorySelect={onCategorySelect}
+        />
+      ))}
+
+      {/* 7. Auto hot deals after ads if not configured */}
+      {!hasHotDeals && hotDeals.length > 0 && (
         <section>
           <ProductCarousel
             title="Hot Deals 🔥"
@@ -165,7 +177,7 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
         </section>
       )}
 
-      {/* 5. Always show Last Viewed for logged-in users */}
+      {/* 8. Last Viewed - always shows for logged-in users at the end */}
       {user && !hasLastViewed && lastViewed.length > 0 && (
         <section>
           <ProductCarousel
