@@ -165,6 +165,52 @@ const SectionsManager: React.FC = () => {
     try {
       const maxOrder = sections.length > 0 ? Math.max(...sections.map(s => s.sort_order)) + 1 : 0;
       
+      // Generate slug using database function
+      const { data: slugData, error: slugError } = await supabase
+        .rpc('generate_section_slug', { p_title: title.trim() });
+      
+      if (slugError) {
+        console.error('Error generating slug:', slugError);
+        // Fallback slug generation
+      }
+      
+      const slug = slugData || title.trim().toLowerCase()
+        .replace(/[أإآا]/g, 'a')
+        .replace(/[ب]/g, 'b')
+        .replace(/[ت]/g, 't')
+        .replace(/[ث]/g, 'th')
+        .replace(/[ج]/g, 'j')
+        .replace(/[ح]/g, 'h')
+        .replace(/[خ]/g, 'kh')
+        .replace(/[د]/g, 'd')
+        .replace(/[ذ]/g, 'dh')
+        .replace(/[ر]/g, 'r')
+        .replace(/[ز]/g, 'z')
+        .replace(/[س]/g, 's')
+        .replace(/[ش]/g, 'sh')
+        .replace(/[ص]/g, 's')
+        .replace(/[ض]/g, 'd')
+        .replace(/[ط]/g, 't')
+        .replace(/[ظ]/g, 'z')
+        .replace(/[ع]/g, 'a')
+        .replace(/[غ]/g, 'gh')
+        .replace(/[ف]/g, 'f')
+        .replace(/[ق]/g, 'q')
+        .replace(/[ك]/g, 'k')
+        .replace(/[ل]/g, 'l')
+        .replace(/[م]/g, 'm')
+        .replace(/[ن]/g, 'n')
+        .replace(/[ه]/g, 'h')
+        .replace(/[و]/g, 'w')
+        .replace(/[ي]/g, 'y')
+        .replace(/[ى]/g, 'a')
+        .replace(/[ة]/g, 'h')
+        .replace(/[\u0600-\u06FF]/g, '') // Remove any remaining Arabic
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .substring(0, 50) || `section-${Date.now()}`;
+      
       const { error } = await supabase
         .from('sections')
         .insert({
@@ -173,6 +219,7 @@ const SectionsManager: React.FC = () => {
           scope: 'global',
           sort_order: maxOrder,
           is_active: isActive,
+          slug,
           config: backgroundColor ? { background_color: backgroundColor } : {}
         });
 
