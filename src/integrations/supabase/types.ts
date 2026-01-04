@@ -1266,7 +1266,9 @@ export type Database = {
           stock: number
           updated_at: string
           user_id: string
+          vendor_id: string
           vendor_logo_url: string
+          vendor_slug: string
           vendor_store_name: string
         }[]
       }
