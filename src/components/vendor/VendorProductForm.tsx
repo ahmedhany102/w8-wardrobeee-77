@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,11 +6,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ImageUploader from '@/components/admin/ImageUploader';
-import CategorySelector from '@/components/admin/CategorySelector';
+import HierarchicalCategorySelector from '@/components/admin/HierarchicalCategorySelector';
 import ProductColorVariantManager from '@/components/admin/ProductColorVariantManager';
 import { ProductFormData } from '@/types/product';
 import { VendorProduct } from '@/hooks/useVendorProducts';
 import { ProductVariantService, ProductVariant } from '@/services/productVariantService';
+import { useCategories } from '@/hooks/useCategories';
 import { toast } from 'sonner';
 
 interface VendorProductFormProps {
@@ -38,11 +39,26 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
   onCancel,
   loading = false,
 }) => {
+  const { categories } = useCategories();
+  
+  // Find parent category for initial data
+  const findParentCategoryId = (categoryId: string | null | undefined): string | null => {
+    if (!categoryId) return null;
+    const category = categories.find(c => c.id === categoryId);
+    return category?.parent_id || null;
+  };
+
+  const initialCategoryId = initialData?.category_id || initialData?.category || '';
+  const initialParentId = findParentCategoryId(initialCategoryId);
+
+  const [parentCategoryId, setParentCategoryId] = useState<string | null>(initialParentId);
+  const [childCategoryId, setChildCategoryId] = useState<string | null>(initialCategoryId || null);
+  
   const [formData, setFormData] = useState<ProductFormData & { is_best_seller?: boolean }>({
     name: initialData?.name || '',
     description: initialData?.description || '',
     price: initialData?.price || 0,
-    category: initialData?.category_id || initialData?.category || '', // Use category_id first
+    category: initialCategoryId,
     main_image: initialData?.main_image || initialData?.image_url || '',
     images: initialData?.images || [],
     colors: initialData?.colors || [],
@@ -170,10 +186,14 @@ export const VendorProductForm: React.FC<VendorProductFormProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>الفئة</Label>
-              <CategorySelector
-                value={formData.category || ''}
-                onChange={(value) => handleChange('category', value)}
+              <HierarchicalCategorySelector
+                parentCategoryId={parentCategoryId}
+                childCategoryId={childCategoryId}
+                onParentChange={(id) => setParentCategoryId(id)}
+                onChildChange={(id) => {
+                  setChildCategoryId(id);
+                  handleChange('category', id || '');
+                }}
               />
             </div>
 

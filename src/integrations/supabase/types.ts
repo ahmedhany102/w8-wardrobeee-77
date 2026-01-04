@@ -1118,22 +1118,39 @@ export type Database = {
           status: string
         }[]
       }
-      get_best_seller_products: {
-        Args: { _limit?: number; _vendor_id?: string }
-        Returns: {
-          discount: number
-          id: string
-          image_url: string
-          inventory: number
-          name: string
-          price: number
-          rating: number
-          stock: number
-          vendor_logo_url: string
-          vendor_name: string
-          vendor_slug: string
-        }[]
-      }
+      get_best_seller_products:
+        | {
+            Args: { _limit?: number; _vendor_id?: string }
+            Returns: {
+              discount: number
+              id: string
+              image_url: string
+              inventory: number
+              name: string
+              price: number
+              rating: number
+              stock: number
+              vendor_logo_url: string
+              vendor_name: string
+              vendor_slug: string
+            }[]
+          }
+        | {
+            Args: { _limit?: number; _vendor_id?: string }
+            Returns: {
+              discount: number
+              id: string
+              image_url: string
+              inventory: number
+              name: string
+              price: number
+              rating: number
+              stock: number
+              vendor_logo_url: string
+              vendor_name: string
+              vendor_slug: string
+            }[]
+          }
       get_category_products: {
         Args: { _category_id: string; _limit?: number; _vendor_id?: string }
         Returns: {
@@ -1151,32 +1168,51 @@ export type Database = {
         }[]
       }
       get_current_user_role: { Args: never; Returns: string }
-      get_hot_deals_products: {
-        Args: { _limit?: number; _vendor_id?: string }
-        Returns: {
-          discount: number
-          id: string
-          image_url: string
-          inventory: number
-          name: string
-          price: number
-          rating: number
-          stock: number
-          vendor_logo_url: string
-          vendor_name: string
-          vendor_slug: string
-        }[]
-      }
-      get_last_viewed_products:
+      get_hot_deals_products:
         | {
-            Args: { _limit?: number; _user_id: string }
+            Args: { _limit?: number; _vendor_id?: string }
             Returns: {
               discount: number
               id: string
               image_url: string
+              inventory: number
               name: string
               price: number
               rating: number
+              stock: number
+              vendor_logo_url: string
+              vendor_name: string
+              vendor_slug: string
+            }[]
+          }
+        | {
+            Args: { _limit?: number; _vendor_id?: string }
+            Returns: {
+              discount: number
+              id: string
+              image_url: string
+              inventory: number
+              name: string
+              price: number
+              rating: number
+              stock: number
+              vendor_logo_url: string
+              vendor_name: string
+              vendor_slug: string
+            }[]
+          }
+      get_last_viewed_products:
+        | {
+            Args: { _limit?: number; _user_id: string; _vendor_id?: string }
+            Returns: {
+              discount: number
+              id: string
+              image_url: string
+              inventory: number
+              name: string
+              price: number
+              rating: number
+              stock: number
               vendor_logo_url: string
               vendor_name: string
               vendor_slug: string
@@ -1232,6 +1268,27 @@ export type Database = {
           user_id: string
           vendor_logo_url: string
           vendor_store_name: string
+        }[]
+      }
+      get_products_by_category: {
+        Args: {
+          _category_id: string
+          _exclude_product_id?: string
+          _limit?: number
+          _offset?: number
+        }
+        Returns: {
+          discount: number
+          id: string
+          image_url: string
+          inventory: number
+          name: string
+          price: number
+          rating: number
+          stock: number
+          vendor_logo_url: string
+          vendor_name: string
+          vendor_slug: string
         }[]
       }
       get_products_with_vendor: {

@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SectionProduct } from '@/types/section';
 
 /**
- * Hook to fetch similar products based on category
+ * Hook to fetch similar products based on the SAME category (child level)
  */
 export function useSimilarProducts(productId: string | undefined, limit: number = 8) {
   const [products, setProducts] = useState<SectionProduct[]>([]);
@@ -29,7 +29,22 @@ export function useSimilarProducts(productId: string | undefined, limit: number 
           return;
         }
 
-        setProducts((data || []) as SectionProduct[]);
+        // Map data to ensure stock/inventory have defaults
+        const mappedProducts: SectionProduct[] = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name || '',
+          price: p.price || 0,
+          discount: p.discount || null,
+          image_url: p.image_url || null,
+          rating: p.rating || null,
+          stock: p.stock ?? 0,
+          inventory: p.inventory ?? 0,
+          vendor_name: p.vendor_name || null,
+          vendor_slug: p.vendor_slug || null,
+          vendor_logo_url: p.vendor_logo_url || null
+        }));
+
+        setProducts(mappedProducts);
       } catch (err) {
         console.error('Exception fetching similar products:', err);
         setProducts([]);
@@ -72,7 +87,22 @@ export function useMoreFromVendor(productId: string | undefined, vendorId: strin
           return;
         }
 
-        setProducts((data || []) as SectionProduct[]);
+        // Map data to ensure stock/inventory have defaults
+        const mappedProducts: SectionProduct[] = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name || '',
+          price: p.price || 0,
+          discount: p.discount || null,
+          image_url: p.image_url || null,
+          rating: p.rating || null,
+          stock: p.stock ?? 0,
+          inventory: p.inventory ?? 0,
+          vendor_name: p.vendor_name || null,
+          vendor_slug: p.vendor_slug || null,
+          vendor_logo_url: p.vendor_logo_url || null
+        }));
+
+        setProducts(mappedProducts);
       } catch (err) {
         console.error('Exception fetching vendor products:', err);
         setProducts([]);

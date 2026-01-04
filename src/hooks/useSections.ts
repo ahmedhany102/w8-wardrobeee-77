@@ -48,7 +48,23 @@ export function useSectionProducts(sectionId: string, limit: number = 12) {
           });
 
         if (error) throw error;
-        setProducts((data as SectionProduct[]) || []);
+        
+        // Map to ensure stock/inventory have defaults
+        const mappedProducts: SectionProduct[] = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name || '',
+          price: p.price || 0,
+          discount: p.discount || null,
+          image_url: p.image_url || null,
+          rating: p.rating || null,
+          stock: p.stock ?? 0,
+          inventory: p.inventory ?? 0,
+          vendor_name: p.vendor_name || null,
+          vendor_slug: p.vendor_slug || null,
+          vendor_logo_url: p.vendor_logo_url || null
+        }));
+        
+        setProducts(mappedProducts);
       } catch (err) {
         console.error('Error fetching section products:', err);
         setProducts([]);
@@ -78,7 +94,23 @@ export function useBestSellers(vendorId?: string, limit: number = 12) {
           });
 
         if (error) throw error;
-        setProducts((data as SectionProduct[]) || []);
+        
+        // Map to ensure stock/inventory have defaults
+        const mappedProducts: SectionProduct[] = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name || '',
+          price: p.price || 0,
+          discount: p.discount || null,
+          image_url: p.image_url || null,
+          rating: p.rating || null,
+          stock: p.stock ?? 0,
+          inventory: p.inventory ?? 0,
+          vendor_name: p.vendor_name || null,
+          vendor_slug: p.vendor_slug || null,
+          vendor_logo_url: p.vendor_logo_url || null
+        }));
+        
+        setProducts(mappedProducts);
       } catch (err) {
         console.error('Error fetching best sellers:', err);
         setProducts([]);
@@ -108,7 +140,23 @@ export function useHotDeals(vendorId?: string, limit: number = 12) {
           });
 
         if (error) throw error;
-        setProducts((data as SectionProduct[]) || []);
+        
+        // Map to ensure stock/inventory have defaults
+        const mappedProducts: SectionProduct[] = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name || '',
+          price: p.price || 0,
+          discount: p.discount || null,
+          image_url: p.image_url || null,
+          rating: p.rating || null,
+          stock: p.stock ?? 0,
+          inventory: p.inventory ?? 0,
+          vendor_name: p.vendor_name || null,
+          vendor_slug: p.vendor_slug || null,
+          vendor_logo_url: p.vendor_logo_url || null
+        }));
+        
+        setProducts(mappedProducts);
       } catch (err) {
         console.error('Error fetching hot deals:', err);
         setProducts([]);
@@ -137,61 +185,31 @@ export function useLastViewed(vendorId?: string, limit: number = 10) {
 
       setLoading(true);
       try {
-        // Query product_views directly and join with products and vendors
+        // Use the RPC function which now includes stock/inventory
         const { data, error } = await supabase
-          .from('product_views')
-          .select(`
-            product_id,
-            viewed_at,
-            products!inner (
-              id,
-              name,
-              price,
-              image_url,
-              main_image,
-              discount,
-              rating,
-              vendor_id,
-              status,
-              vendors (
-                name,
-                slug,
-                logo_url
-              )
-            )
-          `)
-          .eq('user_id', user.id)
-          .order('viewed_at', { ascending: false })
-          .limit(limit * 2); // Fetch more to account for filtering
+          .rpc('get_last_viewed_products', {
+            _user_id: user.id,
+            _limit: limit,
+            _vendor_id: vendorId || null
+          });
 
         if (error) throw error;
-
-        // Filter by vendor if specified, and filter active products
-        let filteredData = (data || []).filter((item: any) => {
-          const product = item.products;
-          if (!product) return false;
-          if (product.status !== 'active' && product.status !== 'approved') return false;
-          if (vendorId && product.vendor_id !== vendorId) return false;
-          return true;
-        }).slice(0, limit);
-
-        // Map to SectionProduct format
-        const mappedProducts: SectionProduct[] = filteredData.map((item: any) => {
-          const product = item.products;
-          const vendor = product.vendors;
-          return {
-            id: product.id,
-            name: product.name || '',
-            price: product.price || 0,
-            image_url: product.main_image || product.image_url || '',
-            discount: product.discount || 0,
-            rating: product.rating || 0,
-            vendor_name: vendor?.name || null,
-            vendor_slug: vendor?.slug || null,
-            vendor_logo_url: vendor?.logo_url || null,
-          };
-        });
-
+        
+        // Map to ensure stock/inventory have defaults
+        const mappedProducts: SectionProduct[] = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name || '',
+          price: p.price || 0,
+          discount: p.discount || null,
+          image_url: p.image_url || null,
+          rating: p.rating || null,
+          stock: p.stock ?? 0,
+          inventory: p.inventory ?? 0,
+          vendor_name: p.vendor_name || null,
+          vendor_slug: p.vendor_slug || null,
+          vendor_logo_url: p.vendor_logo_url || null
+        }));
+        
         setProducts(mappedProducts);
       } catch (err) {
         console.error('Error fetching last viewed:', err);

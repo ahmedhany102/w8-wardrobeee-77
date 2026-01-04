@@ -23,6 +23,7 @@ interface Product {
   description?: string;
   price: number;
   category?: string;
+  category_id?: string;
   main_image?: string;
   images?: string[];
   colors?: string[];
@@ -59,6 +60,7 @@ const ProductDetails = () => {
   const [addingToCart, setAddingToCart] = useState(false);
   const [hasVariants, setHasVariants] = useState(false);
   const [vendorId, setVendorId] = useState<string | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [variantSelection, setVariantSelection] = useState<VariantSelection>({
     colorVariantId: null,
     color: null,
@@ -114,6 +116,7 @@ const ProductDetails = () => {
           const formattedProduct = formatProductForDisplay(data);
           setProduct(formattedProduct);
           setVendorId(data.vendor_id || null);
+          setCategoryId(data.category_id || null);
           setActiveImage(formattedProduct.main_image || formattedProduct.images?.[0] || '/placeholder.svg');
           return;
         }
@@ -128,6 +131,7 @@ const ProductDetails = () => {
 
         setProduct(formattedProduct);
         setVendorId((productData as any).vendor_id || null);
+        setCategoryId((productData as any).category_id || null);
         setActiveImage(formattedProduct.main_image || formattedProduct.images?.[0] || '/placeholder.svg');
         
         // Track product view for personalization
@@ -476,7 +480,7 @@ const ProductDetails = () => {
               products={similarProducts}
               loading={similarLoading}
               icon={<Sparkles className="w-5 h-5" />}
-              showMoreLink={isFromVendorStore ? undefined : "/recommendations/similar"}
+              showMoreLink={isFromVendorStore || !categoryId ? undefined : `/recommendations/similar?category_id=${categoryId}&exclude=${id}`}
             />
           )}
           
