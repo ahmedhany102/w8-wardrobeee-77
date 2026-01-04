@@ -89,6 +89,7 @@ const CategoryProductsSection: React.FC<{ config: Section['config']; vendorId?: 
 
 const ManualSection: React.FC<{ section: Section }> = ({ section }) => {
   const { products, loading } = useSectionProducts(section.id, section.config.limit || 12);
+  const backgroundColor = section.config?.background_color;
   
   return (
     <ProductCarousel
@@ -96,6 +97,7 @@ const ManualSection: React.FC<{ section: Section }> = ({ section }) => {
       products={products}
       loading={loading}
       showMoreLink={section.slug ? `/section/${section.slug}` : `/section/${section.id}`}
+      backgroundColor={backgroundColor}
     />
   );
 };

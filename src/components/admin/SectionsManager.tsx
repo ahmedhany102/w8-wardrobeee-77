@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, GripVertical, Package, Star, Flame, Eye, EyeOff, ArrowUp, ArrowDown, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, Star, Flame, Eye, EyeOff, ArrowUp, ArrowDown, ExternalLink, Image, Grid, Clock, Megaphone } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface Section {
@@ -18,6 +18,7 @@ interface Section {
   scope: string;
   sort_order: number;
   is_active: boolean;
+  slug?: string;
   config: Record<string, any> | null;
 }
 
@@ -35,9 +36,26 @@ interface SectionProduct {
 }
 
 const SECTION_TYPES = [
-  { value: 'best_seller', label: 'Best Sellers', icon: Star },
-  { value: 'hot_deals', label: 'Hot Deals', icon: Flame },
-  { value: 'manual', label: 'Custom Curated', icon: Package },
+  { value: 'hero_carousel', label: 'Hero Banner / Ads Carousel', icon: Image, description: 'Top banner ads carousel' },
+  { value: 'category_grid', label: 'Categories Grid', icon: Grid, description: 'Category navigation grid' },
+  { value: 'best_seller', label: 'Best Sellers', icon: Star, description: 'Auto-populated best selling products' },
+  { value: 'hot_deals', label: 'Hot Deals', icon: Flame, description: 'Auto-populated discounted products' },
+  { value: 'last_viewed', label: 'Last Viewed', icon: Clock, description: 'Auto-populated recently viewed products' },
+  { value: 'mid_page_ads', label: 'Mid-Page Ads', icon: Megaphone, description: 'Advertisement banners in middle' },
+  { value: 'manual', label: 'Custom Curated', icon: Package, description: 'Manually add products to this section' },
+];
+
+// Predefined color options for section styling
+const SECTION_COLORS = [
+  { value: '', label: 'Default (No color)' },
+  { value: '#ef4444', label: 'Red' },
+  { value: '#f97316', label: 'Orange' },
+  { value: '#eab308', label: 'Yellow' },
+  { value: '#22c55e', label: 'Green' },
+  { value: '#3b82f6', label: 'Blue' },
+  { value: '#8b5cf6', label: 'Purple' },
+  { value: '#ec4899', label: 'Pink' },
+  { value: '#000000', label: 'Black' },
 ];
 
 const SectionsManager: React.FC = () => {
@@ -55,6 +73,7 @@ const SectionsManager: React.FC = () => {
   const [title, setTitle] = useState('');
   const [type, setType] = useState('manual');
   const [isActive, setIsActive] = useState(true);
+  const [backgroundColor, setBackgroundColor] = useState('');
 
   useEffect(() => {
     fetchSections();
@@ -70,7 +89,10 @@ const SectionsManager: React.FC = () => {
         .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      setSections((data || []).map(s => ({ ...s, config: (s.config as Record<string, any>) || {} })));
+      setSections((data || []).map(s => ({ 
+        ...s, 
+        config: (s.config as Record<string, any>) || {} 
+      })));
     } catch (error: any) {
       console.error('Error fetching sections:', error);
       toast.error('Failed to load sections');
@@ -131,6 +153,7 @@ const SectionsManager: React.FC = () => {
     setTitle('');
     setType('manual');
     setIsActive(true);
+    setBackgroundColor('');
   };
 
   const handleAddSection = async () => {
@@ -150,7 +173,7 @@ const SectionsManager: React.FC = () => {
           scope: 'global',
           sort_order: maxOrder,
           is_active: isActive,
-          config: {}
+          config: backgroundColor ? { background_color: backgroundColor } : {}
         });
 
       if (error) throw error;
@@ -172,12 +195,19 @@ const SectionsManager: React.FC = () => {
     }
 
     try {
+      const existingConfig = editingSection.config || {};
+      const newConfig = { 
+        ...existingConfig, 
+        background_color: backgroundColor || undefined 
+      };
+      
       const { error } = await supabase
         .from('sections')
         .update({
           title: title.trim(),
           type,
           is_active: isActive,
+          config: newConfig,
           updated_at: new Date().toISOString()
         })
         .eq('id', editingSection.id);
@@ -251,6 +281,7 @@ const SectionsManager: React.FC = () => {
     setTitle(section.title);
     setType(section.type);
     setIsActive(section.is_active);
+    setBackgroundColor(section.config?.background_color || '');
     setShowEditDialog(true);
   };
 
@@ -312,13 +343,21 @@ const SectionsManager: React.FC = () => {
     }
   };
 
+  const getTypeConfig = (sectionType: string) => {
+    return SECTION_TYPES.find(t => t.value === sectionType);
+  };
+
   const getTypeIcon = (sectionType: string) => {
-    const typeConfig = SECTION_TYPES.find(t => t.value === sectionType);
+    const typeConfig = getTypeConfig(sectionType);
     if (typeConfig) {
       const Icon = typeConfig.icon;
       return <Icon className="w-4 h-4" />;
     }
     return <Package className="w-4 h-4" />;
+  };
+
+  const isAutoSection = (sectionType: string) => {
+    return ['hero_carousel', 'category_grid', 'best_seller', 'hot_deals', 'last_viewed', 'mid_page_ads'].includes(sectionType);
   };
 
   if (loading) {
@@ -337,7 +376,7 @@ const SectionsManager: React.FC = () => {
         <div>
           <h2 className="text-2xl font-bold">Sections Manager</h2>
           <p className="text-sm text-muted-foreground">
-            Create and manage homepage sections. Assign products to curated sections.
+            Create and manage homepage sections. Some sections auto-populate, others need manual product assignment.
           </p>
         </div>
         <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
@@ -347,7 +386,7 @@ const SectionsManager: React.FC = () => {
               Add Section
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Section</DialogTitle>
             </DialogHeader>
@@ -378,8 +417,31 @@ const SectionsManager: React.FC = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Best Sellers & Hot Deals auto-populate. Manual sections require product assignment.
+                  {getTypeConfig(type)?.description}
                 </p>
+              </div>
+              <div>
+                <Label>Section Title Background Color</Label>
+                <Select value={backgroundColor} onValueChange={setBackgroundColor}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a color" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SECTION_COLORS.map((color) => (
+                      <SelectItem key={color.value || 'default'} value={color.value}>
+                        <span className="flex items-center gap-2">
+                          {color.value && (
+                            <span 
+                              className="w-4 h-4 rounded-full border" 
+                              style={{ backgroundColor: color.value }}
+                            />
+                          )}
+                          {color.label}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={isActive} onCheckedChange={setIsActive} />
@@ -393,14 +455,26 @@ const SectionsManager: React.FC = () => {
         </Dialog>
       </div>
 
+      {/* Info about default sections */}
+      <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
+        <CardContent className="py-3">
+          <p className="text-sm text-blue-700 dark:text-blue-300">
+            <strong>Note:</strong> Hero Banner, Categories Grid, Mid-Page Ads, and Last Viewed sections 
+            are shown automatically if not explicitly added here. Add them as sections only if you 
+            want to control their position or settings.
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Sections List */}
       {sections.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="font-semibold mb-2">No Sections Yet</h3>
-            <p className="text-sm text-muted-foreground">
-              Create sections to organize your homepage content.
+            <p className="text-sm text-muted-foreground mb-4">
+              Default sections (Hero, Categories, Best Sellers, Hot Deals, Last Viewed) will be shown automatically.
+              <br />Create custom sections to add curated product collections.
             </p>
           </CardContent>
         </Card>
@@ -431,11 +505,29 @@ const SectionsManager: React.FC = () => {
                       <ArrowDown className="w-4 h-4" />
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2 text-primary">
+                  
+                  {/* Section icon with optional color */}
+                  <div 
+                    className="flex items-center justify-center gap-2 p-2 rounded"
+                    style={{ 
+                      backgroundColor: section.config?.background_color || 'transparent',
+                      color: section.config?.background_color ? '#fff' : 'inherit'
+                    }}
+                  >
                     {getTypeIcon(section.type)}
                   </div>
+                  
                   <div className="flex-1">
-                    <h4 className="font-medium">{section.title}</h4>
+                    <h4 className="font-medium flex items-center gap-2">
+                      {section.title}
+                      {section.config?.background_color && (
+                        <span 
+                          className="w-3 h-3 rounded-full border"
+                          style={{ backgroundColor: section.config.background_color }}
+                          title="Section color"
+                        />
+                      )}
+                    </h4>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span className="capitalize">{section.type.replace('_', ' ')}</span>
                       <span>•</span>
@@ -443,10 +535,15 @@ const SectionsManager: React.FC = () => {
                         {section.is_active ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                         {section.is_active ? 'Active' : 'Hidden'}
                       </span>
-                      <span>•</span>
-                      <span className="text-xs">Order: {section.sort_order}</span>
+                      {isAutoSection(section.type) && (
+                        <>
+                          <span>•</span>
+                          <span className="text-blue-600 text-xs">Auto-populated</span>
+                        </>
+                      )}
                     </div>
                   </div>
+                  
                   <div className="flex gap-2">
                     {section.type === 'manual' && (
                       <>
@@ -457,7 +554,7 @@ const SectionsManager: React.FC = () => {
                         <Button 
                           variant="outline" 
                           size="icon" 
-                          onClick={() => window.open(`/section/${(section as any).slug || section.id}`, '_blank')}
+                          onClick={() => window.open(`/section/${section.slug || section.id}`, '_blank')}
                           title="Preview Section Page"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -480,7 +577,7 @@ const SectionsManager: React.FC = () => {
 
       {/* Edit Section Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Section</DialogTitle>
           </DialogHeader>
@@ -510,13 +607,39 @@ const SectionsManager: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {getTypeConfig(type)?.description}
+              </p>
+            </div>
+            <div>
+              <Label>Section Title Background Color</Label>
+              <Select value={backgroundColor} onValueChange={setBackgroundColor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a color" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SECTION_COLORS.map((color) => (
+                    <SelectItem key={color.value || 'default'} value={color.value}>
+                      <span className="flex items-center gap-2">
+                        {color.value && (
+                          <span 
+                            className="w-4 h-4 rounded-full border" 
+                            style={{ backgroundColor: color.value }}
+                          />
+                        )}
+                        {color.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2">
               <Switch checked={isActive} onCheckedChange={setIsActive} />
-              <Label>Active</Label>
+              <Label>Active (visible on homepage)</Label>
             </div>
             <Button onClick={handleEditSection} className="w-full">
-              Update Section
+              Save Changes
             </Button>
           </div>
         </DialogContent>
@@ -526,41 +649,43 @@ const SectionsManager: React.FC = () => {
       <Dialog open={showProductsDialog} onOpenChange={setShowProductsDialog}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>Manage Section Products: {editingSection?.title}</DialogTitle>
+            <DialogTitle>Manage Products - {editingSection?.title}</DialogTitle>
           </DialogHeader>
+          
           <div className="flex-1 overflow-auto space-y-4">
-            {/* Current Products */}
+            {/* Current products in section */}
             <div>
-              <h4 className="font-medium mb-2">Current Products ({sectionProducts.length})</h4>
+              <h4 className="font-medium mb-2">Products in Section ({sectionProducts.length})</h4>
               {productsLoading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
+                    <Skeleton key={i} className="h-16 w-full" />
                   ))}
                 </div>
               ) : sectionProducts.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4 text-center">
-                  No products in this section. Add products below.
+                  No products added yet. Add products from below.
                 </p>
               ) : (
-                <div className="space-y-2 max-h-40 overflow-auto">
+                <div className="space-y-2 max-h-48 overflow-auto">
                   {sectionProducts.map((sp) => (
-                    <div key={sp.id} className="flex items-center gap-3 p-2 bg-muted rounded">
+                    <div key={sp.id} className="flex items-center gap-3 p-2 border rounded-lg">
                       <img 
                         src={sp.product?.image_url || '/placeholder.svg'} 
-                        alt={sp.product?.name} 
-                        className="w-10 h-10 object-cover rounded"
+                        alt={sp.product?.name}
+                        className="w-12 h-12 object-cover rounded"
                       />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{sp.product?.name}</p>
-                        <p className="text-xs text-muted-foreground">${sp.product?.price}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{sp.product?.name}</p>
+                        <p className="text-sm text-muted-foreground">${sp.product?.price}</p>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive"
                         onClick={() => handleRemoveProductFromSection(sp.id)}
                       >
-                        <Trash2 className="w-4 h-4 text-destructive" />
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   ))}
@@ -568,28 +693,26 @@ const SectionsManager: React.FC = () => {
               )}
             </div>
 
-            {/* Add Products */}
+            {/* All products to add */}
             <div>
               <h4 className="font-medium mb-2">Add Products</h4>
-              <div className="space-y-2 max-h-60 overflow-auto">
+              <div className="space-y-2 max-h-64 overflow-auto">
                 {allProducts
                   .filter(p => !sectionProducts.some(sp => sp.product_id === p.id))
                   .map((product) => (
-                    <div key={product.id} className="flex items-center gap-3 p-2 border rounded hover:bg-muted/50">
+                    <div key={product.id} className="flex items-center gap-3 p-2 border rounded-lg hover:bg-accent cursor-pointer"
+                      onClick={() => handleAddProductToSection(product.id)}
+                    >
                       <img 
                         src={product.image_url || '/placeholder.svg'} 
-                        alt={product.name} 
-                        className="w-10 h-10 object-cover rounded"
+                        alt={product.name}
+                        className="w-12 h-12 object-cover rounded"
                       />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">{product.name}</p>
-                        <p className="text-xs text-muted-foreground">${product.price}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{product.name}</p>
+                        <p className="text-sm text-muted-foreground">${product.price}</p>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleAddProductToSection(product.id)}
-                      >
+                      <Button size="sm" variant="outline">
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>

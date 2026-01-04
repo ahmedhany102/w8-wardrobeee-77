@@ -24,7 +24,7 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
   const { user } = useAuth();
   const { sections, loading } = useSections(scope, vendorId);
   
-  // Fallback data hooks for when no sections are configured
+  // Fallback data hooks - always loaded for potential use
   const { products: bestSellers, loading: bestSellersLoading } = useBestSellers(vendorId, 12);
   const { products: hotDeals, loading: hotDealsLoading } = useHotDeals(vendorId, 12);
   const { products: lastViewed, loading: lastViewedLoading } = useLastViewed(vendorId, 10);
@@ -61,72 +61,30 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
     );
   }
 
-  // If no sections configured in DB, show default fallback sections
-  if (sections.length === 0) {
-    return (
-      <div className="space-y-6">
-        {/* 1. Hero Banner / Ad Carousel */}
+  // Check which section types are configured in DB
+  const hasHeroSection = sections.some(s => s.type === 'hero_carousel');
+  const hasCategorySection = sections.some(s => s.type === 'category_grid');
+  const hasMidPageAds = sections.some(s => s.type === 'mid_page_ads');
+  const hasBestSellers = sections.some(s => s.type === 'best_seller');
+  const hasHotDeals = sections.some(s => s.type === 'hot_deals');
+  const hasLastViewed = sections.some(s => s.type === 'last_viewed');
+
+  // Filter sections to show in the dynamic area (excluding the ones we render separately)
+  const dynamicSections = sections.filter(s => 
+    !['hero_carousel', 'category_grid'].includes(s.type)
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* 1. ALWAYS render Hero Banner if not explicitly added as section */}
+      {!hasHeroSection && (
         <section>
           <AdCarousel />
         </section>
-
-        {/* 2. Categories Grid */}
-        <section>
-          <CategoryGrid limit={10} onCategorySelect={onCategorySelect} />
-        </section>
-
-        {/* 3. Best Sellers */}
-        {bestSellers.length > 0 && (
-          <section>
-            <ProductCarousel
-              title="Best Sellers"
-              products={bestSellers}
-              loading={bestSellersLoading}
-              variant="best_seller"
-              icon={<Star className="w-5 h-5" fill="currentColor" />}
-              showMoreLink="/best-sellers"
-            />
-          </section>
-        )}
-
-        {/* 4. Mid-Page Ads */}
-        <section>
-          <MidPageAds className="my-4" />
-        </section>
-
-        {/* 5. Hot Deals */}
-        {hotDeals.length > 0 && (
-          <section>
-            <ProductCarousel
-              title="Hot Deals 🔥"
-              products={hotDeals}
-              loading={hotDealsLoading}
-              variant="hot_deals"
-              icon={<Flame className="w-5 h-5" />}
-              showMoreLink="/hot-deals"
-            />
-          </section>
-        )}
-
-        {/* 6. Last Viewed (only for logged-in users) */}
-        {user && lastViewed.length > 0 && (
-          <section>
-            <ProductCarousel
-              title="Recently Viewed"
-              products={lastViewed}
-              loading={lastViewedLoading}
-              icon={<Clock className="w-5 h-5" />}
-            />
-          </section>
-        )}
-      </div>
-    );
-  }
-
-  // Render sections from database
-  return (
-    <div className="space-y-6">
-      {sections.map((section) => (
+      )}
+      
+      {/* Render hero_carousel section if configured */}
+      {hasHeroSection && sections.filter(s => s.type === 'hero_carousel').map(section => (
         <SectionRenderer
           key={section.id}
           section={section}
@@ -134,9 +92,81 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
           onCategorySelect={onCategorySelect}
         />
       ))}
+
+      {/* 2. ALWAYS render Categories Grid if not explicitly added as section */}
+      {!hasCategorySection && (
+        <section>
+          <CategoryGrid limit={10} onCategorySelect={onCategorySelect} />
+        </section>
+      )}
       
-      {/* Always show Last Viewed for logged-in users if not in sections */}
-      {user && lastViewed.length > 0 && !sections.some(s => s.type === 'last_viewed') && (
+      {/* Render category_grid section if configured */}
+      {hasCategorySection && sections.filter(s => s.type === 'category_grid').map(section => (
+        <SectionRenderer
+          key={section.id}
+          section={section}
+          vendorId={vendorId}
+          onCategorySelect={onCategorySelect}
+        />
+      ))}
+
+      {/* 3. Render dynamic sections in order (excluding hero and categories) */}
+      {dynamicSections.map((section, index) => {
+        // Insert mid-page ads after 2nd section if not explicitly configured
+        const shouldInsertAds = !hasMidPageAds && index === 1;
+        
+        return (
+          <React.Fragment key={section.id}>
+            <SectionRenderer
+              section={section}
+              vendorId={vendorId}
+              onCategorySelect={onCategorySelect}
+            />
+            {shouldInsertAds && (
+              <section>
+                <MidPageAds className="my-4" />
+              </section>
+            )}
+          </React.Fragment>
+        );
+      })}
+
+      {/* 4. Show fallback sections if not configured in DB */}
+      {!hasBestSellers && bestSellers.length > 0 && dynamicSections.length === 0 && (
+        <section>
+          <ProductCarousel
+            title="Best Sellers"
+            products={bestSellers}
+            loading={bestSellersLoading}
+            variant="best_seller"
+            icon={<Star className="w-5 h-5" fill="currentColor" />}
+            showMoreLink="/best-sellers"
+          />
+        </section>
+      )}
+
+      {/* Mid-page ads fallback (if no sections at all) */}
+      {dynamicSections.length === 0 && !hasMidPageAds && (
+        <section>
+          <MidPageAds className="my-4" />
+        </section>
+      )}
+
+      {!hasHotDeals && hotDeals.length > 0 && dynamicSections.length === 0 && (
+        <section>
+          <ProductCarousel
+            title="Hot Deals 🔥"
+            products={hotDeals}
+            loading={hotDealsLoading}
+            variant="hot_deals"
+            icon={<Flame className="w-5 h-5" />}
+            showMoreLink="/hot-deals"
+          />
+        </section>
+      )}
+
+      {/* 5. Always show Last Viewed for logged-in users */}
+      {user && !hasLastViewed && lastViewed.length > 0 && (
         <section>
           <ProductCarousel
             title="Recently Viewed"
