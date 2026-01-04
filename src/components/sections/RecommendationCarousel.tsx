@@ -74,8 +74,9 @@ const RecommendationCarousel: React.FC<RecommendationCarouselProps> = ({
 
   // Check stock availability using same logic as ProductCard
   const checkStockAvailability = (product: SectionProduct) => {
-    const stockValue = (product as any).stock ?? 0;
-    const inventoryValue = (product as any).inventory ?? 0;
+    const stockValue = product.stock ?? 0;
+    const inventoryValue = product.inventory ?? 0;
+    // Product is out of stock if BOTH stock and inventory are <= 0
     return stockValue <= 0 && inventoryValue <= 0;
   };
 

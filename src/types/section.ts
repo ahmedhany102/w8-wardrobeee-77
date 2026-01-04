@@ -21,8 +21,8 @@ export interface SectionProduct {
   discount: number | null;
   image_url: string | null;
   rating: number | null;
-  stock?: number | null;
-  inventory?: number | null;
+  stock: number;
+  inventory: number;
   vendor_name: string | null;
   vendor_slug: string | null;
   vendor_logo_url: string | null;
