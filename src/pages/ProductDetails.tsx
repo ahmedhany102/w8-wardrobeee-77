@@ -126,12 +126,13 @@ const ProductDetails = () => {
           ...formatProductForDisplay(productData),
           vendor_store_name: productData.vendor_store_name,
           vendor_logo_url: productData.vendor_logo_url,
-          vendor_id: (productData as any).vendor_id
+          vendor_id: productData.vendor_id,
+          vendor_slug: productData.vendor_slug
         };
 
         setProduct(formattedProduct);
-        setVendorId((productData as any).vendor_id || null);
-        setCategoryId((productData as any).category_id || null);
+        setVendorId(productData.vendor_id || null);
+        setCategoryId(productData.category_id || null);
         setActiveImage(formattedProduct.main_image || formattedProduct.images?.[0] || '/placeholder.svg');
         
         // Track product view for personalization
