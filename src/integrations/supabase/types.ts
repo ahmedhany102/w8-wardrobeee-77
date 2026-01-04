@@ -1341,6 +1341,7 @@ export type Database = {
           id: string
           is_active: boolean
           scope: string
+          slug: string
           sort_order: number
           title: string
           type: string
