@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import ProductGrid from '@/components/ProductGrid';
@@ -18,17 +18,41 @@ const CategoryPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { products, loading: productsLoading } = useSupabaseProducts();
-  const { categories, loading: categoriesLoading } = useCategories();
+  const { categories, subcategories: getSubcategories, loading: categoriesLoading } = useCategories();
   const { cartItems, addToCart: addToCartDB, removeFromCart, updateQuantity, clearCart } = useCartIntegration();
   const [showCartDialog, setShowCartDialog] = useState(false);
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
 
   // Find the current category
   const category = categories.find(cat => cat.slug === slug);
 
-  // Filter products by category
-  const categoryProducts = category
-    ? products.filter(product => product.category_id === category.id)
-    : products;
+  // Get subcategories for current category (if it's a parent)
+  const childCategories = useMemo(() => {
+    if (!category?.id) return [];
+    return getSubcategories(category.id);
+  }, [category?.id, getSubcategories]);
+
+  // Check if this is a parent category (has no parent_id and has children)
+  const isParentCategory = category && !category.parent_id && childCategories.length > 0;
+
+  // Filter products by category hierarchy
+  const categoryProducts = useMemo(() => {
+    if (!category) return products;
+
+    if (selectedSubcategory) {
+      // User selected a specific subcategory
+      return products.filter(product => product.category_id === selectedSubcategory);
+    }
+
+    if (isParentCategory) {
+      // On parent category - show products from all child categories
+      const childIds = childCategories.map(c => c.id);
+      return products.filter(product => childIds.includes(product.category_id));
+    }
+
+    // On a child category or category without children - exact match
+    return products.filter(product => product.category_id === category.id);
+  }, [category, selectedSubcategory, isParentCategory, childCategories, products]);
 
   // Product filtering (search)
   const {
@@ -144,6 +168,36 @@ const CategoryPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Subcategory Tabs - shown when on parent category */}
+        {isParentCategory && childCategories.length > 0 && (
+          <div className="mb-6">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <Button
+                variant={!selectedSubcategory ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedSubcategory(null)}
+                className="whitespace-nowrap"
+              >
+                الكل ({categoryProducts.length})
+              </Button>
+              {childCategories.map(sub => {
+                const subCount = products.filter(p => p.category_id === sub.id).length;
+                return (
+                  <Button
+                    key={sub.id}
+                    variant={selectedSubcategory === sub.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedSubcategory(sub.id)}
+                    className="whitespace-nowrap"
+                  >
+                    {sub.name} ({subCount})
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Product Catalog Header */}
         <ProductCatalogHeader
