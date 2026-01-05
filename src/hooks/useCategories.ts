@@ -37,7 +37,13 @@ export const useCategories = () => {
     setLoading(false);
   };
 
-  const mainCategories = categories.filter(c => !c.parent_id && c.is_active);
+  // Filter root categories only (no parent)
+  const mainCategories = categories.filter(c => {
+    const hasNoParent = !c.parent_id || c.parent_id === null;
+    return hasNoParent && c.is_active;
+  });
+
+  // Get subcategories for a given parent
   const subcategories = (parentId: string) =>
     categories.filter(c => c.parent_id === parentId && c.is_active);
 
