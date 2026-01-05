@@ -47,7 +47,7 @@ const SECTION_TYPES = [
 
 // Predefined color options for section styling
 const SECTION_COLORS = [
-  { value: '', label: 'Default (No color)' },
+  { value: 'none', label: 'Default (No color)' },
   { value: '#ef4444', label: 'Red' },
   { value: '#f97316', label: 'Orange' },
   { value: '#eab308', label: 'Yellow' },
@@ -68,12 +68,12 @@ const SectionsManager: React.FC = () => {
   const [sectionProducts, setSectionProducts] = useState<SectionProduct[]>([]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
-  
+
   // Form state
   const [title, setTitle] = useState('');
   const [type, setType] = useState('manual');
   const [isActive, setIsActive] = useState(true);
-  const [backgroundColor, setBackgroundColor] = useState('');
+  const [backgroundColor, setBackgroundColor] = useState('none');
 
   useEffect(() => {
     fetchSections();
@@ -89,9 +89,9 @@ const SectionsManager: React.FC = () => {
         .order('sort_order', { ascending: true });
 
       if (error) throw error;
-      setSections((data || []).map(s => ({ 
-        ...s, 
-        config: (s.config as Record<string, any>) || {} 
+      setSections((data || []).map(s => ({
+        ...s,
+        config: (s.config as Record<string, any>) || {}
       })));
     } catch (error: any) {
       console.error('Error fetching sections:', error);
@@ -153,7 +153,7 @@ const SectionsManager: React.FC = () => {
     setTitle('');
     setType('manual');
     setIsActive(true);
-    setBackgroundColor('');
+    setBackgroundColor('none');
   };
 
   const handleAddSection = async () => {
@@ -164,16 +164,16 @@ const SectionsManager: React.FC = () => {
 
     try {
       const maxOrder = sections.length > 0 ? Math.max(...sections.map(s => s.sort_order)) + 1 : 0;
-      
+
       // Generate slug using database function
       const { data: slugData, error: slugError } = await supabase
         .rpc('generate_section_slug', { p_title: title.trim() });
-      
+
       if (slugError) {
         console.error('Error generating slug:', slugError);
         // Fallback slug generation
       }
-      
+
       const slug = slugData || title.trim().toLowerCase()
         .replace(/[أإآا]/g, 'a')
         .replace(/[ب]/g, 'b')
@@ -210,7 +210,7 @@ const SectionsManager: React.FC = () => {
         .replace(/[^a-z0-9-]/g, '')
         .replace(/-+/g, '-')
         .substring(0, 50) || `section-${Date.now()}`;
-      
+
       const { error } = await supabase
         .from('sections')
         .insert({
@@ -220,7 +220,7 @@ const SectionsManager: React.FC = () => {
           sort_order: maxOrder,
           is_active: isActive,
           slug,
-          config: backgroundColor ? { background_color: backgroundColor } : {}
+          config: backgroundColor && backgroundColor !== 'none' ? { background_color: backgroundColor } : {}
         });
 
       if (error) throw error;
@@ -243,11 +243,11 @@ const SectionsManager: React.FC = () => {
 
     try {
       const existingConfig = editingSection.config || {};
-      const newConfig = { 
-        ...existingConfig, 
-        background_color: backgroundColor || undefined 
+      const newConfig = {
+        ...existingConfig,
+        background_color: backgroundColor && backgroundColor !== 'none' ? backgroundColor : undefined
       };
-      
+
       const { error } = await supabase
         .from('sections')
         .update({
@@ -301,7 +301,7 @@ const SectionsManager: React.FC = () => {
   const handleMoveSection = async (sectionId: string, direction: 'up' | 'down') => {
     const currentIndex = sections.findIndex(s => s.id === sectionId);
     if (currentIndex === -1) return;
-    
+
     const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (targetIndex < 0 || targetIndex >= sections.length) return;
 
@@ -328,7 +328,7 @@ const SectionsManager: React.FC = () => {
     setTitle(section.title);
     setType(section.type);
     setIsActive(section.is_active);
-    setBackgroundColor(section.config?.background_color || '');
+    setBackgroundColor(section.config?.background_color || 'none');
     setShowEditDialog(true);
   };
 
@@ -349,8 +349,8 @@ const SectionsManager: React.FC = () => {
     }
 
     try {
-      const maxOrder = sectionProducts.length > 0 
-        ? Math.max(...sectionProducts.map(sp => sp.sort_order)) + 1 
+      const maxOrder = sectionProducts.length > 0
+        ? Math.max(...sectionProducts.map(sp => sp.sort_order)) + 1
         : 0;
 
       const { error } = await supabase
@@ -440,8 +440,8 @@ const SectionsManager: React.FC = () => {
             <div className="space-y-4">
               <div>
                 <Label>Section Title</Label>
-                <Input 
-                  value={title} 
+                <Input
+                  value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Featured Products"
                 />
@@ -478,8 +478,8 @@ const SectionsManager: React.FC = () => {
                       <SelectItem key={color.value || 'default'} value={color.value}>
                         <span className="flex items-center gap-2">
                           {color.value && (
-                            <span 
-                              className="w-4 h-4 rounded-full border" 
+                            <span
+                              className="w-4 h-4 rounded-full border"
                               style={{ backgroundColor: color.value }}
                             />
                           )}
@@ -506,8 +506,8 @@ const SectionsManager: React.FC = () => {
       <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
         <CardContent className="py-3">
           <p className="text-sm text-blue-700 dark:text-blue-300">
-            <strong>Note:</strong> Hero Banner, Categories Grid, Mid-Page Ads, and Last Viewed sections 
-            are shown automatically if not explicitly added here. Add them as sections only if you 
+            <strong>Note:</strong> Hero Banner, Categories Grid, Mid-Page Ads, and Last Viewed sections
+            are shown automatically if not explicitly added here. Add them as sections only if you
             want to control their position or settings.
           </p>
         </CardContent>
@@ -533,18 +533,18 @@ const SectionsManager: React.FC = () => {
                 <div className="flex items-center gap-4">
                   {/* Reorder buttons */}
                   <div className="flex flex-col gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-6 w-6"
                       disabled={index === 0}
                       onClick={() => handleMoveSection(section.id, 'up')}
                     >
                       <ArrowUp className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-6 w-6"
                       disabled={index === sections.length - 1}
                       onClick={() => handleMoveSection(section.id, 'down')}
@@ -552,23 +552,23 @@ const SectionsManager: React.FC = () => {
                       <ArrowDown className="w-4 h-4" />
                     </Button>
                   </div>
-                  
+
                   {/* Section icon with optional color */}
-                  <div 
+                  <div
                     className="flex items-center justify-center gap-2 p-2 rounded"
-                    style={{ 
+                    style={{
                       backgroundColor: section.config?.background_color || 'transparent',
                       color: section.config?.background_color ? '#fff' : 'inherit'
                     }}
                   >
                     {getTypeIcon(section.type)}
                   </div>
-                  
+
                   <div className="flex-1">
                     <h4 className="font-medium flex items-center gap-2">
                       {section.title}
                       {section.config?.background_color && (
-                        <span 
+                        <span
                           className="w-3 h-3 rounded-full border"
                           style={{ backgroundColor: section.config.background_color }}
                           title="Section color"
@@ -590,7 +590,7 @@ const SectionsManager: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     {section.type === 'manual' && (
                       <>
@@ -598,9 +598,9 @@ const SectionsManager: React.FC = () => {
                           <Package className="w-4 h-4 mr-1" />
                           Products
                         </Button>
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
+                        <Button
+                          variant="outline"
+                          size="icon"
                           onClick={() => window.open(`/section/${section.slug || section.id}`, '_blank')}
                           title="Preview Section Page"
                         >
@@ -631,8 +631,8 @@ const SectionsManager: React.FC = () => {
           <div className="space-y-4">
             <div>
               <Label>Section Title</Label>
-              <Input 
-                value={title} 
+              <Input
+                value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Featured Products"
               />
@@ -669,8 +669,8 @@ const SectionsManager: React.FC = () => {
                     <SelectItem key={color.value || 'default'} value={color.value}>
                       <span className="flex items-center gap-2">
                         {color.value && (
-                          <span 
-                            className="w-4 h-4 rounded-full border" 
+                          <span
+                            className="w-4 h-4 rounded-full border"
                             style={{ backgroundColor: color.value }}
                           />
                         )}
@@ -698,7 +698,7 @@ const SectionsManager: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Manage Products - {editingSection?.title}</DialogTitle>
           </DialogHeader>
-          
+
           <div className="flex-1 overflow-auto space-y-4">
             {/* Current products in section */}
             <div>
@@ -717,8 +717,8 @@ const SectionsManager: React.FC = () => {
                 <div className="space-y-2 max-h-48 overflow-auto">
                   {sectionProducts.map((sp) => (
                     <div key={sp.id} className="flex items-center gap-3 p-2 border rounded-lg">
-                      <img 
-                        src={sp.product?.image_url || '/placeholder.svg'} 
+                      <img
+                        src={sp.product?.image_url || '/placeholder.svg'}
                         alt={sp.product?.name}
                         className="w-12 h-12 object-cover rounded"
                       />
@@ -750,8 +750,8 @@ const SectionsManager: React.FC = () => {
                     <div key={product.id} className="flex items-center gap-3 p-2 border rounded-lg hover:bg-accent cursor-pointer"
                       onClick={() => handleAddProductToSection(product.id)}
                     >
-                      <img 
-                        src={product.image_url || '/placeholder.svg'} 
+                      <img
+                        src={product.image_url || '/placeholder.svg'}
                         alt={product.name}
                         className="w-12 h-12 object-cover rounded"
                       />
