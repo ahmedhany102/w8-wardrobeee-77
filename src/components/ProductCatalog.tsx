@@ -48,6 +48,8 @@ const ProductCatalog: React.FC = () => {
     childCategoryIds: isParentCategory ? childCategoryIds : undefined
   });
 
+  
+
   // Fetch all variants in bulk for all products
   const productIds = React.useMemo(() => products.map(p => p.id), [products]);
   const { variantsByProduct } = useBulkProductVariants(productIds);
@@ -58,8 +60,8 @@ const ProductCatalog: React.FC = () => {
     setInternalSelectedCategoryId(categoryId);
     handleCategoryFilter(categoryId);
   };
+  
 
-  // Convert cart items to the format expected by ShoppingCartDialog
   const cartForDialog = cartItems.map(item => ({
     product: {
       id: item.productId,
