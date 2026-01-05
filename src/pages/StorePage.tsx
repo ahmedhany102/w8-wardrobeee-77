@@ -18,18 +18,22 @@ const StorePage = () => {
   const { vendor, loading: vendorLoading, error: vendorError } = useVendorBySlug(vendorSlug);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+
   const { products, loading: productsLoading } = useVendorProducts(
     vendor?.id,
-    selectedCategory,
+    selectedSubcategory || selectedCategory,  // Use subcategory if selected, else parent
     searchQuery
   );
-  const { categories } = useVendorCategories(vendor?.id);
-  
+  const { mainCategories, subcategories } = useVendorCategories(vendor?.id);
+
+  // Get child categories when parent is selected
+  const childCategories = selectedCategory ? subcategories(selectedCategory) : [];
+
   // Vendor-specific sections
   const { products: bestSellers, loading: bestSellersLoading } = useBestSellers(vendor?.id, 12);
   const { products: lastViewed, loading: lastViewedLoading } = useLastViewed(vendor?.id, 10);
-  
+
   // Vendor ads
   const { ads: vendorAds } = useVendorAds(vendor?.id);
 
@@ -100,15 +104,15 @@ const StorePage = () => {
       {/* 1. Store Cover (Banner) - Layer 0 */}
       <div className="relative z-0 w-full h-48 md:h-64 bg-gradient-to-br from-primary/30 to-primary/10 overflow-hidden">
         {vendor.cover_url ? (
-          <img 
-            src={vendor.cover_url} 
+          <img
+            src={vendor.cover_url}
             alt={`${vendor.name} cover`}
             className="w-full h-full object-cover"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20" />
         )}
-        
+
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
 
@@ -122,18 +126,18 @@ const StorePage = () => {
           <Share2 className="w-4 h-4" />
         </Button>
       </div>
-      
+
       {/* 2. Container (Holds Content) - Layer 10 */}
       <div className="relative z-10 container mx-auto px-4">
-        
+
         {/* 3. Store Header */}
         <div className="relative -mt-16 mb-8 flex flex-col sm:flex-row items-center sm:items-end gap-4">
-          
+
           {/* Vendor Logo */}
           <div className="shrink-0 w-28 h-28 rounded-full bg-background border-4 border-background shadow-lg flex items-center justify-center overflow-hidden z-20">
             {vendor.logo_url ? (
-              <img 
-                src={vendor.logo_url} 
+              <img
+                src={vendor.logo_url}
                 alt={vendor.name}
                 // التعديل هنا: object-contain بدل object-cover
                 // وضفنا p-1 عشان الصورة تاخد راحتها وماتلزقش في الحواف
@@ -143,7 +147,7 @@ const StorePage = () => {
               <Store className="w-12 h-12 text-primary" />
             )}
           </div>
-          
+
           {/* Vendor Info */}
           <div className="text-center sm:text-right pb-2 flex-1">
             <h1 className="text-2xl md:text-3xl font-bold">{vendor.name}</h1>
@@ -155,7 +159,7 @@ const StorePage = () => {
             </p>
           </div>
         </div>
-        
+
         {/* Store Controls Row */}
         <div className="mb-8 space-y-4">
           {/* Search Input */}
@@ -169,49 +173,79 @@ const StorePage = () => {
               className="pr-10"
             />
           </div>
-          
-          {/* Category Filters */}
-          {categories.length > 0 && (
+
+          {/* Category Filters - Root categories only */}
+          {mainCategories.length > 0 && (
             <div className="flex flex-wrap gap-2">
               <Button
                 variant={selectedCategory === null ? "default" : "outline"}
                 size="sm"
-                onClick={() => setSelectedCategory(null)}
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSelectedSubcategory(null);
+                }}
               >
                 <Package className="w-4 h-4 ml-1" />
                 الكل
               </Button>
-              {categories.map((category) => (
+              {mainCategories.map((category) => (
                 <Button
                   key={category.id}
                   variant={selectedCategory === category.id ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSelectedCategory(category.id)}
+                  onClick={() => {
+                    setSelectedCategory(category.id);
+                    setSelectedSubcategory(null);
+                  }}
                 >
                   {category.name}
                 </Button>
               ))}
             </div>
           )}
+
+          {/* Subcategory Tabs - shown when parent category is selected */}
+          {selectedCategory && childCategories.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2 pr-4">
+              <span className="text-sm text-muted-foreground self-center">الفئات الفرعية:</span>
+              <Button
+                variant={!selectedSubcategory ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setSelectedSubcategory(null)}
+              >
+                الكل
+              </Button>
+              {childCategories.map((sub) => (
+                <Button
+                  key={sub.id}
+                  variant={selectedSubcategory === sub.id ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setSelectedSubcategory(sub.id)}
+                >
+                  {sub.name}
+                </Button>
+              ))}
+            </div>
+          )}
         </div>
-        
+
         {/* Vendor Ads - Top Position (0-9) */}
         {!searchQuery && !selectedCategory && (() => {
           const topAds = vendorAds.filter(ad => ad.position < 10);
           if (topAds.length === 0) return null;
-          
+
           return (
             <div className="mb-8 space-y-4">
               {topAds.map((ad) => (
-                <a 
+                <a
                   key={ad.id}
                   href={ad.redirect_url || '#'}
                   target={ad.redirect_url ? '_blank' : undefined}
                   rel="noopener noreferrer"
                   className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
                 >
-                  <img 
-                    src={ad.image_url} 
+                  <img
+                    src={ad.image_url}
                     alt={ad.title || 'Store advertisement'}
                     className="w-full h-32 md:h-48 object-cover"
                   />
@@ -220,7 +254,7 @@ const StorePage = () => {
             </div>
           );
         })()}
-        
+
         {/* Best Seller Section - Only show when no filters active */}
         {!searchQuery && !selectedCategory && bestSellers.length > 0 && (
           <div className="mb-8">
@@ -231,24 +265,24 @@ const StorePage = () => {
             />
           </div>
         )}
-        
+
         {/* Vendor Mid-Page Ads - Position 10-19 (between Best Sellers and Last Viewed) */}
         {!searchQuery && !selectedCategory && (() => {
           const midAds = vendorAds.filter(ad => ad.position >= 10 && ad.position < 20);
           if (midAds.length === 0) return null;
-          
+
           return (
             <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
               {midAds.map((ad) => (
-                <a 
+                <a
                   key={ad.id}
                   href={ad.redirect_url || '#'}
                   target={ad.redirect_url ? '_blank' : undefined}
                   rel="noopener noreferrer"
                   className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
                 >
-                  <img 
-                    src={ad.image_url} 
+                  <img
+                    src={ad.image_url}
                     alt={ad.title || 'Store advertisement'}
                     className="w-full h-40 md:h-48 object-cover"
                   />
@@ -257,7 +291,7 @@ const StorePage = () => {
             </div>
           );
         })()}
-        
+
         {/* Last Viewed Section - Only show when no filters active */}
         {!searchQuery && !selectedCategory && lastViewed.length > 0 && (
           <div className="mb-8">
@@ -268,14 +302,18 @@ const StorePage = () => {
             />
           </div>
         )}
-        
+
         {/* Products Grid */}
         <div className="mb-4">
           <h2 className="text-xl font-bold mb-4">
-            {selectedCategory ? categories.find(c => c.id === selectedCategory)?.name || 'Products' : 'All Products'}
+            {selectedSubcategory
+              ? childCategories.find(c => c.id === selectedSubcategory)?.name || 'Products'
+              : selectedCategory
+                ? mainCategories.find(c => c.id === selectedCategory)?.name || 'Products'
+                : 'All Products'}
           </h2>
         </div>
-        
+
         {productsLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -286,18 +324,18 @@ const StorePage = () => {
           <div className="text-center py-12">
             <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-lg font-semibold mb-2">
-              {searchQuery || selectedCategory 
-                ? 'No matching products' 
+              {searchQuery || selectedCategory
+                ? 'No matching products'
                 : 'No products in this store yet'}
             </h2>
             <p className="text-muted-foreground mb-4">
-              {searchQuery || selectedCategory 
+              {searchQuery || selectedCategory
                 ? 'Try changing your search criteria'
                 : 'Products will be added soon'}
             </p>
             {(searchQuery || selectedCategory) && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory(null);
@@ -310,8 +348,8 @@ const StorePage = () => {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6 pb-8">
             {products.map((product) => (
-              <ProductCard 
-                key={product.id} 
+              <ProductCard
+                key={product.id}
                 product={product}
                 onAddToCart={handleAddToCart}
               />
