@@ -37,6 +37,13 @@ const StorePage = () => {
   // Vendor ads
   const { ads: vendorAds } = useVendorAds(vendor?.id);
 
+  // Compute ads ONCE, OUTSIDE JSX (no magic number ranges)
+  const topAd = vendorAds.find(ad => ad.position === 0);
+  const middleAds = vendorAds.filter(ad => ad.position === 10);
+
+  // Check if filters are active (hides promotional sections)
+  const hasFiltersActive = !!(searchQuery || selectedCategory);
+
   const handleAddToCart = async (product: any, size: string, quantity?: number) => {
     navigate(`/product/${product.id}`);
   };
@@ -229,77 +236,76 @@ const StorePage = () => {
           )}
         </div>
 
-        {/* Vendor Ads - Top Position (0-9) */}
-        {!searchQuery && !selectedCategory && (() => {
-          const topAds = vendorAds.filter(ad => ad.position < 10);
-          if (topAds.length === 0) return null;
-
-          return (
-            <div className="mb-8 space-y-4">
-              {topAds.map((ad) => (
+        {/*
+          =============================================
+          MARKETING SECTIONS - SINGLE RENDER GATE
+          =============================================
+          All sections controlled by ONE condition: !hasFiltersActive
+          Layout order: TOP_AD → BEST_SELLERS → MIDDLE_ADS → RECENTLY_VIEWED
+        */}
+        {!hasFiltersActive && (
+          <div className="marketing-sections">
+            {/* TOP AD - Single banner */}
+            {topAd && (
+              <div className="mb-8">
                 <a
-                  key={ad.id}
-                  href={ad.redirect_url || '#'}
-                  target={ad.redirect_url ? '_blank' : undefined}
+                  href={topAd.redirect_url || '#'}
+                  target={topAd.redirect_url ? '_blank' : undefined}
                   rel="noopener noreferrer"
                   className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
                 >
                   <img
-                    src={ad.image_url}
-                    alt={ad.title || 'Store advertisement'}
+                    src={topAd.image_url}
+                    alt={topAd.title || 'Store advertisement'}
                     className="w-full h-32 md:h-48 object-cover"
                   />
                 </a>
-              ))}
-            </div>
-          );
-        })()}
+              </div>
+            )}
 
-        {/* Best Seller Section - Only show when no filters active */}
-        {!searchQuery && !selectedCategory && bestSellers.length > 0 && (
-          <div className="mb-8">
-            <ProductCarousel
-              title="Best Sellers"
-              products={bestSellers}
-              loading={bestSellersLoading}
-            />
-          </div>
-        )}
+            {/* BEST SELLERS */}
+            {bestSellers.length > 0 && (
+              <div className="mb-8">
+                <ProductCarousel
+                  title="Best Sellers"
+                  products={bestSellers}
+                  loading={bestSellersLoading}
+                  showMoreLink="/best-sellers"
+                />
+              </div>
+            )}
 
-        {/* Vendor Mid-Page Ads - Position 10-19 (between Best Sellers and Last Viewed) */}
-        {!searchQuery && !selectedCategory && (() => {
-          const midAds = vendorAds.filter(ad => ad.position >= 10 && ad.position < 20);
-          if (midAds.length === 0) return null;
+            {/* MIDDLE ADS - Grid of max 2 */}
+            {middleAds.length > 0 && (
+              <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {middleAds.map((ad) => (
+                  <a
+                    key={ad.id}
+                    href={ad.redirect_url || '#'}
+                    target={ad.redirect_url ? '_blank' : undefined}
+                    rel="noopener noreferrer"
+                    className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                  >
+                    <img
+                      src={ad.image_url}
+                      alt={ad.title || 'Store advertisement'}
+                      className="w-full h-40 md:h-48 object-cover"
+                    />
+                  </a>
+                ))}
+              </div>
+            )}
 
-          return (
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {midAds.map((ad) => (
-                <a
-                  key={ad.id}
-                  href={ad.redirect_url || '#'}
-                  target={ad.redirect_url ? '_blank' : undefined}
-                  rel="noopener noreferrer"
-                  className="block w-full rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-                >
-                  <img
-                    src={ad.image_url}
-                    alt={ad.title || 'Store advertisement'}
-                    className="w-full h-40 md:h-48 object-cover"
-                  />
-                </a>
-              ))}
-            </div>
-          );
-        })()}
-
-        {/* Last Viewed Section - Only show when no filters active */}
-        {!searchQuery && !selectedCategory && lastViewed.length > 0 && (
-          <div className="mb-8">
-            <ProductCarousel
-              title="Recently Viewed"
-              products={lastViewed}
-              loading={lastViewedLoading}
-            />
+            {/* RECENTLY VIEWED */}
+            {lastViewed.length > 0 && (
+              <div className="mb-8">
+                <ProductCarousel
+                  title="Recently Viewed"
+                  products={lastViewed}
+                  loading={lastViewedLoading}
+                />
+              </div>
+            )}
           </div>
         )}
 
