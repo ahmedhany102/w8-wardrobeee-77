@@ -23,9 +23,9 @@ const CategoryGridSection: React.FC<{ config: Section['config']; onCategorySelec
   return <CategoryGrid limit={config.limit || 10} onCategorySelect={onCategorySelect} />;
 };
 
-const BestSellerSection: React.FC<{ config: Section['config']; vendorId?: string; sectionSlug?: string }> = ({ config, vendorId, sectionSlug }) => {
+const BestSellerSection: React.FC<{ section: Section; config: Section['config']; vendorId?: string }> = ({ section, config, vendorId }) => {
   const { products, loading } = useBestSellers(vendorId, config.limit || 12);
-  
+
   return (
     <ProductCarousel
       title="Best Sellers"
@@ -33,14 +33,14 @@ const BestSellerSection: React.FC<{ config: Section['config']; vendorId?: string
       loading={loading}
       variant="best_seller"
       icon={<Star className="w-5 h-5" fill="currentColor" />}
-      showMoreLink={vendorId ? undefined : "/best-sellers"}
+      showMoreLink={vendorId ? undefined : `/section/${section.slug || section.id}`}
     />
   );
 };
 
-const HotDealsSection: React.FC<{ config: Section['config']; vendorId?: string }> = ({ config, vendorId }) => {
+const HotDealsSection: React.FC<{ section: Section; config: Section['config']; vendorId?: string }> = ({ section, config, vendorId }) => {
   const { products, loading } = useHotDeals(vendorId, config.limit || 12);
-  
+
   return (
     <ProductCarousel
       title="Hot Deals 🔥"
@@ -48,7 +48,7 @@ const HotDealsSection: React.FC<{ config: Section['config']; vendorId?: string }
       loading={loading}
       variant="hot_deals"
       icon={<Flame className="w-5 h-5" />}
-      showMoreLink={vendorId ? undefined : "/hot-deals"}
+      showMoreLink={vendorId ? undefined : `/section/${section.slug || section.id}`}
     />
   );
 };
@@ -57,10 +57,10 @@ const HotDealsSection: React.FC<{ config: Section['config']; vendorId?: string }
 const LastViewedSection: React.FC<{ config: Section['config']; vendorId?: string }> = ({ config, vendorId }) => {
   const { user } = useAuth();
   const { products, loading } = useLastViewed(vendorId, config.limit || 10);
-  
+
   // Don't show if not logged in or no products
   if (!user || (!loading && products.length === 0)) return null;
-  
+
   return (
     <ProductCarousel
       title="Recently Viewed"
@@ -71,18 +71,18 @@ const LastViewedSection: React.FC<{ config: Section['config']; vendorId?: string
   );
 };
 
-const CategoryProductsSection: React.FC<{ config: Section['config']; vendorId?: string }> = ({ config, vendorId }) => {
+const CategoryProductsSection: React.FC<{ section: Section; config: Section['config']; vendorId?: string }> = ({ section, config, vendorId }) => {
   const { products, loading } = useCategoryProducts(config.category_id || '', vendorId, config.limit || 12);
-  
+
   if (!config.category_id) return null;
-  
+
   return (
     <ProductCarousel
       title="Category Products"
       products={products}
       loading={loading}
       icon={<Tag className="w-5 h-5" />}
-      showMoreLink={vendorId ? undefined : `/category/${config.category_id}`}
+      showMoreLink={vendorId ? undefined : `/section/${section.slug || section.id}`}
     />
   );
 };
@@ -90,7 +90,7 @@ const CategoryProductsSection: React.FC<{ config: Section['config']; vendorId?: 
 const ManualSection: React.FC<{ section: Section }> = ({ section }) => {
   const { products, loading } = useSectionProducts(section.id, section.config.limit || 12);
   const backgroundColor = section.config?.background_color;
-  
+
   return (
     <ProductCarousel
       title={section.title}
@@ -107,28 +107,28 @@ const SectionRenderer: React.FC<SectionRendererProps> = ({ section, vendorId, on
   switch (section.type) {
     case 'hero_carousel':
       return <HeroCarouselSection />;
-    
+
     case 'category_grid':
       return <CategoryGridSection config={section.config} onCategorySelect={onCategorySelect} />;
-    
+
     case 'best_seller':
-      return <BestSellerSection config={section.config} vendorId={vendorId} />;
-    
+      return <BestSellerSection section={section} config={section.config} vendorId={vendorId} />;
+
     case 'hot_deals':
-      return <HotDealsSection config={section.config} vendorId={vendorId} />;
-    
+      return <HotDealsSection section={section} config={section.config} vendorId={vendorId} />;
+
     case 'last_viewed':
       return <LastViewedSection config={section.config} vendorId={vendorId} />;
-    
+
     case 'category_products':
-      return <CategoryProductsSection config={section.config} vendorId={vendorId} />;
-    
+      return <CategoryProductsSection section={section} config={section.config} vendorId={vendorId} />;
+
     case 'manual':
       return <ManualSection section={section} />;
-    
+
     case 'mid_page_ads':
       return <MidPageAds className="my-6" />;
-    
+
     default:
       return null;
   }
