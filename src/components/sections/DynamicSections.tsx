@@ -23,7 +23,7 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
 }) => {
   const { user } = useAuth();
   const { sections, loading } = useSections(scope, vendorId);
-  
+
   // Fallback data hooks - always loaded for potential use
   const { products: bestSellers, loading: bestSellersLoading } = useBestSellers(vendorId, 12);
   const { products: hotDeals, loading: hotDealsLoading } = useHotDeals(vendorId, 12);
@@ -34,7 +34,7 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
       <div className="space-y-8">
         {/* Hero skeleton */}
         <Skeleton className="h-48 md:h-64 lg:h-80 w-full rounded-lg" />
-        
+
         {/* Categories skeleton */}
         <div>
           <Skeleton className="h-6 w-32 mb-4" />
@@ -70,7 +70,7 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
   const hasLastViewed = sections.some(s => s.type === 'last_viewed');
 
   // Get sections that display products/content (excluding fixed position elements)
-  const productSections = sections.filter(s => 
+  const productSections = sections.filter(s =>
     !['hero_carousel', 'category_grid', 'mid_page_ads'].includes(s.type)
   );
 
@@ -132,7 +132,7 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
             loading={bestSellersLoading}
             variant="best_seller"
             icon={<Star className="w-5 h-5" fill="currentColor" />}
-            showMoreLink="/best-sellers"
+            showMoreLink="/section/best-sellers"
           />
         </section>
       )}
@@ -172,7 +172,7 @@ const DynamicSections: React.FC<DynamicSectionsProps> = ({
             loading={hotDealsLoading}
             variant="hot_deals"
             icon={<Flame className="w-5 h-5" />}
-            showMoreLink="/hot-deals"
+            showMoreLink="/section/hot-deals"
           />
         </section>
       )}
